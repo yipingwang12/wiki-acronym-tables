@@ -1,0 +1,7 @@
+award_name: "Nobel Prize in Literature"
+page: "Nobel Prize in Literature"
+table_cols:
+  year: 0
+  name: 1
+chunk_years: 5
+chunk_start_year: 1901
