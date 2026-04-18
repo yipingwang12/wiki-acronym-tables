@@ -3,14 +3,19 @@ from __future__ import annotations
 import pytest
 from wiki_acronyms.quiz import (
     CONFUSABLES,
+    DIGIT_CONFUSABLES,
     AcronymDisplay,
+    DigitDisplay,
     LineDisplay,
     _alpha_indices,
     _two_letter_display,
     make_acronym_display,
+    make_digit_display,
     make_line_display,
     pick_confusable,
+    pick_digit_confusable,
     score_acronym_response,
+    score_digit_response,
     score_response,
 )
 
@@ -239,4 +244,70 @@ def test_score_acronym_false_alarm():
 def test_score_acronym_correct_rejection():
     d = AcronymDisplay("...", has_wrong=False, wrong_letters=[])
     correct, _ = score_acronym_response(d, set())
+    assert correct
+
+
+# --- pick_digit_confusable ---
+
+def test_pick_digit_confusable_differs_from_input():
+    for d in '0123456789':
+        assert pick_digit_confusable(d) != d
+
+
+def test_pick_digit_confusable_stays_within_dict():
+    results = {pick_digit_confusable('6') for _ in range(50)}
+    assert results <= set(DIGIT_CONFUSABLES['6'])
+
+
+# --- make_digit_display ---
+
+def test_make_digit_display_no_wrong_at_prob_zero():
+    result = make_digit_display("19428", wrong_prob=0.0)
+    assert not result.has_wrong
+    assert result.wrong_digits == []
+
+
+def test_make_digit_display_always_wrong_at_prob_one():
+    result = make_digit_display("19428", wrong_prob=1.0)
+    assert result.has_wrong
+    assert result.wrong_digits == [1, 2, 3, 4, 5]
+
+
+def test_make_digit_display_count():
+    result = make_digit_display("194", wrong_prob=0.0)
+    assert "1:" in result.display
+    assert "2:" in result.display
+    assert "3:" in result.display
+
+
+def test_make_digit_display_wrong_in_valid_range():
+    result = make_digit_display("19428", wrong_prob=1.0)
+    assert all(1 <= d <= 5 for d in result.wrong_digits)
+
+
+# --- score_digit_response ---
+
+def test_score_digit_hit():
+    d = DigitDisplay("...", has_wrong=True, wrong_digits=[3])
+    correct, _ = score_digit_response(d, {3})
+    assert correct
+
+
+def test_score_digit_miss():
+    d = DigitDisplay("...", has_wrong=True, wrong_digits=[3])
+    correct, msg = score_digit_response(d, set())
+    assert not correct
+    assert "3" in msg
+
+
+def test_score_digit_false_alarm():
+    d = DigitDisplay("...", has_wrong=False, wrong_digits=[])
+    correct, msg = score_digit_response(d, {2})
+    assert not correct
+    assert "false alarm" in msg.lower()
+
+
+def test_score_digit_correct_rejection():
+    d = DigitDisplay("...", has_wrong=False, wrong_digits=[])
+    correct, _ = score_digit_response(d, set())
     assert correct

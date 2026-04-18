@@ -82,9 +82,19 @@ def test_acronym_quiz_get_returns_200(acronym_client):
     assert acronym_client.get('/quiz').status_code == 200
 
 
-def test_acronym_quiz_shows_single_letters(acronym_client):
+def test_acronym_quiz_shows_letter_hint(acronym_client):
     resp = acronym_client.get('/quiz')
     assert b'letter' in resp.data
+
+
+def test_digits_mode_shows_digit_hint():
+    from wiki_acronyms.web_app import create_app
+    app = create_app(['194'], 'Test', wrong_prob=0.0, mode='digits', item_labels=['800\u2013899'])
+    app.config['TESTING'] = True
+    client = app.test_client()
+    resp = client.get('/quiz')
+    assert b'digit' in resp.data
+    assert b'800' in resp.data  # century label shown
 
 
 def test_acronym_correct_answer_advances_line(acronym_client):

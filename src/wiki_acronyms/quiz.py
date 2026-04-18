@@ -6,6 +6,19 @@ import random
 import re
 from dataclasses import dataclass
 
+DIGIT_CONFUSABLES: dict[str, list[str]] = {
+    '0': ['8', '6'],
+    '1': ['7', '4'],
+    '2': ['7', '3'],
+    '3': ['8', '2'],
+    '4': ['1', '9'],
+    '5': ['6', '3'],
+    '6': ['9', '0'],
+    '7': ['1', '2'],
+    '8': ['3', '0'],
+    '9': ['6', '4'],
+}
+
 CONFUSABLES: dict[str, list[str]] = {
     'a': ['e', 'o', 'u'],
     'b': ['d', 'p', 'q', 'h'],
@@ -34,6 +47,12 @@ CONFUSABLES: dict[str, list[str]] = {
     'y': ['v', 'j'],
     'z': ['s', 'x'],
 }
+
+
+def pick_digit_confusable(digit: str) -> str:
+    """Return a visually similar but different digit."""
+    options = DIGIT_CONFUSABLES.get(digit, [d for d in '0123456789' if d != digit])
+    return random.choice(options)
 
 
 def pick_confusable(ch: str) -> str:
@@ -161,4 +180,50 @@ def score_response(display: LineDisplay, user_words: set[int]) -> tuple[bool, st
     if false_alarms:
         w = sorted(false_alarms)
         parts.append(f"false alarm on word{'s' if len(w) > 1 else ''} {', '.join(map(str, w))}")
+    return False, '; '.join(parts).capitalize() + '.'
+
+
+@dataclass
+class DigitDisplay:
+    display: str
+    has_wrong: bool
+    wrong_digits: list[int]  # 1-based positions; empty when has_wrong is False
+
+
+def make_digit_display(transition_string: str, wrong_prob: float = 0.2) -> DigitDisplay:
+    """Build numbered digit display; each digit has wrong_prob chance of being a confusable."""
+    wrong_digits: list[int] = []
+    parts: list[str] = []
+
+    for i, digit in enumerate(transition_string):
+        has_wrong = random.random() < wrong_prob
+        shown = pick_digit_confusable(digit) if has_wrong else digit
+        if has_wrong:
+            wrong_digits.append(i + 1)
+        parts.append(f"{i+1}:{shown}")
+
+    return DigitDisplay(
+        display='  '.join(parts),
+        has_wrong=bool(wrong_digits),
+        wrong_digits=wrong_digits,
+    )
+
+
+def score_digit_response(display: DigitDisplay, user_digits: set[int]) -> tuple[bool, str]:
+    """Score user's answer. user_digits: 1-based positions claimed to have wrong digits."""
+    actual = set(display.wrong_digits)
+    missed = actual - user_digits
+    false_alarms = user_digits - actual
+    correct = not missed and not false_alarms
+
+    if correct:
+        return True, "Correct!" if actual else "Correct — no wrong digits."
+
+    parts = []
+    if missed:
+        w = sorted(missed)
+        parts.append(f"missed digit{'s' if len(w) > 1 else ''} {', '.join(map(str, w))}")
+    if false_alarms:
+        w = sorted(false_alarms)
+        parts.append(f"false alarm on digit{'s' if len(w) > 1 else ''} {', '.join(map(str, w))}")
     return False, '; '.join(parts).capitalize() + '.'
