@@ -1,7 +1,4 @@
 award_name: "Turing Award"
-page: "Turing Award"
-table_cols:
-  year: 0
-  name: 1
+wikidata_item: "Q185667"
 chunk_years: 5
 chunk_start_year: 1966

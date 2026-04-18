@@ -17,6 +17,7 @@ dev = ["pytest"]
 
 [project.scripts]
 wiki-acronym-tables = "wiki_acronyms.cli:main"
+wiki-poetry = "wiki_acronyms.poetry_cli:main"
 
 [tool.setuptools.packages.find]
 where = ["src"]

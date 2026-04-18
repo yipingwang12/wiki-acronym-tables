@@ -1,7 +1,5 @@
 award_name: "Nobel Prize in Literature"
-page: "Nobel Prize in Literature"
-table_cols:
-  year: 0
-  name: 1
+wikidata_item: "Q37922"
 chunk_years: 5
 chunk_start_year: 1901
+first_letter_only_from: 1971

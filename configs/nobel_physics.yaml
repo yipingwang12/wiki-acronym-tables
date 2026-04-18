@@ -1,7 +1,4 @@
 award_name: "Nobel Prize in Physics"
-page: "Nobel Prize in Physics"
-table_cols:
-  year: 0
-  name: 1
+wikidata_item: "Q38104"
 chunk_years: 5
 chunk_start_year: 1901

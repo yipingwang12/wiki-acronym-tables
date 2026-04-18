@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 
-from .acronym import chunk_acronym
+from .acronym import name_initials
 from .list_parser import Entry
 
 
@@ -20,6 +20,7 @@ def make_chunks(
     entries: list[Entry],
     chunk_years: int = 5,
     chunk_start_year: int | None = None,
+    first_letter_only_from: int | None = None,
 ) -> list[Chunk]:
     """Group entries into year-range chunks of chunk_years width.
 
@@ -42,11 +43,18 @@ def make_chunks(
         chunk_end = chunk_start + chunk_years - 1
         bucket = [e for e in entries if chunk_start <= e.year <= chunk_end]
         if bucket:
+            acronym = "".join(
+                name_initials(
+                    e.name,
+                    first_only=first_letter_only_from is not None and e.year >= first_letter_only_from,
+                )
+                for e in bucket
+            )
             chunks.append(Chunk(
                 start_year=chunk_start,
                 end_year=chunk_end,
                 entries=bucket,
-                acronym=chunk_acronym([e.name for e in bucket]),
+                acronym=acronym,
             ))
         n += 1
 

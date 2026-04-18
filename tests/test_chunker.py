@@ -51,3 +51,17 @@ def test_no_entries():
 def test_default_start_year():
     chunks = make_chunks(_e((1966, "A B"), (1967, "C D")), chunk_years=5)
     assert chunks[0].start_year == 1966
+
+
+def test_first_letter_only_from_applies_after_threshold():
+    entries = _e((1969, "Aa Bb"), (1971, "Cc Dd"))
+    chunks = make_chunks(entries, chunk_years=5, chunk_start_year=1966, first_letter_only_from=1971)
+    assert len(chunks) == 2
+    assert chunks[0].acronym == "AB"   # 1969: full initials
+    assert chunks[1].acronym == "C"    # 1971: first letter only
+
+
+def test_first_letter_only_from_none_uses_full_initials():
+    entries = _e((1971, "Aa Bb"), (1972, "Cc Dd"))
+    chunks = make_chunks(entries, chunk_years=5, chunk_start_year=1971)
+    assert chunks[0].acronym == "ABCD"

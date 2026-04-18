@@ -17,14 +17,23 @@ def parse_entries(wikitext: str, year_col: int, name_col: int) -> list[Entry]:
     if not table:
         return []
     entries = []
+    last_year: int | None = None
     for row_block in _split_rows(table):
         cells = _parse_cells(row_block)
-        if len(cells) <= max(year_col, name_col):
+        # Year col may be absent (rowspan) — fall back to last known year
+        year = _parse_year(cells[year_col]) if len(cells) > year_col else None
+        rowspan = year is None  # year cell was merged into prior row
+        if year is not None:
+            last_year = year
+        elif last_year is None:
             continue
-        year = _parse_year(cells[year_col])
-        if year is None:
+        else:
+            year = last_year
+        # When year cell is absent, all columns shift left by one
+        effective_name_col = (name_col - 1) if rowspan else name_col
+        if len(cells) <= effective_name_col:
             continue
-        for name in _parse_names(cells[name_col]):
+        for name in _parse_names(cells[effective_name_col]):
             entries.append(Entry(year=year, name=name))
     return entries
 
@@ -64,7 +73,13 @@ def _parse_cells(row_block: str) -> list[str]:
     cells = []
     for line in row_block.splitlines():
         stripped = line.strip()
-        if not stripped or stripped.startswith("!") or stripped.startswith("|}") or stripped.startswith("|-"):
+        if not stripped or stripped.startswith("|}") or stripped.startswith("|-"):
+            continue
+        if stripped.startswith("!"):
+            # Row-header cells (e.g. `! scope="row" | Name`) are data; column headers have no `|`
+            rest = stripped[1:]
+            if "|" in rest:
+                cells.append(_strip_cell_attrs(rest))
             continue
         if stripped.startswith("|"):
             rest = stripped[1:]
@@ -124,8 +139,9 @@ def _strip_cell_attrs(cell: str) -> str:
 
 def _parse_year(cell: str) -> int | None:
     """Extract a 4-digit year integer from a cell."""
-    text = re.sub(r"\{\{[^}]*\}\}", "", cell)
-    text = re.sub(r"\[\[[^\]]*\]\]", "", text)
+    # Keep display text from wikilinks: [[Target|Label]] → Label, [[Target]] → Target
+    text = re.sub(r"\[\[(?:[^\]|]+\|)?([^\]]+)\]\]", r"\1", cell)
+    text = re.sub(r"\{\{[^}]*\}\}", "", text)
     m = re.search(r"\b(\d{4})\b", text)
     return int(m.group(1)) if m else None
 
@@ -143,6 +159,7 @@ def _parse_names(cell: str) -> list[str]:
             plain = re.sub(r"\{\{[^}]*\}\}", "", part)
             plain = re.sub(r"\[\[[^\]]*\]\]", "", plain)
             plain = re.sub(r"''+", "", plain).strip()
-            if plain:
+            # Skip parenthesised annotations like (1839–1907) or (b. 1959)
+            if plain and not plain.startswith("("):
                 names.append(plain)
     return [n for n in names if n]
