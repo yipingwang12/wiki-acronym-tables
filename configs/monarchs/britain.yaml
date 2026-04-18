@@ -1,0 +1,8 @@
+subject: "British Monarchs"
+positions:
+  - Q18810062   # monarch of England (pre-1707)
+  - Q110324075  # Monarch of Great Britain (1707-1801)
+  - Q111722535  # monarch of UK of Great Britain and Ireland (1801-1927)
+  - Q9134365    # monarch of the United Kingdom (1927-present)
+chunk_years: 100
+chunk_start_year: 800
