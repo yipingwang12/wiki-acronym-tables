@@ -11,7 +11,14 @@ _LINES = [
 
 @pytest.fixture
 def client():
-    app = create_app(_LINES, 'Test Poem', wrong_prob=0.0)
+    app = create_app(_LINES, 'Test Poem', wrong_prob=0.0, mode='words')
+    app.config['TESTING'] = True
+    return app.test_client()
+
+
+@pytest.fixture
+def acronym_client():
+    app = create_app(_LINES, 'Test Poem', wrong_prob=0.0, mode='acronym')
     app.config['TESTING'] = True
     return app.test_client()
 
@@ -31,7 +38,7 @@ def test_quiz_shows_title(client):
 
 
 def test_quiz_shows_word_display(client):
-    assert b'word-card' in client.get('/quiz').data
+    assert b'token-card' in client.get('/quiz').data
 
 
 def test_correct_answer_advances_line(client):
@@ -67,3 +74,28 @@ def test_completion_page_shown(client):
         sess['display'] = None
     resp = client.get('/quiz')
     assert b'Complete' in resp.data
+
+
+# --- acronym mode ---
+
+def test_acronym_quiz_get_returns_200(acronym_client):
+    assert acronym_client.get('/quiz').status_code == 200
+
+
+def test_acronym_quiz_shows_single_letters(acronym_client):
+    resp = acronym_client.get('/quiz')
+    assert b'letter' in resp.data
+
+
+def test_acronym_correct_answer_advances_line(acronym_client):
+    acronym_client.get('/quiz')
+    acronym_client.post('/quiz', data={'answer': ''})  # wrong_prob=0 → no wrong letters
+    with acronym_client.session_transaction() as sess:
+        assert sess['line_idx'] == 1
+
+
+def test_acronym_false_alarm_decrements_health(acronym_client):
+    acronym_client.get('/quiz')
+    acronym_client.post('/quiz', data={'answer': '1'})
+    with acronym_client.session_transaction() as sess:
+        assert sess['health'] == 9

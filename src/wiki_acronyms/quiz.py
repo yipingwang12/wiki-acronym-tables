@@ -1,8 +1,9 @@
-"""Blindman's bluff quiz: given line acronym + one revealed letter, spot the wrong word."""
+"""Quiz logic: blindman's bluff (word display) and acronym-letter modes."""
 
 from __future__ import annotations
 
 import random
+import re
 from dataclasses import dataclass
 
 CONFUSABLES: dict[str, list[str]] = {
@@ -91,6 +92,56 @@ def make_line_display(line: str, wrong_prob: float = 0.15) -> LineDisplay:
         has_wrong=bool(wrong_words),
         wrong_words=wrong_words,
     )
+
+
+@dataclass
+class AcronymDisplay:
+    display: str
+    has_wrong: bool
+    wrong_letters: list[int]  # 1-based positions; empty when has_wrong is False
+
+
+def make_acronym_display(line: str, wrong_prob: float = 0.2) -> AcronymDisplay:
+    """Build acronym display; each letter has wrong_prob chance of being a confusable."""
+    wrong_letters: list[int] = []
+    parts: list[str] = []
+
+    for i, word in enumerate(line.split()):
+        clean = re.sub(r'^[^a-zA-Z]+', '', word)
+        if not clean:
+            continue
+        actual_ch = clean[0]
+        has_wrong = random.random() < wrong_prob
+        shown_ch = pick_confusable(actual_ch) if has_wrong else actual_ch
+        if has_wrong:
+            wrong_letters.append(i + 1)
+        parts.append(f"{i+1}:{shown_ch}")
+
+    return AcronymDisplay(
+        display='  '.join(parts),
+        has_wrong=bool(wrong_letters),
+        wrong_letters=wrong_letters,
+    )
+
+
+def score_acronym_response(display: AcronymDisplay, user_letters: set[int]) -> tuple[bool, str]:
+    """Score user's answer. user_letters: 1-based positions claimed to have wrong letters."""
+    actual = set(display.wrong_letters)
+    missed = actual - user_letters
+    false_alarms = user_letters - actual
+    correct = not missed and not false_alarms
+
+    if correct:
+        return True, "Correct!" if actual else "Correct — no wrong letters."
+
+    parts = []
+    if missed:
+        w = sorted(missed)
+        parts.append(f"missed letter{'s' if len(w) > 1 else ''} {', '.join(map(str, w))}")
+    if false_alarms:
+        w = sorted(false_alarms)
+        parts.append(f"false alarm on letter{'s' if len(w) > 1 else ''} {', '.join(map(str, w))}")
+    return False, '; '.join(parts).capitalize() + '.'
 
 
 def score_response(display: LineDisplay, user_words: set[int]) -> tuple[bool, str]:

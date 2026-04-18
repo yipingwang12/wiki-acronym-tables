@@ -3,11 +3,14 @@ from __future__ import annotations
 import pytest
 from wiki_acronyms.quiz import (
     CONFUSABLES,
+    AcronymDisplay,
     LineDisplay,
     _alpha_indices,
     _two_letter_display,
+    make_acronym_display,
     make_line_display,
     pick_confusable,
+    score_acronym_response,
     score_response,
 )
 
@@ -175,3 +178,65 @@ def test_score_multiple_false_alarms():
     correct, msg = score_response(d, {1, 3})
     assert not correct
     assert "false alarm" in msg.lower()
+
+
+# --- make_acronym_display ---
+
+def test_make_acronym_display_no_wrong_at_prob_zero():
+    result = make_acronym_display(_LINE, wrong_prob=0.0)
+    assert not result.has_wrong
+    assert result.wrong_letters == []
+
+
+def test_make_acronym_display_always_wrong_at_prob_one():
+    result = make_acronym_display(_LINE, wrong_prob=1.0)
+    assert result.has_wrong
+    assert len(result.wrong_letters) == len(_LINE.split())
+
+
+def test_make_acronym_display_letter_count():
+    line = "From fairest creatures"
+    result = make_acronym_display(line, wrong_prob=0.0)
+    assert "1:" in result.display
+    assert "2:" in result.display
+    assert "3:" in result.display
+
+
+def test_make_acronym_display_preserves_case():
+    result = make_acronym_display("From fairest", wrong_prob=0.0)
+    assert "1:F" in result.display
+    assert "2:f" in result.display
+
+
+def test_make_acronym_display_wrong_in_valid_range():
+    n = len(_LINE.split())
+    result = make_acronym_display(_LINE, wrong_prob=1.0)
+    assert all(1 <= w <= n for w in result.wrong_letters)
+
+
+# --- score_acronym_response ---
+
+def test_score_acronym_hit():
+    d = AcronymDisplay("...", has_wrong=True, wrong_letters=[2])
+    correct, _ = score_acronym_response(d, {2})
+    assert correct
+
+
+def test_score_acronym_miss():
+    d = AcronymDisplay("...", has_wrong=True, wrong_letters=[2])
+    correct, msg = score_acronym_response(d, set())
+    assert not correct
+    assert "2" in msg
+
+
+def test_score_acronym_false_alarm():
+    d = AcronymDisplay("...", has_wrong=False, wrong_letters=[])
+    correct, msg = score_acronym_response(d, {3})
+    assert not correct
+    assert "false alarm" in msg.lower()
+
+
+def test_score_acronym_correct_rejection():
+    d = AcronymDisplay("...", has_wrong=False, wrong_letters=[])
+    correct, _ = score_acronym_response(d, set())
+    assert correct

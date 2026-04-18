@@ -19,6 +19,7 @@ def main(argv=None) -> None:
     p.add_argument('--config', type=Path, required=True)
     p.add_argument('--poem', help='Poem title (for multi-poem configs)')
     p.add_argument('--wrong-prob', type=float, default=0.15)
+    p.add_argument('--mode', choices=['words', 'acronym'], default='words')
     p.add_argument('--port', type=int, default=5001)
     args = p.parse_args(argv)
 
@@ -36,7 +37,7 @@ def main(argv=None) -> None:
     title = pc['poem_title']
     lines = [l for l in extract_poem(text, pc['start_marker'], pc['end_marker']) if l is not None]
 
-    app = create_app(lines, title, args.wrong_prob)
+    app = create_app(lines, title, args.wrong_prob, args.mode)
 
     url = f'http://localhost:{args.port}'
     threading.Timer(1.0, lambda: webbrowser.open(url)).start()
