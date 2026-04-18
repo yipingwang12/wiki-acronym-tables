@@ -12,6 +12,7 @@ import yaml
 from .gutenberg import fetch_text
 from .logger import QuizLogger, config_hash
 from .poetry_parser import extract_poem
+from .srs import SRSScheduler
 from .web_app import create_app
 
 
@@ -44,6 +45,7 @@ def main(argv=None) -> None:
         logger=logger,
         config_path=str(args.config),
         cfg_hash=config_hash(args.config),
+        srs=SRSScheduler(logger),
     )
 
     url = f'http://localhost:{args.port}'

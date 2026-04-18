@@ -5,10 +5,12 @@ from __future__ import annotations
 import json
 import os
 import secrets
+import time
 
 from flask import Flask, flash, get_flashed_messages, redirect, render_template, request, session, url_for
 
 from .logger import QuizLogger
+from .srs import SRSScheduler
 from .quiz import (
     AcronymDisplay, DigitDisplay, LineDisplay,
     make_acronym_display, make_digit_display, make_line_display,
@@ -30,6 +32,7 @@ def create_app(
     logger: QuizLogger | None = None,
     config_path: str | None = None,
     cfg_hash: str | None = None,
+    srs: SRSScheduler | None = None,
 ) -> Flask:
     app = Flask(__name__, template_folder=_TEMPLATE_DIR)
     app.secret_key = secrets.token_hex(16)
@@ -93,6 +96,8 @@ def create_app(
             if not session.get('display'):
                 return redirect(url_for('quiz'))
 
+            response_secs = time.time() - session.get('display_time', time.time())
+            item_text = lines_[session['line_idx']]
             raw = request.form.get('answer', '').strip()
             user_pos: set[int] = set()
             if raw and raw != '0':
@@ -125,6 +130,8 @@ def create_app(
                     session['attempt_id'], raw, keystrokes,
                     sorted(user_pos), correct, session['health'],
                 )
+            if srs:
+                srs.review(item_text, mode_, response_secs, correct)
 
             if correct:
                 flash(feedback, 'correct')
@@ -145,6 +152,7 @@ def create_app(
 
         if session.get('display') is None:
             session['display'] = _build_display(lines_[line_idx], wrong_prob_, mode_)
+            session['display_time'] = time.time()
             label = labels_[line_idx] if labels_ and line_idx < len(labels_) else None
             if logger and session.get('log_sid'):
                 session['attempt_id'] = logger.log_display(

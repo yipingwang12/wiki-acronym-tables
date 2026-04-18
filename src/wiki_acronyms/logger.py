@@ -48,6 +48,12 @@ CREATE TABLE IF NOT EXISTS attempts (
 
 CREATE INDEX IF NOT EXISTS idx_attempts_item_key ON attempts(item_key);
 CREATE INDEX IF NOT EXISTS idx_attempts_session   ON attempts(session_id);
+
+CREATE TABLE IF NOT EXISTS srs_state (
+    item_key   TEXT PRIMARY KEY,
+    card_json  TEXT NOT NULL,
+    updated_at TEXT NOT NULL
+);
 """
 
 
@@ -126,6 +132,20 @@ class QuizLogger:
             (_now(), raw_input, json.dumps(keystrokes),
              json.dumps(sorted(user_positions)), int(correct), health_after,
              attempt_id),
+        )
+        self._conn.commit()
+
+    def get_card(self, item_key: str) -> str | None:
+        row = self._conn.execute(
+            'SELECT card_json FROM srs_state WHERE item_key=?', (item_key,)
+        ).fetchone()
+        return row[0] if row else None
+
+    def save_card(self, item_key: str, card_json: str) -> None:
+        self._conn.execute(
+            'INSERT INTO srs_state (item_key, card_json, updated_at) VALUES (?,?,?) '
+            'ON CONFLICT(item_key) DO UPDATE SET card_json=excluded.card_json, updated_at=excluded.updated_at',
+            (item_key, card_json, _now()),
         )
         self._conn.commit()
 
