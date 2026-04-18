@@ -42,18 +42,24 @@ def _run_poem(title: str, lines: list[str | None], wrong_prob: float) -> None:
         print(f"Line {i+1}/{len(text_lines)}  {_health_bar(health)}")
         print(f"\n  {d.display}\n")
 
-        raw = input("Wrong letter in word # (0 = none): ").strip()
-        try:
-            user_input = int(raw)
-        except ValueError:
-            print("Enter a number.\n")
-            continue
+        raw = input("Wrong letter in word(s) (space-separated, Enter = none): ").strip()
+        if not raw or raw == '0':
+            user_words: set[int] = set()
+        else:
+            try:
+                user_words = {int(x) for x in raw.split()}
+            except ValueError:
+                print("Enter word numbers separated by spaces.\n")
+                continue
 
-        correct, feedback = score_response(d, user_input)
+        correct, feedback = score_response(d, user_words)
         print(f"  {feedback}\n")
 
         if not correct:
-            health -= _MISS_COST if d.has_wrong else _FALSE_ALARM_COST
+            actual = set(d.wrong_words)
+            missed = actual - user_words
+            false_alarms = user_words - actual
+            health -= len(missed) * _MISS_COST + len(false_alarms) * _FALSE_ALARM_COST
             if health <= 0:
                 print(f"Health exhausted — restarting {title}.\n")
                 health = _MAX_HEALTH

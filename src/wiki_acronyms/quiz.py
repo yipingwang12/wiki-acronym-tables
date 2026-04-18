@@ -63,48 +63,50 @@ def _mask_word(word: str, reveal: dict[int, str]) -> str:
 class LineDisplay:
     display: str
     has_wrong: bool
-    wrong_word: int | None  # 1-based; None when has_wrong is False
+    wrong_words: list[int]  # 1-based; empty when has_wrong is False
 
 
 def make_line_display(line: str, wrong_prob: float = 0.15) -> LineDisplay:
-    """Build masked display for a line, optionally substituting one letter with a confusable."""
+    """Build masked display; each word reveals one non-first letter, wrong with prob wrong_prob."""
     words = line.split()
-    candidates = [
-        (wi, ci)
-        for wi, w in enumerate(words)
-        for ci in _alpha_indices(w)[1:]
-    ]
-    if not candidates:
-        display = '  '.join(f"{i+1}:{w}" for i, w in enumerate(words))
-        return LineDisplay(display, False, None)
+    wrong_words: list[int] = []
+    parts: list[str] = []
 
-    wi, ci = random.choice(candidates)
-    has_wrong = random.random() < wrong_prob
-    actual_ch = words[wi][ci]
-    shown_ch = pick_confusable(actual_ch) if has_wrong else actual_ch
+    for i, w in enumerate(words):
+        non_first = _alpha_indices(w)[1:]
+        if not non_first:
+            parts.append(f"{i+1}:{w}")
+            continue
+        ci = random.choice(non_first)
+        actual_ch = w[ci]
+        has_wrong = random.random() < wrong_prob
+        shown_ch = pick_confusable(actual_ch) if has_wrong else actual_ch
+        if has_wrong:
+            wrong_words.append(i + 1)
+        parts.append(f"{i+1}:{_mask_word(w, {ci: shown_ch})}")
 
-    parts = [
-        f"{i+1}:{_mask_word(w, {ci: shown_ch} if i == wi else {})}"
-        for i, w in enumerate(words)
-    ]
     return LineDisplay(
         display='  '.join(parts),
-        has_wrong=has_wrong,
-        wrong_word=(wi + 1) if has_wrong else None,
+        has_wrong=bool(wrong_words),
+        wrong_words=wrong_words,
     )
 
 
-def score_response(display: LineDisplay, user_input: int) -> tuple[bool, str]:
-    """Score user's answer. user_input: 0 = no wrong letter, N = word N has wrong letter."""
-    if display.has_wrong:
-        if user_input == display.wrong_word:
-            return True, f"Correct — word {display.wrong_word} had the wrong letter."
-        elif user_input == 0:
-            return False, f"Miss — word {display.wrong_word} had the wrong letter."
-        else:
-            return False, f"Wrong word — it was word {display.wrong_word}."
-    else:
-        if user_input == 0:
-            return True, "Correct — no wrong letter."
-        else:
-            return False, "False alarm — all letters were correct."
+def score_response(display: LineDisplay, user_words: set[int]) -> tuple[bool, str]:
+    """Score user's answer. user_words: set of 1-based word indices claimed to have wrong letters."""
+    actual = set(display.wrong_words)
+    missed = actual - user_words
+    false_alarms = user_words - actual
+    correct = not missed and not false_alarms
+
+    if correct:
+        return True, "Correct!" if actual else "Correct — no wrong letters."
+
+    parts = []
+    if missed:
+        w = sorted(missed)
+        parts.append(f"missed word{'s' if len(w) > 1 else ''} {', '.join(map(str, w))}")
+    if false_alarms:
+        w = sorted(false_alarms)
+        parts.append(f"false alarm on word{'s' if len(w) > 1 else ''} {', '.join(map(str, w))}")
+    return False, '; '.join(parts).capitalize() + '.'

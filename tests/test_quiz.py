@@ -85,19 +85,25 @@ def test_mask_word_no_alpha_returns_word_unchanged():
 def test_make_line_display_no_wrong_at_prob_zero():
     result = make_line_display(_LINE, wrong_prob=0.0)
     assert not result.has_wrong
-    assert result.wrong_word is None
+    assert result.wrong_words == []
 
 
 def test_make_line_display_always_wrong_at_prob_one():
     result = make_line_display(_LINE, wrong_prob=1.0)
     assert result.has_wrong
-    assert result.wrong_word is not None
+    assert len(result.wrong_words) > 0
 
 
-def test_make_line_display_wrong_word_in_valid_range():
+def test_make_line_display_all_words_wrong_at_prob_one():
+    # all 6 words in _LINE have >1 letter, so all should be wrong at prob=1.0
+    result = make_line_display(_LINE, wrong_prob=1.0)
+    assert result.wrong_words == [1, 2, 3, 4, 5, 6]
+
+
+def test_make_line_display_wrong_words_in_valid_range():
     n_words = len(_LINE.split())
     result = make_line_display(_LINE, wrong_prob=1.0)
-    assert 1 <= result.wrong_word <= n_words
+    assert all(1 <= w <= n_words for w in result.wrong_words)
 
 
 def test_make_line_display_all_words_numbered():
@@ -117,6 +123,7 @@ def test_make_line_display_no_wrong_when_no_candidates():
     # all single-letter words → no non-first alpha chars → no wrong possible
     result = make_line_display("a b c", wrong_prob=1.0)
     assert not result.has_wrong
+    assert result.wrong_words == []
 
 
 def test_make_line_display_punctuation_preserved():
@@ -127,34 +134,47 @@ def test_make_line_display_punctuation_preserved():
 # --- score_response ---
 
 def test_score_hit():
-    d = LineDisplay("...", has_wrong=True, wrong_word=3)
-    correct, msg = score_response(d, 3)
+    d = LineDisplay("...", has_wrong=True, wrong_words=[3])
+    correct, _ = score_response(d, {3})
     assert correct
-    assert "3" in msg
 
 
-def test_score_miss_typed_zero():
-    d = LineDisplay("...", has_wrong=True, wrong_word=3)
-    correct, msg = score_response(d, 0)
+def test_score_miss_typed_empty():
+    d = LineDisplay("...", has_wrong=True, wrong_words=[3])
+    correct, msg = score_response(d, set())
     assert not correct
     assert "3" in msg
 
 
 def test_score_miss_wrong_word_number():
-    d = LineDisplay("...", has_wrong=True, wrong_word=3)
-    correct, msg = score_response(d, 5)
+    d = LineDisplay("...", has_wrong=True, wrong_words=[3])
+    correct, msg = score_response(d, {5})
     assert not correct
     assert "3" in msg
 
 
+def test_score_partial_hit_partial_miss():
+    d = LineDisplay("...", has_wrong=True, wrong_words=[2, 4])
+    correct, msg = score_response(d, {2})  # got 2, missed 4
+    assert not correct
+    assert "4" in msg
+
+
 def test_score_correct_rejection():
-    d = LineDisplay("...", has_wrong=False, wrong_word=None)
-    correct, _ = score_response(d, 0)
+    d = LineDisplay("...", has_wrong=False, wrong_words=[])
+    correct, _ = score_response(d, set())
     assert correct
 
 
 def test_score_false_alarm():
-    d = LineDisplay("...", has_wrong=False, wrong_word=None)
-    correct, msg = score_response(d, 2)
+    d = LineDisplay("...", has_wrong=False, wrong_words=[])
+    correct, msg = score_response(d, {2})
+    assert not correct
+    assert "false alarm" in msg.lower()
+
+
+def test_score_multiple_false_alarms():
+    d = LineDisplay("...", has_wrong=False, wrong_words=[])
+    correct, msg = score_response(d, {1, 3})
     assert not correct
     assert "false alarm" in msg.lower()
