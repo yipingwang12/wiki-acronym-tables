@@ -56,24 +56,25 @@ def test_alpha_indices_single_letter():
 
 # --- _two_letter_display ---
 
-def test_two_letter_display_shows_first_and_extra():
-    assert _two_letter_display("hello", 'x') == "hx"
+def test_two_letter_display_shows_first_and_extra_with_underscores():
+    assert _two_letter_display("hello", 2, 'x') == "h_x__"
 
 
 def test_two_letter_display_preserves_trailing_punctuation():
-    assert _two_letter_display("hello,", 'x') == "hx,"
+    assert _two_letter_display("hello,", 2, 'x') == "h_x__,"
 
 
 def test_two_letter_display_preserves_leading_punctuation():
-    assert _two_letter_display("(word", 'x') == "(wx"
+    # alpha indices of "(word" = [1,2,3,4]; first=1('w'), extra_pos=3('r') → "(w_x_"
+    assert _two_letter_display("(word", 3, 'x') == "(w_x_"
 
 
 def test_two_letter_display_single_alpha_returns_word():
-    assert _two_letter_display("a", 'x') == "a"
+    assert _two_letter_display("a", 0, 'x') == "a"
 
 
 def test_two_letter_display_no_alpha_returns_word():
-    assert _two_letter_display("---", 'x') == "---"
+    assert _two_letter_display("---", 0, 'x') == "---"
 
 
 # --- make_line_display ---
