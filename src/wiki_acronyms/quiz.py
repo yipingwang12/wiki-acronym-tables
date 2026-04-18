@@ -47,16 +47,15 @@ def _alpha_indices(word: str) -> list[int]:
     return [i for i, c in enumerate(word) if c.isalpha()]
 
 
-def _mask_word(word: str, reveal: dict[int, str]) -> str:
-    """Show first alpha char and non-alpha chars; underscore other alpha chars unless in reveal."""
+def _two_letter_display(word: str, extra_ch: str) -> str:
+    """Show first alpha char + extra_ch, preserving non-alpha prefix/suffix."""
     alpha = _alpha_indices(word)
-    if not alpha:
+    if len(alpha) <= 1:
         return word
-    first = alpha[0]
-    return ''.join(
-        c if (not c.isalpha() or i == first) else reveal.get(i, '_')
-        for i, c in enumerate(word)
-    )
+    first_idx = alpha[0]
+    prefix = word[:first_idx]
+    suffix = ''.join(c for c in word[first_idx + 1:] if not c.isalpha())
+    return prefix + word[first_idx] + extra_ch + suffix
 
 
 @dataclass
@@ -83,7 +82,7 @@ def make_line_display(line: str, wrong_prob: float = 0.15) -> LineDisplay:
         shown_ch = pick_confusable(actual_ch) if has_wrong else actual_ch
         if has_wrong:
             wrong_words.append(i + 1)
-        parts.append(f"{i+1}:{_mask_word(w, {ci: shown_ch})}")
+        parts.append(f"{i+1}:{_two_letter_display(w, shown_ch)}")
 
     return LineDisplay(
         display='  '.join(parts),

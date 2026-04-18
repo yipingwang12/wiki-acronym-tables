@@ -5,7 +5,7 @@ from wiki_acronyms.quiz import (
     CONFUSABLES,
     LineDisplay,
     _alpha_indices,
-    _mask_word,
+    _two_letter_display,
     make_line_display,
     pick_confusable,
     score_response,
@@ -54,30 +54,26 @@ def test_alpha_indices_single_letter():
     assert _alpha_indices("a") == [0]
 
 
-# --- _mask_word ---
+# --- _two_letter_display ---
 
-def test_mask_word_shows_first_letter():
-    assert _mask_word("hello", {}).startswith("h")
-
-
-def test_mask_word_underscores_remaining():
-    assert _mask_word("hello", {}) == "h____"
+def test_two_letter_display_shows_first_and_extra():
+    assert _two_letter_display("hello", 'x') == "hx"
 
 
-def test_mask_word_reveals_given_position():
-    assert _mask_word("hello", {2: 'x'}) == "h_x__"
+def test_two_letter_display_preserves_trailing_punctuation():
+    assert _two_letter_display("hello,", 'x') == "hx,"
 
 
-def test_mask_word_preserves_trailing_punctuation():
-    assert _mask_word("hello,", {}) == "h____,"
+def test_two_letter_display_preserves_leading_punctuation():
+    assert _two_letter_display("(word", 'x') == "(wx"
 
 
-def test_mask_word_preserves_leading_punctuation():
-    assert _mask_word("(word", {}) == "(w___"
+def test_two_letter_display_single_alpha_returns_word():
+    assert _two_letter_display("a", 'x') == "a"
 
 
-def test_mask_word_no_alpha_returns_word_unchanged():
-    assert _mask_word("---", {}) == "---"
+def test_two_letter_display_no_alpha_returns_word():
+    assert _two_letter_display("---", 'x') == "---"
 
 
 # --- make_line_display ---
