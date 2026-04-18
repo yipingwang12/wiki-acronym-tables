@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>{{ title }}</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: system-ui, sans-serif; background: #f5f5f5; min-height: 100vh; display: flex; align-items: center; justify-content: center; }
+    .container { background: white; padding: 40px; border-radius: 12px; box-shadow: 0 2px 12px rgba(0,0,0,0.08); max-width: 720px; width: 100%; }
+    h1 { font-size: 1.1em; color: #666; font-weight: 500; margin-bottom: 4px; }
+    .progress { color: #aaa; font-size: 0.85em; margin-bottom: 20px; }
+    .health-label { font-size: 0.8em; color: #999; margin-bottom: 4px; }
+    .health-bar { background: #eee; border-radius: 6px; height: 8px; width: 180px; margin-bottom: 28px; }
+    .health-fill { border-radius: 6px; height: 8px; transition: width 0.3s; background: #4caf50; }
+    .health-fill.low { background: #f44336; }
+    .display { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 32px; }
+    .word-card { background: #f9f9f9; border: 1px solid #e8e8e8; border-radius: 6px; padding: 10px 14px; }
+    .word-num { font-size: 0.6em; color: #bbb; display: block; margin-bottom: 3px; }
+    .word-letters { font-family: 'Courier New', monospace; font-size: 1.25em; letter-spacing: 2px; color: #222; }
+    form { display: flex; gap: 10px; }
+    input[type=text] { flex: 1; font-size: 1em; padding: 10px 14px; border: 2px solid #ddd; border-radius: 6px; }
+    input[type=text]:focus { outline: none; border-color: #4caf50; }
+    button { padding: 10px 24px; background: #4caf50; color: white; border: none; border-radius: 6px; font-size: 1em; cursor: pointer; }
+    button:hover { background: #43a047; }
+    .feedback { margin-top: 20px; padding: 12px 16px; border-radius: 6px; font-size: 0.9em; }
+    .feedback.correct { background: #e8f5e9; color: #2e7d32; }
+    .feedback.wrong { background: #ffebee; color: #c62828; }
+    .feedback.restart { background: #fff3e0; color: #e65100; }
+    .hint { margin-top: 10px; font-size: 0.78em; color: #ccc; }
+  </style>
+</head>
+<body>
+<div class="container">
+  <h1>{{ title }}</h1>
+  <div class="progress">Line {{ line_num }} of {{ total_lines }}</div>
+
+  <div class="health-label">Health: {{ health }}/{{ max_health }}</div>
+  <div class="health-bar">
+    <div class="health-fill{% if health <= 3 %} low{% endif %}" style="width: {{ health_pct }}%"></div>
+  </div>
+
+  <div class="display">
+    {% for word in words %}
+    {% set parts = word.split(':', 1) %}
+    <div class="word-card">
+      <span class="word-num">{{ parts[0] }}</span>
+      <span class="word-letters">{{ parts[1] }}</span>
+    </div>
+    {% endfor %}
+  </div>
+
+  <form method="POST" action="/quiz">
+    <input type="text" name="answer" autofocus placeholder="Wrong word numbers (e.g. 2 5), or leave blank if none">
+    <button type="submit">Submit</button>
+  </form>
+  <p class="hint">Space-separated word numbers with wrong letters. Leave blank if all are correct.</p>
+
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% for category, message in messages %}
+    <div class="feedback {{ category }}">{{ message }}</div>
+    {% endfor %}
+  {% endwith %}
+</div>
+</body>
+</html>
