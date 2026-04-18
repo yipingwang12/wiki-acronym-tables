@@ -2,11 +2,13 @@
 
 from __future__ import annotations
 
+import json
 import os
 import secrets
 
 from flask import Flask, flash, get_flashed_messages, redirect, render_template, request, session, url_for
 
+from .logger import QuizLogger
 from .quiz import (
     AcronymDisplay, DigitDisplay, LineDisplay,
     make_acronym_display, make_digit_display, make_line_display,
@@ -25,6 +27,9 @@ def create_app(
     wrong_prob: float = 0.15,
     mode: str = 'words',
     item_labels: list[str] | None = None,
+    logger: QuizLogger | None = None,
+    config_path: str | None = None,
+    cfg_hash: str | None = None,
 ) -> Flask:
     app = Flask(__name__, template_folder=_TEMPLATE_DIR)
     app.secret_key = secrets.token_hex(16)
@@ -34,11 +39,18 @@ def create_app(
     app.config['MODE'] = mode
     app.config['ITEM_LABELS'] = item_labels or []
 
+    def _start_log_session() -> str | None:
+        if not logger:
+            return None
+        return logger.start_session(mode, title, config_path, cfg_hash, wrong_prob)
+
     def _init_session() -> None:
         if 'line_idx' not in session:
             session['line_idx'] = 0
             session['health'] = _MAX_HEALTH
             session['display'] = None
+            session['attempt_id'] = None
+            session['log_sid'] = _start_log_session()
 
     def _build_display(line: str, wrong_prob: float, mode: str) -> dict:
         if mode == 'acronym':
@@ -89,22 +101,40 @@ def create_app(
                 except ValueError:
                     pass
 
+            try:
+                keystrokes = json.loads(request.form.get('keystrokes', '[]'))
+            except (ValueError, TypeError):
+                keystrokes = []
+
             correct, feedback = _score(session['display'], user_pos, mode_)
             actual = set(session['display']['wrong_positions'])
             session['display'] = None
 
             if correct:
                 session['line_idx'] += 1
-                flash(feedback, 'correct')
             else:
                 session['health'] -= len(actual - user_pos) * _MISS_COST + len(user_pos - actual) * _FALSE_ALARM_COST
-                if session['health'] <= 0:
-                    session['line_idx'] = 0
-                    session['health'] = _MAX_HEALTH
-                    flash('Health exhausted — restarting from the beginning.', 'restart')
-                else:
-                    flash(feedback, 'wrong')
 
+            health_exhausted = session['health'] <= 0
+            if health_exhausted:
+                session['line_idx'] = 0
+                session['health'] = _MAX_HEALTH
+
+            if logger and session.get('log_sid') and session.get('attempt_id'):
+                logger.log_response(
+                    session['attempt_id'], raw, keystrokes,
+                    sorted(user_pos), correct, session['health'],
+                )
+
+            if correct:
+                flash(feedback, 'correct')
+            elif health_exhausted:
+                session['log_sid'] = _start_log_session()
+                flash('Health exhausted — restarting from the beginning.', 'restart')
+            else:
+                flash(feedback, 'wrong')
+
+            session['attempt_id'] = None
             session.modified = True
             return redirect(url_for('quiz'))
 
@@ -115,6 +145,13 @@ def create_app(
 
         if session.get('display') is None:
             session['display'] = _build_display(lines_[line_idx], wrong_prob_, mode_)
+            label = labels_[line_idx] if labels_ and line_idx < len(labels_) else None
+            if logger and session.get('log_sid'):
+                session['attempt_id'] = logger.log_display(
+                    session['log_sid'], line_idx, label,
+                    lines_[line_idx], session['display']['display'],
+                    session['health'],
+                )
             session.modified = True
 
         tokens = session['display']['display'].split('  ')

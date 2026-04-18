@@ -10,6 +10,7 @@ from pathlib import Path
 import yaml
 
 from .gutenberg import fetch_text
+from .logger import QuizLogger, config_hash
 from .poetry_parser import extract_poem
 from .web_app import create_app
 
@@ -37,9 +38,16 @@ def main(argv=None) -> None:
     title = pc['poem_title']
     lines = [l for l in extract_poem(text, pc['start_marker'], pc['end_marker']) if l is not None]
 
-    app = create_app(lines, title, args.wrong_prob, args.mode)
+    logger = QuizLogger()
+    app = create_app(
+        lines, title, args.wrong_prob, args.mode,
+        logger=logger,
+        config_path=str(args.config),
+        cfg_hash=config_hash(args.config),
+    )
 
     url = f'http://localhost:{args.port}'
     threading.Timer(1.0, lambda: webbrowser.open(url)).start()
     print(f'Quiz running at {url}  (Ctrl+C to stop)')
     app.run(port=args.port, debug=False)
+    logger.close()

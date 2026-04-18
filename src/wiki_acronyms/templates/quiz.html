@@ -51,11 +51,22 @@
     {% endfor %}
   </div>
 
-  <form method="POST" action="/quiz">
-    <input type="text" name="answer" autofocus
+  <form method="POST" action="/quiz" id="quiz-form">
+    <input type="hidden" id="keystrokes" name="keystrokes" value="[]">
+    <input type="text" name="answer" id="answer" autofocus
            placeholder="Wrong {{ item_label }} numbers (e.g. 2 5), or leave blank">
     <button type="submit">Submit</button>
   </form>
+  <script>
+    const t0 = Date.now();
+    const strokes = [];
+    document.getElementById('answer').addEventListener('keydown', e => {
+      strokes.push([e.key, Date.now() - t0]);
+    });
+    document.getElementById('quiz-form').addEventListener('submit', () => {
+      document.getElementById('keystrokes').value = JSON.stringify(strokes);
+    });
+  </script>
   <p class="hint">Enter {{ item_label }} numbers with wrong letters, space-separated. Leave blank if all are correct.</p>
 
   {% with messages = get_flashed_messages(with_categories=true) %}

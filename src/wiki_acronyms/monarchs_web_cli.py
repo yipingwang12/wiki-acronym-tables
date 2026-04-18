@@ -9,6 +9,7 @@ from pathlib import Path
 
 import yaml
 
+from .logger import QuizLogger, config_hash
 from .monarchs import fetch_monarchs, make_monarch_chunks
 from .web_app import create_app
 
@@ -32,9 +33,16 @@ def main(argv=None) -> None:
     item_labels = [f"{c.start_year}\u2013{c.end_year}" for c in chunks]
     title = config.get('subject', 'Monarchs')
 
-    app = create_app(items, title, args.wrong_prob, mode='digits', item_labels=item_labels)
+    logger = QuizLogger()
+    app = create_app(
+        items, title, args.wrong_prob, mode='digits', item_labels=item_labels,
+        logger=logger,
+        config_path=str(args.config),
+        cfg_hash=config_hash(args.config),
+    )
 
     url = f'http://localhost:{args.port}'
     threading.Timer(1.0, lambda: webbrowser.open(url)).start()
     print(f'Quiz running at {url}  (Ctrl+C to stop)')
     app.run(port=args.port, debug=False)
+    logger.close()
