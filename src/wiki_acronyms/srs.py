@@ -48,13 +48,14 @@ class SRSScheduler:
         self._logger = logger
         self._scheduler = Scheduler(desired_retention=desired_retention)
 
-    def review(self, item_text: str, mode: str, response_secs: float, correct: bool) -> None:
+    def review(self, item_text: str, mode: str, response_secs: float, correct: bool) -> Rating:
         key = make_item_key(item_text)
         rating = classify_response(mode, item_text, response_secs, correct)
         card_json = self._logger.get_card(key)
         card = Card.from_json(card_json) if card_json else Card()
         card, _ = self._scheduler.review_card(card, rating)
         self._logger.save_card(key, card.to_json())
+        return rating
 
     def get_due_order(self, item_texts: list[str]) -> list[int]:
         """Return indices of items sorted by due date (overdue first)."""

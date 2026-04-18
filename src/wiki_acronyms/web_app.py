@@ -10,7 +10,7 @@ import time
 from flask import Flask, flash, get_flashed_messages, redirect, render_template, request, session, url_for
 
 from .logger import QuizLogger
-from .srs import SRSScheduler
+from .srs import SRSScheduler, classify_response
 from .quiz import (
     AcronymDisplay, DigitDisplay, LineDisplay,
     make_acronym_display, make_digit_display, make_line_display,
@@ -47,6 +47,9 @@ def create_app(
             return None
         return logger.start_session(mode, title, config_path, cfg_hash, wrong_prob)
 
+    def _empty_stats() -> dict:
+        return {'easy': 0, 'good': 0, 'hard': 0, 'again': 0, 'total_time': 0.0, 'completed': 0}
+
     def _init_session() -> None:
         if 'line_idx' not in session:
             session['line_idx'] = 0
@@ -54,6 +57,7 @@ def create_app(
             session['display'] = None
             session['attempt_id'] = None
             session['log_sid'] = _start_log_session()
+            session['stats'] = _empty_stats()
 
     def _build_display(line: str, wrong_prob: float, mode: str) -> dict:
         if mode == 'acronym':
@@ -130,13 +134,21 @@ def create_app(
                     session['attempt_id'], raw, keystrokes,
                     sorted(user_pos), correct, session['health'],
                 )
-            if srs:
-                srs.review(item_text, mode_, response_secs, correct)
+
+            rating = srs.review(item_text, mode_, response_secs, correct) if srs \
+                else classify_response(mode_, item_text, response_secs, correct)
+
+            stats = session.get('stats') or _empty_stats()
+            stats['total_time'] += response_secs
+            stats['completed'] += 1
+            stats[rating.name.lower()] = stats.get(rating.name.lower(), 0) + 1
+            session['stats'] = stats
 
             if correct:
                 flash(feedback, 'correct')
             elif health_exhausted:
                 session['log_sid'] = _start_log_session()
+                session['stats'] = _empty_stats()
                 flash('Health exhausted — restarting from the beginning.', 'restart')
             else:
                 flash(feedback, 'wrong')
@@ -164,6 +176,9 @@ def create_app(
 
         tokens = session['display']['display'].split('  ')
         health = session['health']
+        stats = session.get('stats') or _empty_stats()
+        completed = stats['completed']
+        avg_time_str = f"{stats['total_time'] / completed:.1f}s" if completed else '—'
 
         if labels_ and line_idx < len(labels_):
             progress_text = labels_[line_idx]
@@ -180,6 +195,10 @@ def create_app(
             tokens=tokens,
             item_label=item_label,
             mode=mode_,
+            stats=stats,
+            avg_time_str=avg_time_str,
+            total_items=len(lines_),
+            display_time=session.get('display_time', time.time()),
         )
 
     return app

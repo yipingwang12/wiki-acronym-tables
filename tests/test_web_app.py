@@ -60,6 +60,7 @@ def test_health_exhaustion_resets(client):
         sess['line_idx'] = 0
         sess['health'] = 1
         sess['display'] = None
+        sess['stats'] = {'easy': 0, 'good': 0, 'hard': 0, 'again': 0, 'total_time': 0.0, 'completed': 0}
     client.get('/quiz')
     client.post('/quiz', data={'answer': '1'})  # false alarm → health 0 → reset
     with client.session_transaction() as sess:
@@ -72,6 +73,7 @@ def test_completion_page_shown(client):
         sess['line_idx'] = len(_LINES)
         sess['health'] = 10
         sess['display'] = None
+        sess['stats'] = {'easy': 0, 'good': 0, 'hard': 0, 'again': 0, 'total_time': 0.0, 'completed': 0}
     resp = client.get('/quiz')
     assert b'Complete' in resp.data
 
@@ -109,3 +111,47 @@ def test_acronym_false_alarm_decrements_health(acronym_client):
     acronym_client.post('/quiz', data={'answer': '1'})
     with acronym_client.session_transaction() as sess:
         assert sess['health'] == 9
+
+
+# --- infobox / stats ---
+
+def test_stats_initialized_in_session(client):
+    client.get('/quiz')
+    with client.session_transaction() as sess:
+        assert 'stats' in sess
+        assert sess['stats']['completed'] == 0
+
+
+def test_stats_completed_increments_on_answer(client):
+    client.get('/quiz')
+    client.post('/quiz', data={'answer': ''})
+    with client.session_transaction() as sess:
+        assert sess['stats']['completed'] == 1
+
+
+def test_stats_outcome_recorded(client):
+    client.get('/quiz')
+    client.post('/quiz', data={'answer': ''})  # correct → Easy (fast test response)
+    with client.session_transaction() as sess:
+        total = sum(sess['stats'][k] for k in ('easy', 'good', 'hard', 'again'))
+        assert total == 1
+
+
+def test_stats_reset_on_health_exhaustion(client):
+    with client.session_transaction() as sess:
+        sess['line_idx'] = 0
+        sess['health'] = 1
+        sess['display'] = None
+        sess['stats'] = {'easy': 3, 'good': 2, 'hard': 1, 'again': 0, 'total_time': 30.0, 'completed': 6}
+    client.get('/quiz')
+    client.post('/quiz', data={'answer': '1'})  # false alarm → exhaustion → reset
+    with client.session_transaction() as sess:
+        assert sess['stats']['completed'] == 0
+        assert sess['stats']['total_time'] == 0.0
+
+
+def test_infobox_rendered_in_response(client):
+    resp = client.get('/quiz')
+    assert b'unit-timer' in resp.data
+    assert b'Avg / unit' in resp.data
+    assert b'Done' in resp.data
