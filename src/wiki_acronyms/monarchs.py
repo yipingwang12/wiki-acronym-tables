@@ -105,14 +105,30 @@ def make_monarch_chunks(
 ) -> list[MonarchChunk]:
     """Group monarchs into fixed-width year-range chunks.
 
-    The transition_string for each chunk is the last digit of every accession
-    year in order (one digit per monarch, duplicates preserved).
+    The transition_string for each chunk is the last digit of every transition
+    year in order. Transition years are accession years plus, where a gap exists
+    between a monarch's recorded end year and the next monarch's accession year,
+    the end year itself (fallback for Wikidata accession dates that lag the true
+    transition, e.g. Æthelstan 927 vs Edward the Elder's death in 924).
     """
     if not monarchs:
         return []
 
+    # Build sorted list of all transition years: accession years (duplicates preserved
+    # for same-year accessions) + end-year fallbacks for monarchs whose death year
+    # is not captured by any known accession year (e.g. Wikidata records Æthelstan
+    # as 927 but Edward the Elder died in 924).
+    accession_year_set = {m.accession_year for m in monarchs}
+    events: list[int] = sorted(m.accession_year for m in monarchs)
+    for i, m in enumerate(monarchs):
+        if (m.end_year is not None
+                and i + 1 < len(monarchs)
+                and m.end_year not in accession_year_set):
+            events.append(m.end_year)
+    events.sort()
+
     min_year = min(m.accession_year for m in monarchs)
-    max_year = max(m.accession_year for m in monarchs)
+    max_year = max(events)
     start = chunk_start_year if chunk_start_year is not None else min_year
 
     chunks: list[MonarchChunk] = []
@@ -122,13 +138,14 @@ def make_monarch_chunks(
         if chunk_start > max_year:
             break
         chunk_end = chunk_start + chunk_years - 1
-        bucket = [m for m in monarchs if chunk_start <= m.accession_year <= chunk_end]
-        if bucket:
-            transition_string = "".join(str(m.accession_year % 10) for m in bucket)
+        bucket_events = [e for e in events if chunk_start <= e <= chunk_end]
+        bucket_monarchs = [m for m in monarchs if chunk_start <= m.accession_year <= chunk_end]
+        if bucket_events:
+            transition_string = "".join(str(e % 10) for e in bucket_events)
             chunks.append(MonarchChunk(
                 start_year=chunk_start,
                 end_year=chunk_end,
-                monarchs=bucket,
+                monarchs=bucket_monarchs,
                 transition_string=transition_string,
             ))
         n += 1

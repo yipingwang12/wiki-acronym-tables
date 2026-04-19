@@ -175,6 +175,56 @@ def test_empty_monarchs():
     assert make_monarch_chunks([]) == []
 
 
+# make_monarch_chunks — end-year gap fallback
+def _monarchs_with_ends(*tuples):
+    """Create monarchs with (accession, end, name)."""
+    return [Monarch(name=n, accession_year=a, end_year=e, father="", mother="") for a, e, n in tuples]
+
+
+def test_gap_inserts_end_year():
+    # Edward ends 924, Æthelstan starts 927 → 924 should appear in 900s string
+    monarchs = _monarchs_with_ends((899, 924, "Edward"), (927, 939, "Æthelstan"))
+    chunks = make_monarch_chunks(monarchs, chunk_years=100, chunk_start_year=800)
+    nineties = next(c for c in chunks if c.start_year == 900)
+    assert '4' == nineties.transition_string[0]   # 924 % 10
+    assert '7' == nineties.transition_string[1]   # 927 % 10
+
+
+def test_no_gap_no_extra_digit():
+    # Normal succession: Henry dies 1547, Edward accedes 1547 → no extra digit
+    monarchs = _monarchs_with_ends((1509, 1547, "Henry VIII"), (1547, 1553, "Edward VI"))
+    chunks = make_monarch_chunks(monarchs, chunk_years=100, chunk_start_year=1500)
+    assert chunks[0].transition_string == "97"   # 1509 % 10, 1547 % 10
+
+
+def test_end_year_lands_in_correct_century():
+    # Edward (899-924) is in 800s chunk; his end year 924 should appear in 900s chunk
+    monarchs = _monarchs_with_ends((899, 924, "Edward"), (927, 939, "Æthelstan"))
+    chunks = make_monarch_chunks(monarchs, chunk_years=100, chunk_start_year=800)
+    eighties = next(c for c in chunks if c.start_year == 800)
+    nineties = next(c for c in chunks if c.start_year == 900)
+    assert eighties.transition_string == "9"    # only Edward's accession 899
+    assert "4" in nineties.transition_string    # Edward's end 924 in 900s
+
+
+def test_gap_cnut_harold(monkeypatch):
+    # Cnut ends 1035, Harold Harefoot starts 1037 → 1035 should appear
+    monarchs = _monarchs_with_ends((1016, 1035, "Cnut"), (1037, 1040, "Harold"))
+    chunks = make_monarch_chunks(monarchs, chunk_years=100, chunk_start_year=1000)
+    ts = chunks[0].transition_string
+    idx_cnut = ts.index('6')     # 1016 % 10
+    assert ts[idx_cnut + 1] == '5'   # 1035 % 10 inserted next
+    assert ts[idx_cnut + 2] == '7'   # 1037 % 10
+
+
+def test_no_end_year_no_gap_inserted():
+    # Monarchs with no end_year should behave as before
+    monarchs = _monarchs((871, "Alfred"), (899, "Edward"), (924, "Æthelstan"))
+    chunks = make_monarch_chunks(monarchs, chunk_years=100, chunk_start_year=800)
+    assert chunks[0].transition_string == "19"
+    assert chunks[1].transition_string == "4"
+
+
 def test_default_start_year():
     monarchs = _monarchs((1837, "Victoria"), (1901, "Edward VII"))
     chunks = make_monarch_chunks(monarchs, chunk_years=100)
