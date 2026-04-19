@@ -24,6 +24,7 @@ wiki-monarchs = "wiki_acronyms.monarchs_cli:main"
 wiki-quiz = "wiki_acronyms.quiz_cli:main"
 wiki-quiz-web = "wiki_acronyms.web_cli:main"
 wiki-quiz-monarchs-web = "wiki_acronyms.monarchs_web_cli:main"
+wiki-shakespeare = "wiki_acronyms.shakespeare_cli:main"
 
 [tool.setuptools.packages.find]
 where = ["src"]

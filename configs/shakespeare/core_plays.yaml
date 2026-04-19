@@ -1,0 +1,16 @@
+# Core Shakespeare plays — drama-school canon
+# Fetches all speeches with at least min_lines lines from each play.
+# Covers the 10 most-studied plays; lower min_lines = more passages.
+min_lines: 20
+
+plays:
+  Ham: Hamlet
+  Mac: Macbeth
+  Lr: King Lear
+  Oth: Othello
+  Tmp: The Tempest
+  Rom: Romeo and Juliet
+  MND: A Midsummer Night's Dream
+  MV: The Merchant of Venice
+  JC: Julius Caesar
+  R3: Richard III
