@@ -144,3 +144,12 @@ def test_get_due_order_reviewed_item_last(srs):
     order = srs.get_due_order(items)
     # 'beta' (new) should come before 'alpha' (future due)
     assert order.index(1) < order.index(0)
+
+
+def test_get_due_count_new_items_all_due(srs):
+    assert srs.get_due_count(['alpha', 'beta', 'gamma']) == 3
+
+
+def test_get_due_count_reviewed_item_not_due(srs):
+    srs.review('alpha', 'words', 1.0, True)  # Easy → due in future
+    assert srs.get_due_count(['alpha', 'beta']) == 1  # only 'beta' (new) is due

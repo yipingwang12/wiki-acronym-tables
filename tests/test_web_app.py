@@ -155,3 +155,68 @@ def test_infobox_rendered_in_response(client):
     assert b'unit-timer' in resp.data
     assert b'Avg / unit' in resp.data
     assert b'Done' in resp.data
+
+
+# --- SRS due-order integration ---
+
+from unittest.mock import MagicMock
+from fsrs import Rating as _Rating
+
+
+def _mock_srs(order=None, due_count=None, n=len(_LINES)):
+    mock = MagicMock()
+    mock.get_due_order.return_value = order if order is not None else list(range(n))
+    mock.get_due_count.return_value = due_count if due_count is not None else n
+    mock.review.return_value = _Rating.Easy
+    return mock
+
+
+def test_srs_item_order_stored_in_session():
+    app = create_app(_LINES, 'T', wrong_prob=0.0, srs=_mock_srs(order=[1, 0]))
+    app.config['TESTING'] = True
+    c = app.test_client()
+    c.get('/quiz')
+    with c.session_transaction() as sess:
+        assert sess['item_order'] == [1, 0]
+
+
+def test_srs_due_count_stored_in_session():
+    app = create_app(_LINES, 'T', wrong_prob=0.0, srs=_mock_srs(due_count=1))
+    app.config['TESTING'] = True
+    c = app.test_client()
+    c.get('/quiz')
+    with c.session_transaction() as sess:
+        assert sess['due_count'] == 1
+
+
+def test_srs_reversed_order_shows_second_line_first():
+    """When item_order=[1,0], progress label reflects item 1 (index 1 in lines)."""
+    labels = ['Line A', 'Line B']
+    app = create_app(_LINES, 'T', wrong_prob=0.0, srs=_mock_srs(order=[1, 0]),
+                     item_labels=labels)
+    app.config['TESTING'] = True
+    c = app.test_client()
+    resp = c.get('/quiz')
+    assert b'Line B' in resp.data
+
+
+def test_srs_completion_after_due_items_only():
+    """Session completes after due_count items, not total len(lines)."""
+    app = create_app(_LINES, 'T', wrong_prob=0.0, srs=_mock_srs(order=[0, 1], due_count=1))
+    app.config['TESTING'] = True
+    c = app.test_client()
+    c.get('/quiz')
+    c.post('/quiz', data={'answer': ''})  # correct → line_idx becomes 1
+    resp = c.get('/quiz')
+    assert b'Complete' in resp.data
+
+
+def test_no_srs_uses_sequential_order():
+    """Without SRS, item_order defaults to 0..N-1."""
+    app = create_app(_LINES, 'T', wrong_prob=0.0)
+    app.config['TESTING'] = True
+    c = app.test_client()
+    c.get('/quiz')
+    with c.session_transaction() as sess:
+        assert sess['item_order'] == [0, 1]
+        assert sess['due_count'] == len(_LINES)

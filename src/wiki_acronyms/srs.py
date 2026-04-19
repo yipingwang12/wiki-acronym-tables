@@ -58,7 +58,7 @@ class SRSScheduler:
         return rating
 
     def get_due_order(self, item_texts: list[str]) -> list[int]:
-        """Return indices of items sorted by due date (overdue first)."""
+        """Return indices of items sorted by due date (overdue/new first, future last)."""
         from datetime import datetime, timezone
         now = datetime.now(timezone.utc)
 
@@ -71,3 +71,18 @@ class SRSScheduler:
             return (card.due - now).total_seconds()
 
         return sorted(range(len(item_texts)), key=due_key)
+
+    def get_due_count(self, item_texts: list[str]) -> int:
+        """Return number of items that are due now (overdue or new)."""
+        from datetime import datetime, timezone
+        now = datetime.now(timezone.utc)
+        count = 0
+        for text in item_texts:
+            card_json = self._logger.get_card(make_item_key(text))
+            if not card_json:
+                count += 1
+            else:
+                card = Card.from_json(card_json)
+                if card.due <= now:
+                    count += 1
+        return count

@@ -58,6 +58,12 @@ def create_app(
             session['attempt_id'] = None
             session['log_sid'] = _start_log_session()
             session['stats'] = _empty_stats()
+            if srs:
+                session['item_order'] = srs.get_due_order(lines)
+                session['due_count'] = srs.get_due_count(lines)
+            else:
+                session['item_order'] = list(range(len(lines)))
+                session['due_count'] = len(lines)
 
     def _build_display(line: str, wrong_prob: float, mode: str) -> dict:
         if mode == 'acronym':
@@ -101,7 +107,9 @@ def create_app(
                 return redirect(url_for('quiz'))
 
             response_secs = time.time() - session.get('display_time', time.time())
-            item_text = lines_[session['line_idx']]
+            item_order = session.get('item_order') or list(range(len(lines_)))
+            actual_idx = item_order[session['line_idx']]
+            item_text = lines_[actual_idx]
             raw = request.form.get('answer', '').strip()
             user_pos: set[int] = set()
             if raw and raw != '0':
@@ -159,17 +167,21 @@ def create_app(
 
         # GET
         line_idx = session['line_idx']
-        if line_idx >= len(lines_):
+        due_count = session.get('due_count', len(lines_))
+        if line_idx >= due_count:
             return render_template('complete.html', title=title_)
 
+        item_order = session.get('item_order') or list(range(len(lines_)))
+        actual_idx = item_order[line_idx]
+
         if session.get('display') is None:
-            session['display'] = _build_display(lines_[line_idx], wrong_prob_, mode_)
+            session['display'] = _build_display(lines_[actual_idx], wrong_prob_, mode_)
             session['display_time'] = time.time()
-            label = labels_[line_idx] if labels_ and line_idx < len(labels_) else None
+            label = labels_[actual_idx] if labels_ and actual_idx < len(labels_) else None
             if logger and session.get('log_sid'):
                 session['attempt_id'] = logger.log_display(
-                    session['log_sid'], line_idx, label,
-                    lines_[line_idx], session['display']['display'],
+                    session['log_sid'], actual_idx, label,
+                    lines_[actual_idx], session['display']['display'],
                     session['health'],
                 )
             session.modified = True
@@ -180,10 +192,10 @@ def create_app(
         completed = stats['completed']
         avg_time_str = f"{stats['total_time'] / completed:.1f}s" if completed else '—'
 
-        if labels_ and line_idx < len(labels_):
-            progress_text = labels_[line_idx]
+        if labels_ and actual_idx < len(labels_):
+            progress_text = labels_[actual_idx]
         else:
-            progress_text = f"Line {line_idx + 1} of {len(lines_)}"
+            progress_text = f"Item {line_idx + 1} of {due_count}"
 
         return render_template(
             'quiz.html',
@@ -197,7 +209,7 @@ def create_app(
             mode=mode_,
             stats=stats,
             avg_time_str=avg_time_str,
-            total_items=len(lines_),
+            total_items=due_count,
             display_time=session.get('display_time', time.time()),
         )
 
