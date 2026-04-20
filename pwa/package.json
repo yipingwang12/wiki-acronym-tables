@@ -2,9 +2,12 @@
   "name": "wiki-acronym-pwa",
   "type": "module",
   "scripts": {
-    "test": "vitest run"
+    "test": "vitest run",
+    "build": "esbuild srs.js --bundle --format=esm --outfile=srs.bundle.js"
   },
   "devDependencies": {
+    "esbuild": "^0.24.0",
+    "fake-indexeddb": "^6.0.0",
     "vitest": "^2.0.0"
   },
   "dependencies": {

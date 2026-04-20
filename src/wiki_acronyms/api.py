@@ -5,9 +5,11 @@ from __future__ import annotations
 import hashlib
 from pathlib import Path
 
-from flask import Blueprint, current_app, jsonify, request
+from flask import Blueprint, current_app, jsonify, request, send_from_directory
 
 from .deck_loader import discover_decks, load_monarchs_deck, load_poetry_deck
+
+_PWA_DIR = Path(__file__).resolve().parent.parent.parent / 'pwa'
 
 api_bp = Blueprint('api', __name__)
 
@@ -27,6 +29,13 @@ def _deck_to_dict(d, *, include_id: bool = True) -> dict:
     if include_id:
         out['id'] = _deck_id(d.config_path, d.poem_title)
     return out
+
+
+@api_bp.route('/pwa/')
+@api_bp.route('/pwa/<path:filename>')
+def pwa_static(filename='index.html'):
+    """Serve PWA static files so iPhone can install from http://<host>:5001/pwa/."""
+    return send_from_directory(str(_PWA_DIR), filename)
 
 
 @api_bp.after_request

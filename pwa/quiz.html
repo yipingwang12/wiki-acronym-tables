@@ -1,0 +1,403 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#2d5016">
+<title>Quiz</title>
+<link rel="manifest" href="/pwa/manifest.json">
+<link rel="apple-touch-icon" href="/pwa/icon-192.png">
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --bg: #1a1a2e; --surface: #16213e; --card: #0f3460;
+  --green: #2d5016; --green-light: #4a8025; --green-bright: #7bc142;
+  --text: #e8f4f8; --muted: #8899a6; --danger: #e74c3c; --warn: #e67e22;
+  --radius: 12px;
+}
+html, body { height: 100%; background: var(--bg); color: var(--text); font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; overflow: hidden; }
+body { display: flex; flex-direction: column; max-width: 600px; margin: 0 auto; padding: env(safe-area-inset-top) 16px env(safe-area-inset-bottom); }
+
+/* Header */
+header { display: flex; align-items: center; gap: 8px; padding: 10px 0 6px; border-bottom: 1px solid #ffffff18; flex-shrink: 0; }
+.back-btn { background: none; border: none; color: var(--green-bright); font-size: 1.3rem; cursor: pointer; padding: 4px; }
+.deck-title { flex: 1; font-size: 0.95rem; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.progress { font-size: 0.8rem; color: var(--muted); flex-shrink: 0; }
+
+/* Health bar */
+.health-row { display: flex; align-items: center; gap: 8px; padding: 6px 0; flex-shrink: 0; }
+.health-pips { display: flex; gap: 3px; flex: 1; }
+.pip { width: 10px; height: 10px; border-radius: 50%; background: var(--muted); transition: background 0.2s; }
+.pip.full { background: var(--green-bright); }
+.pip.danger { background: var(--danger); }
+.timer { font-size: 0.85rem; color: var(--muted); font-variant-numeric: tabular-nums; }
+
+/* Phase badge */
+.phase { font-size: 0.72rem; padding: 2px 8px; border-radius: 10px; background: var(--card); color: var(--muted); flex-shrink: 0; }
+.phase.learning { background: #1a3a6e; color: #6ab0ff; }
+.phase.graduated { background: #1a4a1a; color: var(--green-bright); }
+.phase.review { background: #2d2d00; color: #ffd700; }
+.phase.relearning { background: #4a1a1a; color: #ff8888; }
+
+/* Main quiz area */
+main { flex: 1; display: flex; flex-direction: column; overflow-y: auto; padding: 8px 0; }
+
+/* Display chips */
+.display-prompt { font-size: 0.8rem; color: var(--muted); margin-bottom: 8px; }
+.chips { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 16px; }
+.chip {
+  display: flex; flex-direction: column; align-items: center;
+  background: var(--surface); border-radius: 10px;
+  padding: 8px 10px; cursor: pointer; min-width: 48px;
+  border: 2px solid transparent; transition: all 0.15s; user-select: none;
+}
+.chip:active { transform: scale(0.96); }
+.chip .num { font-size: 0.7rem; color: var(--muted); }
+.chip .text { font-size: 1.05rem; font-family: 'Courier New', monospace; font-weight: 600; margin-top: 2px; letter-spacing: 1px; }
+.chip.selected { border-color: var(--danger); background: #3a1515; }
+.chip.selected .num { color: #ff9999; }
+.chip.actual-wrong { border-color: var(--warn); background: #3a2500; }
+.chip.correct-wrong { border-color: var(--green-bright); background: #1a3a1a; }
+
+/* Instruction */
+.instruction { font-size: 0.85rem; color: var(--muted); margin-bottom: 12px; }
+
+/* Submit button */
+.submit-btn {
+  width: 100%; background: var(--green); border: none; color: var(--text);
+  padding: 14px; border-radius: var(--radius); font-size: 1rem; font-weight: 700;
+  cursor: pointer; letter-spacing: 0.5px;
+}
+.submit-btn:active { background: var(--green-light); }
+.submit-btn:disabled { background: #333; color: var(--muted); }
+
+/* Feedback */
+.feedback { border-radius: var(--radius); padding: 14px 16px; margin-bottom: 12px; }
+.feedback.correct { background: #1a3a1a; border: 1px solid var(--green-bright); }
+.feedback.wrong { background: #3a1a1a; border: 1px solid var(--danger); }
+.feedback-title { font-size: 1rem; font-weight: 700; margin-bottom: 4px; }
+.feedback.correct .feedback-title { color: var(--green-bright); }
+.feedback.wrong .feedback-title { color: var(--danger); }
+.feedback-detail { font-size: 0.85rem; color: var(--muted); }
+.answer-reveal { margin-top: 10px; font-size: 0.85rem; background: var(--bg); border-radius: 8px; padding: 8px 10px; }
+.answer-label { font-size: 0.72rem; color: var(--muted); margin-bottom: 3px; }
+.answer-text { color: var(--text); line-height: 1.4; }
+
+/* Next button */
+.next-btn {
+  width: 100%; background: var(--card); border: none; color: var(--text);
+  padding: 14px; border-radius: var(--radius); font-size: 1rem; font-weight: 600;
+  cursor: pointer;
+}
+.next-btn:active { background: var(--green); }
+
+/* Complete screen */
+.complete { text-align: center; padding: 40px 16px; }
+.complete h2 { font-size: 1.8rem; margin-bottom: 8px; }
+.complete p { color: var(--muted); margin-bottom: 24px; }
+.complete .back-home { background: var(--green); border: none; color: var(--text); padding: 14px 32px; border-radius: var(--radius); font-size: 1rem; font-weight: 700; cursor: pointer; }
+
+/* Loading / Error */
+.center { text-align: center; padding: 40px 0; color: var(--muted); }
+.error { color: var(--danger); }
+</style>
+</head>
+<body>
+<header>
+  <button class="back-btn" onclick="location.href='index.html'">←</button>
+  <div class="deck-title" id="deckTitle">Loading…</div>
+  <div class="phase" id="phaseBadge"></div>
+  <div class="progress" id="progress"></div>
+</header>
+<div class="health-row">
+  <div class="health-pips" id="healthPips"></div>
+  <div class="timer" id="timer">0:00</div>
+</div>
+<main id="main"><div class="center">Loading deck…</div></main>
+
+<script type="module">
+import { SRSScheduler, Rating } from './srs.bundle.js';
+import {
+  makeLineDisplay, makeAcronymDisplay, makeDigitDisplay,
+  scoreResponse, scoreAcronymResponse, scoreDigitResponse,
+} from './quiz.js';
+import { getCard, saveCard, countIntroducedToday, getDeckCache, saveDeckCache } from './db.js';
+import { syncWithServer } from './sync.js';
+
+const MAX_HEALTH = 10;
+const MISS_COST = 3;
+const FALSE_ALARM_COST = 1;
+
+const params = new URLSearchParams(location.search);
+const deckId = params.get('deck_id') || '';
+const deckName = params.get('deck_name') || 'Deck';
+const mode = params.get('mode') || 'words';
+
+const db = { getCard, saveCard, countIntroducedToday };
+const srs = new SRSScheduler(db, {
+  desiredRetention: 0.9,
+  maxIntervalDays: 365,
+  learningSteps: [1, 10, 60, 360],
+  graduatedSteps: [1, 2, 3, 4, 5, 6, 7],
+  newCardsPerDay: 20,
+  relearnSteps: [1, 2, 3],
+  difficultyForgiveness: 1.0,
+  stabilityForgiveness: 1.0,
+});
+
+document.getElementById('deckTitle').textContent = deckName;
+
+// --- State ---
+let items = [], labels = null;
+let order = [], dueCount = 0;
+let currentIdx = 0;       // index into order[]
+let health = MAX_HEALTH;
+let timerInterval = null;
+let timerStart = null;
+let currentDisplay = null;
+let responding = false;
+
+// --- Health display ---
+function renderHealth() {
+  const pips = document.getElementById('healthPips');
+  pips.innerHTML = '';
+  for (let i = 0; i < MAX_HEALTH; i++) {
+    const pip = document.createElement('div');
+    pip.className = 'pip' + (i < health ? (health <= 3 ? ' full danger' : ' full') : '');
+    pips.appendChild(pip);
+  }
+}
+
+// --- Timer ---
+function startTimer() {
+  timerStart = Date.now();
+  const el = document.getElementById('timer');
+  clearInterval(timerInterval);
+  timerInterval = setInterval(() => {
+    const s = (Date.now() - timerStart) / 1000;
+    el.textContent = `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, '0')}`;
+  }, 100);
+}
+function stopTimer() {
+  clearInterval(timerInterval);
+  return (Date.now() - timerStart) / 1000;
+}
+
+// --- Phase badge ---
+async function updatePhaseBadge(item) {
+  const phase = await srs.getPhase(item);
+  const el = document.getElementById('phaseBadge');
+  const labels = { learning: 'Learning', graduated: 'Graduated', review: 'Review', relearning: 'Relearning' };
+  el.textContent = labels[phase] || phase;
+  el.className = `phase ${phase}`;
+}
+
+// --- Display parsing ---
+function parseDisplay(displayStr) {
+  return displayStr.split('  ').filter(Boolean).map(part => {
+    const colon = part.indexOf(':');
+    return { num: parseInt(part.slice(0, colon)), text: part.slice(colon + 1) };
+  });
+}
+
+// --- Render chips ---
+function renderChips(parts, selectedNums = new Set(), highlightMode = null, wrongPositions = []) {
+  const wrongSet = new Set(wrongPositions);
+  return parts.map(({ num, text }) => {
+    let cls = 'chip';
+    if (highlightMode === 'result') {
+      if (wrongSet.has(num) && selectedNums.has(num)) cls += ' correct-wrong';
+      else if (wrongSet.has(num)) cls += ' actual-wrong';
+      else if (selectedNums.has(num)) cls += ' selected';
+    } else {
+      if (selectedNums.has(num)) cls += ' selected';
+    }
+    return `<div class="${cls}" data-num="${num}">
+      <span class="num">${num}</span>
+      <span class="text">${text}</span>
+    </div>`;
+  }).join('');
+}
+
+// --- Show current item ---
+async function showItem() {
+  if (currentIdx >= dueCount) {
+    showComplete();
+    return;
+  }
+
+  const itemIdx = order[currentIdx];
+  const item = items[itemIdx];
+  const label = labels ? labels[itemIdx] : null;
+
+  await updatePhaseBadge(item);
+
+  document.getElementById('progress').textContent =
+    `${currentIdx + 1} / ${dueCount}`;
+
+  const wrongProb = mode === 'words' ? 0.15 : 0.20;
+  if (mode === 'words') currentDisplay = makeLineDisplay(item, wrongProb);
+  else if (mode === 'acronym') currentDisplay = makeAcronymDisplay(item, wrongProb);
+  else currentDisplay = makeDigitDisplay(item, wrongProb);
+
+  const parts = parseDisplay(currentDisplay.display);
+  const selected = new Set();
+
+  const noun = mode === 'digits' ? 'digit' : mode === 'acronym' ? 'letter' : 'word';
+  const instruction = `Tap wrong ${noun}s, then submit. Leave all unselected if none wrong.`;
+
+  document.getElementById('main').innerHTML = `
+    <p class="display-prompt">${label ? `<strong>${label}</strong>` : ''}</p>
+    <div class="chips" id="chips">${renderChips(parts, selected)}</div>
+    <p class="instruction">${instruction}</p>
+    <button class="submit-btn" id="submitBtn">Submit</button>
+  `;
+
+  document.getElementById('chips').addEventListener('click', e => {
+    const chip = e.target.closest('.chip');
+    if (!chip || responding) return;
+    const num = parseInt(chip.dataset.num);
+    if (selected.has(num)) selected.delete(num); else selected.add(num);
+    document.getElementById('chips').innerHTML = renderChips(parts, selected);
+  });
+
+  document.getElementById('submitBtn').addEventListener('click', async () => {
+    if (responding) return;
+    responding = true;
+    const responseSecs = stopTimer();
+    document.getElementById('submitBtn').disabled = true;
+
+    const userPositions = [...selected].sort((a, b) => a - b);
+    let correct, message;
+    if (mode === 'words') [correct, message] = scoreResponse(currentDisplay, userPositions);
+    else if (mode === 'acronym') [correct, message] = scoreAcronymResponse(currentDisplay, userPositions);
+    else [correct, message] = scoreDigitResponse(currentDisplay, userPositions);
+
+    // Health deduction
+    if (!correct) {
+      const missed = currentDisplay.wrongPositions.filter(p => !selected.has(p)).length;
+      const falseAlarms = [...selected].filter(p => !currentDisplay.wrongPositions.includes(p)).length;
+      health = Math.max(0, health - missed * MISS_COST - falseAlarms * FALSE_ALARM_COST);
+    }
+    renderHealth();
+
+    // SRS update
+    const now = new Date();
+    await srs.review(item, mode, responseSecs, correct, now);
+
+    // Show feedback with highlighted chips
+    const highlightedChips = renderChips(parts, selected, 'result', currentDisplay.wrongPositions);
+    const ratingLabel = correct
+      ? (responseSecs < 3 ? 'Easy' : responseSecs < 8 ? 'Good' : 'Hard')
+      : 'Again';
+
+    document.getElementById('main').innerHTML = `
+      <div class="feedback ${correct ? 'correct' : 'wrong'}">
+        <div class="feedback-title">${correct ? '✓ Correct!' : '✗ ' + message}</div>
+        <div class="feedback-detail">${responseSecs.toFixed(1)}s · ${ratingLabel}</div>
+        <div class="answer-reveal">
+          <div class="answer-label">Answer</div>
+          <div class="answer-text">${item}</div>
+        </div>
+      </div>
+      <div class="chips">${highlightedChips}</div>
+      ${health === 0
+        ? `<button class="next-btn" id="nextBtn" style="background:var(--danger)">Health empty — restart</button>`
+        : `<button class="next-btn" id="nextBtn">Next →</button>`
+      }
+    `;
+
+    document.getElementById('nextBtn').addEventListener('click', async () => {
+      responding = false;
+      if (health === 0) {
+        health = MAX_HEALTH;
+        renderHealth();
+        currentIdx = 0;
+        order = await srs.getDueOrder(items, new Date());
+        dueCount = await srs.getDueCount(items, new Date());
+      } else {
+        currentIdx++;
+      }
+      startTimer();
+      showItem();
+    });
+  });
+
+  startTimer();
+  responding = false;
+  renderHealth();
+}
+
+// --- Complete screen ---
+async function showComplete() {
+  clearInterval(timerInterval);
+  document.getElementById('progress').textContent = '';
+  document.getElementById('timer').textContent = '';
+  document.getElementById('phaseBadge').textContent = '';
+
+  setStatus('Syncing…');
+  const result = await syncWithServer('');
+  const syncMsg = result.synced
+    ? `Synced ${result.count} cards`
+    : `Offline — will sync later`;
+
+  document.getElementById('main').innerHTML = `
+    <div class="complete">
+      <h2>🎉 Done!</h2>
+      <p>Session complete · ${syncMsg}</p>
+      <button class="back-home" onclick="location.href='index.html'">← Decks</button>
+    </div>
+  `;
+}
+
+// --- Status bar (reuse health row timer for short messages) ---
+function setStatus(msg) {
+  document.getElementById('timer').textContent = msg;
+}
+
+// --- Load deck and start ---
+async function init() {
+  let deckData = null;
+
+  try {
+    const resp = await fetch(`/api/deck/${encodeURIComponent(deckId)}/content`);
+    if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+    deckData = await resp.json();
+    await saveDeckCache(deckId, deckData);
+  } catch {
+    deckData = await getDeckCache(deckId);
+  }
+
+  if (!deckData) {
+    document.getElementById('main').innerHTML =
+      '<div class="center error">Failed to load deck. Connect to the server and try again.</div>';
+    return;
+  }
+
+  items = deckData.items;
+  labels = deckData.labels;
+
+  const now = new Date();
+  order = await srs.getDueOrder(items, now);
+  dueCount = await srs.getDueCount(items, now);
+
+  if (dueCount === 0) {
+    document.getElementById('main').innerHTML =
+      `<div class="complete">
+        <h2>All done!</h2>
+        <p>No items due right now.</p>
+        <button class="back-home" onclick="location.href='index.html'">← Decks</button>
+      </div>`;
+    return;
+  }
+
+  renderHealth();
+  startTimer();
+  showItem();
+}
+
+init();
+</script>
+</body>
+</html>
