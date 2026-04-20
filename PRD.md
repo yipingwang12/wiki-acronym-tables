@@ -29,11 +29,19 @@ Personal / educational use. Single user driving batch runs via CLI.
 
 ### 4. Shakespeare Passages (`wiki-shakespeare`)
 - Source: Folger Digital Texts API (`folgerdigitaltexts.org`)
-- Output: YAML catalogue of monologue passages (character, play, line count, full text)
+- Output: YAML catalogue + xlsx of monologue passages (character, play, line count, full text)
 - Config: list of play codes (e.g. `Ham`, `Mac`) and `min_lines` threshold
 - Caching: raw HTML responses cached locally under `cache/folger/`; segments under `cache/folger/segments/`
 - Catalogue includes `meta` block with `total_passages` and `total_lines`
 - Core 10-play config (`configs/shakespeare/core_plays.yaml`): Hamlet, Macbeth, King Lear, Othello, The Tempest, Romeo and Juliet, A Midsummer Night's Dream, The Merchant of Venice, Julius Caesar, Richard III — 163 passages, 4,673 lines
+
+### 5. Monologue Archive Passages (`wiki-monologue-archive`)
+- Source: monologuearchive.com (static HTML, scraped with `requests`)
+- Output: YAML catalogue + xlsx of monologue passages (playwright, play, character, type, lines)
+- Config: list of `{slug, name}` entries — slug matches URL pattern `/{letter}/{slug}.html`
+- Caching: author index pages under `cache/monologue_archive/`; individual passages under `cache/monologue_archive/passages/`
+- Filters out external `list-group-item active` links that share the same CSS class as internal entries
+- Core config (`configs/monologue_archive/core_playwrights.yaml`): Christopher Marlowe, Ben Jonson — 23 passages, 850 lines
 
 ## Output
 Excel `.xlsx` workbook, two sheets:
