@@ -3,6 +3,11 @@
 from __future__ import annotations
 
 
+def _norm(s: str) -> str:
+    """Normalize Unicode quotes/apostrophes to ASCII for fuzzy marker matching."""
+    return s.replace('\u2018', "'").replace('\u2019', "'").replace('\u201c', '"').replace('\u201d', '"')
+
+
 def extract_poem(text: str, start_marker: str, end_marker: str) -> list[str | None]:
     """Return poem lines between start_marker and end_marker (inclusive).
 
@@ -10,11 +15,14 @@ def extract_poem(text: str, start_marker: str, end_marker: str) -> list[str | No
     collapse to one. Leading and trailing blank lines are stripped.
     """
     lines = text.splitlines()
+    norm_start = _norm(start_marker)
+    norm_end = _norm(end_marker)
     start_idx = end_idx = None
     for i, line in enumerate(lines):
-        if start_idx is None and start_marker in line:
+        norm_line = _norm(line)
+        if start_idx is None and norm_start in norm_line:
             start_idx = i
-        elif start_idx is not None and end_marker in line:
+        elif start_idx is not None and norm_end in norm_line:
             end_idx = i
             break
     if start_idx is None:

@@ -12,6 +12,7 @@ dependencies = [
     "pyyaml",
     "flask",
     "fsrs",
+    "pywebview",
 ]
 
 [project.optional-dependencies]
@@ -24,6 +25,8 @@ wiki-monarchs = "wiki_acronyms.monarchs_cli:main"
 wiki-quiz-web = "wiki_acronyms.web_cli:main"
 wiki-quiz-monarchs-web = "wiki_acronyms.monarchs_web_cli:main"
 wiki-shakespeare = "wiki_acronyms.shakespeare_cli:main"
+wiki-monologue-archive = "wiki_acronyms.monologue_archive_cli:main"
+wiki-quiz-app = "wiki_acronyms.desktop_app:main"
 
 [tool.setuptools.packages.find]
 where = ["src"]

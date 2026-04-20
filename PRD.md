@@ -77,11 +77,21 @@ Three modes are implemented, all using the same scoring and health system:
 | `digits` | `wiki-quiz-monarchs-web` | Century transition strings | One digit per position; each independently 20% chance wrong |
 
 ### Flask web app
-The quiz is served as a localhost Flask app (`wiki-quiz-web`, `wiki-quiz-monarchs-web`). Features:
+The quiz is served as a localhost Flask app. Features:
 - Live timer per item (JS `setInterval`, 100ms update)
 - Session infobox: items done, per-rating counts (E/G/H/A), average time per item
 - Progress label (item index / due count, or custom label from config) with inline phase badge (Learning / Graduated / Review / Relearning)
 - Flash messages for correct/wrong/restart outcomes
+
+### Desktop app (`wiki-quiz-app`)
+A PyWebView-wrapped desktop app with an Anki-style deck picker home screen. Flask runs in a background thread; PyWebView opens a native macOS window (no browser required). Entry point: `wiki_acronyms.desktop_app:main`.
+
+- **Home screen**: lists all configs from `configs/poetry/` and `configs/monarchs/`. Single-poem configs appear as individual deck rows; multi-poem collections are collapsible groups. Shows last-studied date per deck from `sessions` table.
+- **Deck loading**: async (background thread) with a polling spinner — handles slow Wikidata SPARQL calls without blocking the UI. Errors shown inline with a back link.
+- **Navigation**: "← Decks" link on every quiz page; "Study again" / "← Decks" on the completion screen.
+- **macOS .app bundle**: `~/Desktop/Quiz.app` — double-click to launch, no terminal required. Custom `.icns` icon (green rounded square, stacked flashcard motif).
+- **Quote normalisation**: `poetry_parser.py` normalises Unicode curly quotes (`\u2018/\u2019/\u201c/\u201d`) to ASCII before marker lookup, so YAML configs with straight apostrophes match Gutenberg text with curly quotes.
+- **SRS parameters**: desktop app uses fixed defaults (same as CLI defaults); advanced users can still use `wiki-quiz-web` / `wiki-quiz-monarchs-web` for custom params.
 
 ### Related research
 No known tool combines acronym cueing with adversarial partial-letter reveal. Closest prior work:

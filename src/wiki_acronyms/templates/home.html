@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Quiz — Decks</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: system-ui, sans-serif; background: #f5f5f5; min-height: 100vh; display: flex; align-items: flex-start; justify-content: center; padding: 48px 16px; }
+    .container { background: white; border-radius: 12px; box-shadow: 0 2px 12px rgba(0,0,0,0.08); width: 100%; max-width: 640px; overflow: hidden; }
+    .app-header { padding: 28px 32px 20px; border-bottom: 1px solid #f0f0f0; }
+    .app-title { font-size: 1.4em; font-weight: 700; color: #222; }
+    .app-sub { font-size: 0.85em; color: #aaa; margin-top: 2px; }
+
+    /* collection group */
+    .collection-header { display: flex; align-items: center; gap: 10px; padding: 14px 32px; cursor: pointer; user-select: none; border-top: 1px solid #f0f0f0; background: #fafafa; }
+    .collection-header:hover { background: #f3f3f3; }
+    .collection-arrow { font-size: 0.7em; color: #bbb; transition: transform 0.15s; display: inline-block; }
+    .collection-arrow.open { transform: rotate(90deg); }
+    .collection-name { font-weight: 600; color: #444; font-size: 0.95em; flex: 1; }
+    .collection-count { font-size: 0.78em; color: #bbb; }
+    .collection-items { display: none; }
+    .collection-items.open { display: block; }
+
+    /* deck row */
+    .deck-row { display: flex; align-items: center; gap: 12px; padding: 14px 32px; border-top: 1px solid #f0f0f0; transition: background 0.1s; }
+    .deck-row:hover { background: #f9f9f9; }
+    .deck-row.indented { padding-left: 52px; }
+    .deck-name { flex: 1; font-size: 0.95em; color: #333; }
+    .deck-badge { font-size: 0.72em; font-weight: 600; padding: 2px 8px; border-radius: 4px; white-space: nowrap; }
+    .deck-badge.poetry   { background: #e3f2fd; color: #1565c0; }
+    .deck-badge.monarchs { background: #f3e5f5; color: #6a1b9a; }
+    .deck-meta { font-size: 0.78em; color: #bbb; min-width: 100px; text-align: right; }
+    .study-btn { padding: 7px 18px; background: #4caf50; color: white; border: none; border-radius: 6px; font-size: 0.88em; cursor: pointer; white-space: nowrap; }
+    .study-btn:hover { background: #43a047; }
+
+    .empty { padding: 40px 32px; color: #bbb; font-size: 0.9em; }
+  </style>
+</head>
+<body>
+<div class="container">
+  <div class="app-header">
+    <div class="app-title">Quiz</div>
+    <div class="app-sub">Spaced-repetition deck browser</div>
+  </div>
+
+  {% if not decks %}
+  <div class="empty">No configs found in <code>configs/</code>.</div>
+  {% else %}
+
+  {# Separate standalone decks from collection members #}
+  {# Group decks: key = group name (or None for standalone) #}
+  {% set ns = namespace(seen_groups=[]) %}
+
+  {% for deck in decks %}
+    {% if deck.group is none %}
+      {# standalone deck #}
+      <div class="deck-row">
+        <span class="deck-name">{{ deck.name }}</span>
+        <span class="deck-badge {{ deck.deck_type }}">{{ deck.deck_type | capitalize }}</span>
+        <span class="deck-meta">{{ deck.last_studied | relative_time if deck.last_studied else 'never studied' }}</span>
+        <form method="POST" action="/start" style="margin:0">
+          <input type="hidden" name="config_path" value="{{ deck.config_path }}">
+          <input type="hidden" name="deck_type" value="{{ deck.deck_type }}">
+          <input type="hidden" name="poem_title" value="{{ deck.poem_title or '' }}">
+          <button type="submit" class="study-btn">Study</button>
+        </form>
+      </div>
+    {% elif deck.group not in ns.seen_groups %}
+      {# first member of this collection: render group header + all members #}
+      {% set _ = ns.seen_groups.append(deck.group) %}
+      {% set group_name = deck.group %}
+      {% set members = decks | selectattr('group', 'equalto', group_name) | list %}
+      <div class="collection-header" onclick="toggleGroup(this)">
+        <span class="collection-arrow">▶</span>
+        <span class="collection-name">{{ group_name }}</span>
+        <span class="collection-count">{{ members | length }} decks</span>
+      </div>
+      <div class="collection-items">
+        {% for member in members %}
+        <div class="deck-row indented">
+          <span class="deck-name">{{ member.name }}</span>
+          <span class="deck-meta">{{ member.last_studied | relative_time if member.last_studied else 'never' }}</span>
+          <form method="POST" action="/start" style="margin:0">
+            <input type="hidden" name="config_path" value="{{ member.config_path }}">
+            <input type="hidden" name="deck_type" value="{{ member.deck_type }}">
+            <input type="hidden" name="poem_title" value="{{ member.poem_title or '' }}">
+            <button type="submit" class="study-btn">Study</button>
+          </form>
+        </div>
+        {% endfor %}
+      </div>
+    {% endif %}
+  {% endfor %}
+
+  {% endif %}
+</div>
+
+<script>
+  function toggleGroup(header) {
+    const arrow = header.querySelector('.collection-arrow');
+    const items = header.nextElementSibling;
+    const open = items.classList.toggle('open');
+    arrow.classList.toggle('open', open);
+  }
+</script>
+</body>
+</html>

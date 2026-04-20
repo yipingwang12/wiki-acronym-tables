@@ -16,8 +16,13 @@
 <body>
 <div class="container">
   <h1>Complete!</h1>
-  <p>You reviewed all lines of <em>{{ title }}</em>.</p>
+  <p>You reviewed all items in <em>{{ title }}</em>.</p>
+  {% if show_back %}
+  <a href="/restart" style="margin-right:12px">Study again</a>
+  <a href="/" style="background:#888;">← Decks</a>
+  {% else %}
   <a href="/">Start again</a>
+  {% endif %}
 </div>
 </body>
 </html>

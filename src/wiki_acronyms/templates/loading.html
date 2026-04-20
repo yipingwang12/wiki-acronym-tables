@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Loading…</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: system-ui, sans-serif; background: #f5f5f5; min-height: 100vh; display: flex; align-items: center; justify-content: center; }
+    .container { background: white; padding: 48px 56px; border-radius: 12px; box-shadow: 0 2px 12px rgba(0,0,0,0.08); text-align: center; }
+    .spinner { width: 36px; height: 36px; border: 3px solid #e0e0e0; border-top-color: #4caf50; border-radius: 50%; animation: spin 0.7s linear infinite; margin: 0 auto 20px; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    h2 { color: #444; font-size: 1.1em; font-weight: 500; margin-bottom: 8px; }
+    p { color: #aaa; font-size: 0.85em; }
+    .error { color: #c62828; font-size: 0.9em; margin-top: 16px; }
+    .back-link { display: inline-block; margin-top: 24px; color: #4caf50; text-decoration: none; font-size: 0.85em; }
+    .back-link:hover { text-decoration: underline; }
+  </style>
+</head>
+<body>
+<div class="container">
+  <div class="spinner" id="spinner"></div>
+  <h2 id="msg">Loading deck…</h2>
+  <p>Fetching content, please wait.</p>
+  <div class="error" id="err" style="display:none"></div>
+  <a class="back-link" href="/" id="back" style="display:none">← Back to decks</a>
+</div>
+<script>
+  (function poll() {
+    fetch('/status')
+      .then(r => r.json())
+      .then(data => {
+        if (data.state === 'ready') {
+          window.location.href = '/quiz';
+        } else if (data.state === 'error') {
+          document.getElementById('spinner').style.display = 'none';
+          document.getElementById('msg').textContent = 'Failed to load deck';
+          document.getElementById('err').textContent = data.error || 'Unknown error';
+          document.getElementById('err').style.display = 'block';
+          document.getElementById('back').style.display = 'inline-block';
+        } else {
+          setTimeout(poll, 400);
+        }
+      })
+      .catch(() => setTimeout(poll, 800));
+  })();
+</script>
+</body>
+</html>
