@@ -8,14 +8,16 @@ from pathlib import Path
 import yaml
 
 from .folger import fetch_passages
+from .xlsx_writer import write_shakespeare_xlsx
 
 
 def main(argv=None) -> None:
     p = argparse.ArgumentParser(
-        description='Fetch Shakespeare passages from the Folger API and write a YAML catalogue.'
+        description='Fetch Shakespeare passages from the Folger API and write a YAML catalogue and xlsx.'
     )
     p.add_argument('--config', type=Path, required=True)
     p.add_argument('--output', type=Path)
+    p.add_argument('--xlsx', type=Path)
     args = p.parse_args(argv)
 
     config = yaml.safe_load(args.config.read_text())
@@ -23,6 +25,7 @@ def main(argv=None) -> None:
     min_lines = config.get('min_lines', 20)
 
     output = args.output or Path('results/shakespeare_passages.yaml')
+    xlsx_output = args.xlsx or Path('results/shakespeare_passages.xlsx')
     output.parent.mkdir(parents=True, exist_ok=True)
 
     print(f'Fetching passages from {len(play_codes)} plays (min_lines={min_lines})...')
@@ -54,4 +57,5 @@ def main(argv=None) -> None:
         yaml.dump(catalogue, allow_unicode=True, sort_keys=False, default_flow_style=False),
         encoding='utf-8',
     )
-    print(f'Done: {len(passages)} passages, {total_lines} lines → {output}')
+    write_shakespeare_xlsx(passages, xlsx_output)
+    print(f'Done: {len(passages)} passages, {total_lines} lines → {output}, {xlsx_output}')
