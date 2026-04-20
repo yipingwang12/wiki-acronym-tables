@@ -27,8 +27,10 @@ def main(argv=None) -> None:
                    help='include N future-scheduled items after due items (increases total reviews)')
     p.add_argument('--max-interval', type=int, default=365, metavar='DAYS',
                    help='cap FSRS-scheduled intervals at this many days (default 365; 0 = no cap)')
-    p.add_argument('--learning-steps', type=int, nargs='+', default=[1, 10], metavar='MIN',
-                   help='learning step durations in minutes before graduating to FSRS (default: 1 10)')
+    p.add_argument('--learning-steps', type=int, nargs='+', default=[1, 10, 60, 360], metavar='MIN',
+                   help='learning step durations in minutes (default: 1 10 60 360)')
+    p.add_argument('--graduated-steps', type=int, nargs='+', default=[1, 2, 3, 4, 5, 6, 7], metavar='DAYS',
+                   help='graduated ramp durations in days before FSRS free scheduling (default: 1 2 3 4 5 6 7)')
     p.add_argument('--new-per-day', type=int, default=20, metavar='N',
                    help='max new items introduced per day (default 20)')
     p.add_argument('--relearn-steps', type=int, nargs='+', default=[1, 2, 3], metavar='DAYS',
@@ -60,8 +62,8 @@ def main(argv=None) -> None:
         config_path=str(args.config),
         cfg_hash=config_hash(args.config),
         srs=SRSScheduler(logger, max_interval_days=args.max_interval or None,
-                         learning_steps=args.learning_steps, new_cards_per_day=args.new_per_day,
-                         relearn_steps=args.relearn_steps,
+                         learning_steps=args.learning_steps, graduated_steps=args.graduated_steps,
+                         new_cards_per_day=args.new_per_day, relearn_steps=args.relearn_steps,
                          difficulty_forgiveness=args.difficulty_forgiveness,
                          stability_forgiveness=args.stability_forgiveness),
         review_ahead=args.review_ahead,

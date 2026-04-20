@@ -80,7 +80,7 @@ Three modes are implemented, all using the same scoring and health system:
 The quiz is served as a localhost Flask app (`wiki-quiz-web`, `wiki-quiz-monarchs-web`). Features:
 - Live timer per item (JS `setInterval`, 100ms update)
 - Session infobox: items done, per-rating counts (E/G/H/A), average time per item
-- Progress label (item index / due count, or custom label from config) with inline phase badge (Learning / Review / Relearning)
+- Progress label (item index / due count, or custom label from config) with inline phase badge (Learning / Graduated / Review / Relearning)
 - Flash messages for correct/wrong/restart outcomes
 
 ### Related research
@@ -145,24 +145,29 @@ Each response is rated by latency relative to item length:
 
 Scaling by item length ensures a 5-word line and a 20-word line are judged at appropriate speeds; a response fast for a short line is not automatically fast for a long one.
 
-#### Learning steps and new-cards-per-day
-New items go through a configurable burn-in phase before entering the FSRS schedule. Both CLIs accept:
+#### Learning steps, graduated ramp, and new-cards-per-day
+New items pass through two fixed phases before FSRS takes over free scheduling. Both CLIs accept:
 
-- `--learning-steps MIN [MIN ...]` — sequence of intervals in minutes a card must pass before graduating (default: `1 10`, matching Anki's default)
+- `--learning-steps MIN [MIN ...]` — minute-interval burn-in (default: `1 10 60 360`)
+- `--graduated-steps DAYS [DAYS ...]` — day-interval ramp after learning completes (default: `1 2 3 4 5 6 7`); provides a week of structured consolidation before FSRS schedules freely
 - `--new-per-day N` — max new items introduced per day (default: 20); unintroduced items queue indefinitely and unused daily slots do not accumulate
+
+Card flow: **new → learning steps → graduated ramp → FSRS free scheduling**
 
 State is stored in the `card_json` envelope alongside the FSRS card:
 
 | Field | Meaning |
 |---|---|
-| `learning_step` | Current learning step index; `null` if graduated |
+| `learning_step` | Current learning step index; `null` if past learning |
 | `step_due` | ISO timestamp when current learning step is reviewable |
 | `introduced_date` | UTC date string when card was first shown (used for daily budget) |
+| `graduated_step` | Current graduated-ramp step index; `null` if not in graduated phase |
+| `graduated_step_due` | ISO timestamp when current graduated step is reviewable |
 | `relearning_step` | Current relearning step index after a lapse; `null` if not in relearning |
 | `relearn_step_due` | ISO timestamp when current relearning step is reviewable |
-| `fsrs` | Serialised FSRS Card (null until graduation from learning) |
+| `fsrs` | Serialised FSRS Card (null until graduation from graduated ramp) |
 
-Correct answer at a step advances to the next step; incorrect resets to step 0. Correct at the final step graduates the card to FSRS, rated by latency as usual. Legacy `card_json` rows (bare FSRS JSON without an envelope) are treated as already-graduated cards.
+Correct answer advances to the next step; incorrect resets to step 0 of the current phase. Correct at the final graduated step initialises the FSRS card. Legacy `card_json` rows (bare FSRS JSON without an envelope) are treated as already in FSRS phase.
 
 **Note:** learning-step cards that come due during a session are shown; cards that become due mid-session (e.g. the 1-minute step expiring while reviewing other items) are not re-queued within the same session — they appear in the next session. For fast burn-in, run short back-to-back sessions.
 
@@ -172,9 +177,9 @@ At session start `_classify_items` sorts all items into buckets and returns `(or
 | Priority | Bucket | Condition |
 |---|---|---|
 | 1 | New (within daily budget) | No card state; budget = `new_per_day - introduced_today` |
-| 2 | Learning/relearning due | Step due ≤ now; sorted most-overdue first |
+| 2 | Learning/graduated/relearning due | Step due ≤ now; sorted most-overdue first |
 | 3 | FSRS review due | `card.due` ≤ now; sorted most-overdue first |
-| 4 | Learning/relearning future | Step due > now; sorted soonest first |
+| 4 | Learning/graduated/relearning future | Step due > now; sorted soonest first |
 | 5 | FSRS future | `card.due` > now; sorted soonest first |
 | 6 | New (over daily budget) | Queued for future days |
 

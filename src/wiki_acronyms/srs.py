@@ -52,6 +52,8 @@ def _load_state(card_json: str) -> dict:
     if 'learning_step' in data:
         data.setdefault('relearning_step', None)
         data.setdefault('relearn_step_due', None)
+        data.setdefault('graduated_step', None)
+        data.setdefault('graduated_step_due', None)
         return data
     # Legacy format: raw FSRS card JSON — treat as already graduated.
     return {
@@ -59,6 +61,8 @@ def _load_state(card_json: str) -> dict:
         'learning_step': None,
         'step_due': None,
         'introduced_date': None,
+        'graduated_step': None,
+        'graduated_step_due': None,
         'relearning_step': None,
         'relearn_step_due': None,
     }
@@ -70,16 +74,18 @@ class SRSScheduler:
         logger: QuizLogger,
         desired_retention: float = 0.9,
         max_interval_days: int | None = 365,
-        learning_steps: list[int] | None = None,   # minutes
+        learning_steps: list[int] | None = None,    # minutes
+        graduated_steps: list[int] | None = None,   # days
         new_cards_per_day: int = 20,
-        relearn_steps: list[int] | None = None,    # days
-        difficulty_forgiveness: float = 1.0,       # 1.0 = no difficulty increase on lapse
-        stability_forgiveness: float = 1.0,        # 1.0 = no stability drop on lapse
+        relearn_steps: list[int] | None = None,     # days
+        difficulty_forgiveness: float = 1.0,        # 1.0 = no difficulty increase on lapse
+        stability_forgiveness: float = 1.0,         # 1.0 = no stability drop on lapse
     ) -> None:
         self._logger = logger
         self._scheduler = Scheduler(desired_retention=desired_retention)
         self._max_interval_days = max_interval_days
-        self._steps = learning_steps if learning_steps is not None else [1, 10]
+        self._steps = learning_steps if learning_steps is not None else [1, 10, 60, 360]
+        self._grad_steps = graduated_steps if graduated_steps is not None else [1, 2, 3, 4, 5, 6, 7]
         self._new_per_day = new_cards_per_day
         self._relearn_steps = relearn_steps if relearn_steps is not None else [1, 2, 3]
         self._difficulty_forgiveness = difficulty_forgiveness
@@ -116,6 +122,8 @@ class SRSScheduler:
                 'learning_step': 0,
                 'step_due': (now + timedelta(minutes=self._steps[0])).isoformat(),
                 'introduced_date': now.date().isoformat(),
+                'graduated_step': None,
+                'graduated_step_due': None,
                 'relearning_step': None,
                 'relearn_step_due': None,
             }
@@ -132,15 +140,33 @@ class SRSScheduler:
             else:
                 next_step = step + 1
                 if next_step >= len(self._steps):
+                    # Enter graduated ramp before FSRS takes over.
+                    state['learning_step'] = None
+                    state['step_due'] = None
+                    state['graduated_step'] = 0
+                    state['graduated_step_due'] = (now + timedelta(days=self._grad_steps[0])).isoformat()
+                else:
+                    state['learning_step'] = next_step
+                    state['step_due'] = (now + timedelta(minutes=self._steps[next_step])).isoformat()
+
+        elif state['graduated_step'] is not None:
+            step = state['graduated_step']
+            if not correct:
+                state['graduated_step'] = 0
+                state['graduated_step_due'] = (now + timedelta(days=self._grad_steps[0])).isoformat()
+            else:
+                next_step = step + 1
+                if next_step >= len(self._grad_steps):
+                    # All graduated steps passed — hand off to FSRS.
                     card = Card()
                     card, _ = self._scheduler.review_card(card, rating)
                     card = self._cap_card(card)
                     state['fsrs'] = card.to_json()
-                    state['learning_step'] = None
-                    state['step_due'] = None
+                    state['graduated_step'] = None
+                    state['graduated_step_due'] = None
                 else:
-                    state['learning_step'] = next_step
-                    state['step_due'] = (now + timedelta(minutes=self._steps[next_step])).isoformat()
+                    state['graduated_step'] = next_step
+                    state['graduated_step_due'] = (now + timedelta(days=self._grad_steps[next_step])).isoformat()
 
         elif state['relearning_step'] is not None:
             step = state['relearning_step']
@@ -197,9 +223,14 @@ class SRSScheduler:
                 continue
             state = _load_state(raw)
 
-            # Determine the active step due time (learning or relearning).
             if state['learning_step'] is not None:
                 step_due = datetime.fromisoformat(state['step_due'])
+                if step_due <= now:
+                    learning_due.append(((now - step_due).total_seconds(), idx))
+                else:
+                    learning_future.append((step_due, idx))
+            elif state['graduated_step'] is not None:
+                step_due = datetime.fromisoformat(state['graduated_step_due'])
                 if step_due <= now:
                     learning_due.append(((now - step_due).total_seconds(), idx))
                 else:
@@ -234,13 +265,15 @@ class SRSScheduler:
         return order, due_count
 
     def get_phase(self, item_text: str) -> str:
-        """Return 'learning', 'relearning', or 'review' for the current card state."""
+        """Return 'learning', 'graduated', 'relearning', or 'review'."""
         raw = self._logger.get_card(make_item_key(item_text))
         if raw is None:
             return 'learning'
         state = _load_state(raw)
         if state['learning_step'] is not None:
             return 'learning'
+        if state['graduated_step'] is not None:
+            return 'graduated'
         if state['relearning_step'] is not None:
             return 'relearning'
         return 'review'

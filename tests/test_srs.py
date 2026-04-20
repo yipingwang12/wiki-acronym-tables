@@ -91,7 +91,7 @@ def srs(logger):
 
 
 def _seed_graduated_card(logger, item_text: str) -> None:
-    """Write a graduated FSRS card state directly to the logger, bypassing learning steps."""
+    """Write an FSRS-phase card state directly to the logger, bypassing all ramp steps."""
     from fsrs import Card, Scheduler, Rating
     from datetime import datetime, timezone
     card = Card()
@@ -101,6 +101,24 @@ def _seed_graduated_card(logger, item_text: str) -> None:
         'learning_step': None,
         'step_due': None,
         'introduced_date': datetime.now(timezone.utc).date().isoformat(),
+        'graduated_step': None,
+        'graduated_step_due': None,
+        'relearning_step': None,
+        'relearn_step_due': None,
+    }
+    logger.save_card(item_key(item_text), json.dumps(state))
+
+
+def _seed_in_graduated_phase(logger, item_text: str, step: int = 0) -> None:
+    """Write a card in the graduated ramp phase, due now."""
+    from datetime import datetime, timezone, timedelta
+    state = {
+        'fsrs': None,
+        'learning_step': None,
+        'step_due': None,
+        'introduced_date': datetime.now(timezone.utc).date().isoformat(),
+        'graduated_step': step,
+        'graduated_step_due': (datetime.now(timezone.utc) - timedelta(seconds=1)).isoformat(),
         'relearning_step': None,
         'relearn_step_due': None,
     }
@@ -177,3 +195,52 @@ def test_get_due_count_new_items_all_due(srs):
 def test_get_due_count_reviewed_item_not_due(srs):
     srs.review('alpha', 'words', 1.0, True)  # Easy → due in future
     assert srs.get_due_count(['alpha', 'beta']) == 1  # only 'beta' (new) is due
+
+
+# --- graduated phase ---
+
+def test_learning_completes_to_graduated_phase(logger):
+    srs = SRSScheduler(logger, learning_steps=[1], graduated_steps=[1, 7])
+    srs.review('test item', 'words', 1.0, True)   # new card → learning step 0
+    srs.review('test item', 'words', 1.0, True)   # advance past last learning step
+    state = json.loads(logger.get_card(item_key('test item')))
+    assert state['graduated_step'] == 0
+    assert state['learning_step'] is None
+    assert state['fsrs'] is None
+
+
+def test_graduated_correct_advances_step(logger):
+    srs = SRSScheduler(logger, graduated_steps=[1, 7])
+    _seed_in_graduated_phase(logger, 'test item', step=0)
+    srs.review('test item', 'words', 1.0, True)
+    state = json.loads(logger.get_card(item_key('test item')))
+    assert state['graduated_step'] == 1
+
+
+def test_graduated_incorrect_resets_to_step0(logger):
+    srs = SRSScheduler(logger, graduated_steps=[1, 7])
+    _seed_in_graduated_phase(logger, 'test item', step=1)
+    srs.review('test item', 'words', 1.0, False)
+    state = json.loads(logger.get_card(item_key('test item')))
+    assert state['graduated_step'] == 0
+
+
+def test_graduated_completes_to_fsrs(logger):
+    srs = SRSScheduler(logger, graduated_steps=[1])
+    _seed_in_graduated_phase(logger, 'test item', step=0)
+    srs.review('test item', 'words', 1.0, True)
+    state = json.loads(logger.get_card(item_key('test item')))
+    assert state['graduated_step'] is None
+    assert state['fsrs'] is not None
+
+
+def test_get_phase_graduated(logger):
+    srs = SRSScheduler(logger)
+    _seed_in_graduated_phase(logger, 'test item')
+    assert srs.get_phase('test item') == 'graduated'
+
+
+def test_graduated_phase_counts_as_due(logger):
+    srs = SRSScheduler(logger)
+    _seed_in_graduated_phase(logger, 'alpha')
+    assert srs.get_due_count(['alpha']) == 1
