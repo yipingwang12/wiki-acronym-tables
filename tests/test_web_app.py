@@ -1,6 +1,9 @@
 from __future__ import annotations
 
 import pytest
+from unittest.mock import MagicMock
+from fsrs import Rating as _Rating
+
 from wiki_acronyms.web_app import create_app
 
 _LINES = [
@@ -9,16 +12,33 @@ _LINES = [
 ]
 
 
+def _mock_logger():
+    mock = MagicMock()
+    mock.start_session.return_value = 'test-session-id'
+    mock.log_display.return_value = 'test-attempt-id'
+    return mock
+
+
+def _mock_srs(order=None, due_count=None, n=len(_LINES)):
+    mock = MagicMock()
+    mock.get_due_order.return_value = order if order is not None else list(range(n))
+    mock.get_due_count.return_value = due_count if due_count is not None else n
+    mock.review.return_value = _Rating.Easy
+    return mock
+
+
 @pytest.fixture
 def client():
-    app = create_app(_LINES, 'Test Poem', wrong_prob=0.0, mode='words')
+    app = create_app(_LINES, 'Test Poem', wrong_prob=0.0, mode='words',
+                     logger=_mock_logger(), srs=_mock_srs())
     app.config['TESTING'] = True
     return app.test_client()
 
 
 @pytest.fixture
 def acronym_client():
-    app = create_app(_LINES, 'Test Poem', wrong_prob=0.0, mode='acronym')
+    app = create_app(_LINES, 'Test Poem', wrong_prob=0.0, mode='acronym',
+                     logger=_mock_logger(), srs=_mock_srs())
     app.config['TESTING'] = True
     return app.test_client()
 
@@ -60,6 +80,8 @@ def test_health_exhaustion_resets(client):
         sess['line_idx'] = 0
         sess['health'] = 1
         sess['display'] = None
+        sess['item_order'] = [0, 1]
+        sess['due_count'] = len(_LINES)
         sess['stats'] = {'easy': 0, 'good': 0, 'hard': 0, 'again': 0, 'total_time': 0.0, 'completed': 0}
     client.get('/quiz')
     client.post('/quiz', data={'answer': '1'})  # false alarm → health 0 → reset
@@ -73,6 +95,8 @@ def test_completion_page_shown(client):
         sess['line_idx'] = len(_LINES)
         sess['health'] = 10
         sess['display'] = None
+        sess['item_order'] = [0, 1]
+        sess['due_count'] = len(_LINES)
         sess['stats'] = {'easy': 0, 'good': 0, 'hard': 0, 'again': 0, 'total_time': 0.0, 'completed': 0}
     resp = client.get('/quiz')
     assert b'Complete' in resp.data
@@ -90,11 +114,11 @@ def test_acronym_quiz_shows_letter_hint(acronym_client):
 
 
 def test_digits_mode_shows_digit_hint():
-    from wiki_acronyms.web_app import create_app
-    app = create_app(['194'], 'Test', wrong_prob=0.0, mode='digits', item_labels=['800\u2013899'])
+    app = create_app(['194'], 'Test', wrong_prob=0.0, mode='digits',
+                     item_labels=['800\u2013899'], logger=_mock_logger(), srs=_mock_srs(n=1))
     app.config['TESTING'] = True
-    client = app.test_client()
-    resp = client.get('/quiz')
+    c = app.test_client()
+    resp = c.get('/quiz')
     assert b'digit' in resp.data
     assert b'800' in resp.data  # century label shown
 
@@ -142,6 +166,8 @@ def test_stats_reset_on_health_exhaustion(client):
         sess['line_idx'] = 0
         sess['health'] = 1
         sess['display'] = None
+        sess['item_order'] = [0, 1]
+        sess['due_count'] = len(_LINES)
         sess['stats'] = {'easy': 3, 'good': 2, 'hard': 1, 'again': 0, 'total_time': 30.0, 'completed': 6}
     client.get('/quiz')
     client.post('/quiz', data={'answer': '1'})  # false alarm → exhaustion → reset
@@ -159,20 +185,8 @@ def test_infobox_rendered_in_response(client):
 
 # --- SRS due-order integration ---
 
-from unittest.mock import MagicMock
-from fsrs import Rating as _Rating
-
-
-def _mock_srs(order=None, due_count=None, n=len(_LINES)):
-    mock = MagicMock()
-    mock.get_due_order.return_value = order if order is not None else list(range(n))
-    mock.get_due_count.return_value = due_count if due_count is not None else n
-    mock.review.return_value = _Rating.Easy
-    return mock
-
-
 def test_srs_item_order_stored_in_session():
-    app = create_app(_LINES, 'T', wrong_prob=0.0, srs=_mock_srs(order=[1, 0]))
+    app = create_app(_LINES, 'T', wrong_prob=0.0, logger=_mock_logger(), srs=_mock_srs(order=[1, 0]))
     app.config['TESTING'] = True
     c = app.test_client()
     c.get('/quiz')
@@ -181,7 +195,7 @@ def test_srs_item_order_stored_in_session():
 
 
 def test_srs_due_count_stored_in_session():
-    app = create_app(_LINES, 'T', wrong_prob=0.0, srs=_mock_srs(due_count=1))
+    app = create_app(_LINES, 'T', wrong_prob=0.0, logger=_mock_logger(), srs=_mock_srs(due_count=1))
     app.config['TESTING'] = True
     c = app.test_client()
     c.get('/quiz')
@@ -192,8 +206,8 @@ def test_srs_due_count_stored_in_session():
 def test_srs_reversed_order_shows_second_line_first():
     """When item_order=[1,0], progress label reflects item 1 (index 1 in lines)."""
     labels = ['Line A', 'Line B']
-    app = create_app(_LINES, 'T', wrong_prob=0.0, srs=_mock_srs(order=[1, 0]),
-                     item_labels=labels)
+    app = create_app(_LINES, 'T', wrong_prob=0.0, logger=_mock_logger(),
+                     srs=_mock_srs(order=[1, 0]), item_labels=labels)
     app.config['TESTING'] = True
     c = app.test_client()
     resp = c.get('/quiz')
@@ -202,21 +216,11 @@ def test_srs_reversed_order_shows_second_line_first():
 
 def test_srs_completion_after_due_items_only():
     """Session completes after due_count items, not total len(lines)."""
-    app = create_app(_LINES, 'T', wrong_prob=0.0, srs=_mock_srs(order=[0, 1], due_count=1))
+    app = create_app(_LINES, 'T', wrong_prob=0.0, logger=_mock_logger(),
+                     srs=_mock_srs(order=[0, 1], due_count=1))
     app.config['TESTING'] = True
     c = app.test_client()
     c.get('/quiz')
     c.post('/quiz', data={'answer': ''})  # correct → line_idx becomes 1
     resp = c.get('/quiz')
     assert b'Complete' in resp.data
-
-
-def test_no_srs_uses_sequential_order():
-    """Without SRS, item_order defaults to 0..N-1."""
-    app = create_app(_LINES, 'T', wrong_prob=0.0)
-    app.config['TESTING'] = True
-    c = app.test_client()
-    c.get('/quiz')
-    with c.session_transaction() as sess:
-        assert sess['item_order'] == [0, 1]
-        assert sess['due_count'] == len(_LINES)

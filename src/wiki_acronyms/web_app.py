@@ -29,10 +29,11 @@ def create_app(
     wrong_prob: float = 0.15,
     mode: str = 'words',
     item_labels: list[str] | None = None,
-    logger: QuizLogger = None,
+    *,
+    logger: QuizLogger,
     config_path: str | None = None,
     cfg_hash: str | None = None,
-    srs: SRSScheduler = None,
+    srs: SRSScheduler,
     review_ahead: int = 0,
 ) -> Flask:
     app = Flask(__name__, template_folder=_TEMPLATE_DIR)
