@@ -2,3 +2,18 @@ award_name: "Breakthrough Prize in Fundamental Physics"
 wikidata_item: "Q1314470"
 chunk_years: 5
 chunk_start_year: 2012
+humans_only: true
+manual_entries:
+  - {year: 2013, name: "Stephen Hawking"}
+  - {year: 2018, name: "Charles L. Bennett"}
+  - {year: 2018, name: "David Spergel"}
+  - {year: 2018, name: "Gary Hinshaw"}
+  - {year: 2018, name: "Lyman Page"}
+  - {year: 2018, name: "Norman Jarosik"}
+exclude_entries:
+  - "Tracy Slatyer"    # New Horizons Prize, not main Breakthrough Prize — Wikidata error
+  - "Xie Chen"         # New Horizons Prize, not main Breakthrough Prize — Wikidata error
+  - "Craig Hogan"      # not found on Wikipedia award list — likely Wikidata error
+  - "Michael H. Hecht" # planetary scientist, not fundamental physics — likely Wikidata error
+  - "Peter Shawhan"    # not found on Wikipedia award list — likely Wikidata error
+  - "Roger Brissenden" # not found on Wikipedia award list — likely Wikidata error

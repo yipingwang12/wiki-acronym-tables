@@ -9,6 +9,7 @@ from pathlib import Path
 import yaml
 
 from .chunker import make_chunks
+from .list_parser import Entry
 from .wikidata import count_laureates, fetch_entries
 from .xlsx_writer import write_xlsx
 
@@ -49,7 +50,8 @@ def main(argv=None) -> None:
         print(f"Error: no entries found for item '{item_id}'", file=sys.stderr)
         sys.exit(1)
 
-    total = count_laureates(item_id, humans_only=humans_only)
+    excluded = config.get("exclude_entries", [])
+    total = count_laureates(item_id, humans_only=humans_only) - len(excluded)
     if total != len(entries):
         print(
             f"Warning: Wikidata reports {total} laureates for '{award_name}' "
@@ -57,6 +59,14 @@ def main(argv=None) -> None:
             f"{total - len(entries)} missing and excluded from table",
             file=sys.stderr,
         )
+
+    manual = [Entry(year=e["year"], name=e["name"]) for e in config.get("manual_entries", [])]
+    if manual:
+        existing = {(e.year, e.name) for e in entries}
+        added = [e for e in manual if (e.year, e.name) not in existing]
+        entries = sorted(entries + added, key=lambda e: (e.year, e.name))
+        if added:
+            print(f"Added {len(added)} manual entries for '{award_name}'")
 
     print(f"Fetched {len(entries)} entries for '{award_name}'")
     chunks = make_chunks(entries, chunk_years=chunk_years, chunk_start_year=chunk_start_year, first_letter_only_from=first_letter_only_from)

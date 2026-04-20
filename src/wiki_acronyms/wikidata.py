@@ -11,7 +11,7 @@ _SPARQL_URL = "https://query.wikidata.org/sparql"
 _HUMAN_FILTER = "  ?person wdt:P31 wd:Q5 .\n"
 
 _COUNT_QUERY = """\
-SELECT (COUNT(DISTINCT ?person) AS ?count) WHERE {{
+SELECT (COUNT(?stmt) AS ?count) WHERE {{
 {human_filter}  ?person p:P166 ?stmt .
   ?stmt ps:P166 wd:{item_id} .
 }}

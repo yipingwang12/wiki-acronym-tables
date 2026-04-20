@@ -2,3 +2,13 @@ award_name: "Sakharov Prize"
 wikidata_item: "Q48786"
 chunk_years: 5
 chunk_start_year: 1988
+manual_entries:
+  - {year: 1990, name: "Aung San Suu Kyi"}
+  - {year: 2020, name: "Siarhiej Cichanowski"}
+  - {year: 2020, name: "Stepan Putilo"}
+  - {year: 2020, name: "Volha Kavalkova"}
+  - {year: 2020, name: "Sergei Dylevsky"}
+  - {year: 2020, name: "Veranika Capkała"}
+  - {year: 2022, name: "Volodymyr Zelenskyy"}
+  - {year: 2024, name: "Edmundo González"}
+  - {year: 2025, name: "Andrzej Poczobut"}

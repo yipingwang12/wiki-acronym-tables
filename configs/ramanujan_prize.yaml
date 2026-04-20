@@ -2,3 +2,18 @@ award_name: "ICTP Ramanujan Prize"
 wikidata_item: "Q1653280"
 chunk_years: 5
 chunk_start_year: 2005
+manual_entries:
+  - {year: 2005, name: "Marcelo Viana"}
+  - {year: 2007, name: "Jorge Lauret"}
+  - {year: 2008, name: "Enrique Pujals"}
+  - {year: 2009, name: "Ernesto Lupercio"}
+  - {year: 2010, name: "Shi Yuguang"}
+  - {year: 2013, name: "Tian Ye"}
+  - {year: 2014, name: "Miguel Walsh"}
+  - {year: 2015, name: "Amalendu Krishna"}
+  - {year: 2017, name: "Eduardo V. Teixeira"}
+  - {year: 2019, name: "Hoàng Hiệp Phạm"}
+  - {year: 2020, name: "Carolina Araujo"}
+  - {year: 2021, name: "Neena Gupta"}
+  - {year: 2022, name: "Mouhamed Moustapha Fall"}
+  - {year: 2025, name: "Claudio Muñoz"}
