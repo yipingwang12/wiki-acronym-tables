@@ -14,18 +14,47 @@ Personal / educational use. Single user driving batch runs via CLI.
 ### 1. Award Laureates (`wiki-acronym-tables`)
 - Source: Wikidata SPARQL (award Q-number)
 - Output: year-chunked acronyms from laureate name initials
-- Config: `award_name`, `wikidata_item`, `chunk_years`, `chunk_start_year`, `first_letter_only_from`, `humans_only`
+- Gap warning: emitted to stderr when `count_laureates()` (all P166 statements) differs from fetched count (those with P585 date qualifier). Computed before manual entry merging so it reflects Wikidata quality only.
+
+| Field | Required | Default | Notes |
+|---|---|---|---|
+| `award_name` | yes | — | Used in output filename and warning messages |
+| `wikidata_item` | yes | — | Q-number, e.g. `Q37922` |
+| `chunk_years` | no | 5 | Years per acronym chunk |
+| `chunk_start_year` | no | earliest entry year | First year of first chunk |
+| `humans_only` | no | false | Adds `wdt:P31 wd:Q5` SPARQL filter; also applies to `count_laureates` |
+| `first_letter_only_from` | no | null | Entries from this year onward use only first letter of first name token |
+| `manual_entries` | no | [] | `[{year, name}]` — merged after SPARQL fetch; deduped by (year, name); for Wikidata coverage gaps |
+| `exclude_entries` | no | [] | List of names — subtracted from `count_laureates` total to suppress gap warnings for known Wikidata errors |
 
 ### 2. Poetry Lines (`wiki-poetry`)
 - Source: Project Gutenberg (plain text, cached locally)
 - Output: per-line acronyms (first letter of every word, particles included)
-- Config: `poem_title`, `gutenberg_id`, `start_marker`, `end_marker`; supports multi-poem collections
+- `line_initials` includes all words (unlike `name_initials` which skips particles)
+- `start_marker`/`end_marker`: any substring of the first/last line; robust to minor Gutenberg edition differences
+
+Single poem config:
+```yaml
+poem_title: "Shakespeare Sonnet 18"
+gutenberg_id: 1041
+start_marker: "Shall I compare thee to a summer's day?"
+end_marker: "So long lives this, and this gives life to thee."
+```
+Collection config: top-level `collection_title` + `poems` list, each with `poem_title`/`start_marker`/`end_marker`. Single sheet output with bold yellow title row per poem and blank row separators.
 
 ### 3. Monarch Reigns (`wiki-monarchs`)
 - Source: Wikidata SPARQL (position Q-numbers)
 - Output: per-century transition-digit strings (last digit of accession year per monarch)
-- Config: `subject`, `positions`, `chunk_years`, `chunk_start_year`
 - **Gap-fill**: when a monarch's recorded end year doesn't match any accession year (e.g. Wikidata shows Æthelstan at 927 but Edward the Elder died in 924), the end year is inserted into the transition string as a fallback event. This corrects Wikidata's known lag between a monarch's death and the next monarch's formal accession date.
+- **Deduplication by person Q-number**: monarchs whose title changed mid-reign (e.g. George III: King of GB 1760 → King of UK 1801) appear once with their earliest accession year.
+- **Fragmented Q-numbers**: Britain requires four position Q-numbers across eras (`Q18810062` England pre-1707, `Q110324075` GB 1707–1801, `Q111722535` UK 1801–1927, `Q9134365` UK 1927–present).
+
+| Field | Required | Default | Notes |
+|---|---|---|---|
+| `subject` | yes | — | Used in sheet title and output filename |
+| `positions` | yes | — | List of Wikidata position Q-numbers (P39 values) |
+| `chunk_years` | no | 100 | Years per chunk |
+| `chunk_start_year` | no | earliest accession year | First year of first chunk |
 
 ### 4. Shakespeare Passages (`wiki-shakespeare`)
 - Source: Folger Digital Texts API (`folgerdigitaltexts.org`)
