@@ -237,3 +237,68 @@ class TestSync:
         resp = client.post('/api/sync', json={'changes': changes})
         cards = resp.get_json()['cards']
         assert len(cards) == 5
+
+
+class TestSyncEdgeCases:
+    def test_identical_timestamps_server_wins(self, client, app):
+        # LWW uses strict >; equal timestamp → client does not overwrite server
+        ts = '2024-03-01T12:00:00+00:00'
+        server_json = '{"learning_step":3}'
+        logger = _mock_logger({'key1': (server_json, ts)})
+        app.config['LOGGER'] = logger
+        resp = client.post('/api/sync', json={'changes': [{
+            'item_key': 'key1',
+            'card_json': '{"learning_step":0}',
+            'updated_at': ts,
+        }]})
+        cards = {c['item_key']: c for c in resp.get_json()['cards']}
+        assert cards['key1']['card_json'] == server_json
+
+    def test_two_client_conflict_newer_wins(self, client, app):
+        # Client A syncs first (newer ts). Client B then syncs (older ts). A's data must persist.
+        client_a_json = '{"graduated_step":2}'
+        client_b_json = '{"graduated_step":0}'
+        logger = _mock_logger()
+        app.config['LOGGER'] = logger
+
+        client.post('/api/sync', json={'changes': [{
+            'item_key': 'shared',
+            'card_json': client_a_json,
+            'updated_at': '2024-06-01T00:00:00+00:00',
+        }]})
+        resp = client.post('/api/sync', json={'changes': [{
+            'item_key': 'shared',
+            'card_json': client_b_json,
+            'updated_at': '2024-01-01T00:00:00+00:00',
+        }]})
+        cards = {c['item_key']: c for c in resp.get_json()['cards']}
+        assert cards['shared']['card_json'] == client_a_json
+
+    def test_missing_changes_key_returns_existing_cards(self, client, app):
+        logger = _mock_logger({'k1': ('{"v":1}', '2024-01-01T00:00:00+00:00')})
+        app.config['LOGGER'] = logger
+        resp = client.post('/api/sync', json={})
+        assert resp.status_code == 200
+        assert len(resp.get_json()['cards']) == 1
+
+    def test_invalid_json_body_returns_existing_cards(self, client, app):
+        logger = _mock_logger({'k1': ('{"v":1}', '2024-01-01T00:00:00+00:00')})
+        app.config['LOGGER'] = logger
+        resp = client.post('/api/sync', data='not-json', content_type='application/json')
+        assert resp.status_code == 200
+        assert len(resp.get_json()['cards']) == 1
+
+    def test_response_includes_all_server_cards_not_only_changed(self, client, app):
+        # After client updates card A, the response must still include untouched card B
+        logger = _mock_logger({
+            'a': ('{"v":1}', '2024-01-01T00:00:00+00:00'),
+            'b': ('{"v":2}', '2024-01-01T00:00:00+00:00'),
+        })
+        app.config['LOGGER'] = logger
+        resp = client.post('/api/sync', json={'changes': [{
+            'item_key': 'a',
+            'card_json': '{"v":99}',
+            'updated_at': '2024-12-01T00:00:00+00:00',
+        }]})
+        keys = {c['item_key'] for c in resp.get_json()['cards']}
+        assert keys == {'a', 'b'}

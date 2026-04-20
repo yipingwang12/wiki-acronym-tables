@@ -1,0 +1,25 @@
+# Replace "wiki-acronym-tables" with your chosen app name after running `fly launch`
+app = "wiki-acronym-tables"
+primary_region = "lax"
+
+[build]
+  dockerfile = "Dockerfile"
+
+[env]
+  DB_PATH = "/data/quiz.db"
+
+[[mounts]]
+  source = "quiz_data"
+  destination = "/data"
+
+[http_service]
+  internal_port = 8080
+  force_https = true
+  auto_stop_machines = "stop"
+  auto_start_machines = true
+  min_machines_running = 0
+
+[[vm]]
+  memory = "256mb"
+  cpu_kind = "shared"
+  cpus = 1

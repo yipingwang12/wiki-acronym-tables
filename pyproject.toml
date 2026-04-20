@@ -12,10 +12,11 @@ dependencies = [
     "pyyaml",
     "flask",
     "fsrs",
-    "pywebview",
 ]
 
 [project.optional-dependencies]
+desktop = ["pywebview"]
+server = ["gunicorn"]
 dev = ["pytest"]
 
 [project.scripts]

@@ -306,6 +306,13 @@ def create_full_app(config_dir: Path, logger: QuizLogger) -> Flask:
 def main() -> None:
     import webview  # imported here so the module loads without pywebview installed
 
+    quiz_url = os.environ.get('QUIZ_URL')
+
+    if quiz_url:
+        webview.create_window('Quiz', quiz_url, width=960, height=720, min_size=(600, 480))
+        webview.start()
+        return
+
     logger = QuizLogger(db_path=_ROOT / 'logs' / 'quiz.db')
     app = create_full_app(_CONFIG_DIR, logger)
 

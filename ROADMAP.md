@@ -17,10 +17,9 @@
 
 ## Planned
 
-### PWA — remaining phases
-- [ ] Phase 4: Fly.io deployment — `Dockerfile`, `fly.toml`, persistent SQLite volume, `server.py` entry point
-- [ ] Phase 5: Desktop app remote mode — `QUIZ_URL` env var switches `main()` to connect to hosted server instead of local Flask
-- [ ] Phase 6: Integration testing and hardening — end-to-end sync test, service worker update flow, conflict resolution edge cases
+- [x] PWA Phase 4 — Fly.io deployment: `Dockerfile`, `fly.toml` (256MB shared-cpu, persistent `/data` volume, auto-stop), `server.py` WSGI entry point; `pywebview` moved to optional `[desktop]` extra; `gunicorn` added as `[server]` extra
+- [x] PWA Phase 5 — Desktop remote mode: `QUIZ_URL` env var in `desktop_app.main()` opens PyWebView window on hosted server instead of starting local Flask
+- [x] PWA Phase 6 — Integration testing and hardening: `sw.js` refactored to export `handleInstall`/`handleActivate`/`handleFetch`; 13 SW tests (cache versioning, install, activate purge, fetch routing); 4 sync conflict edge cases (identical timestamps, two-client LWW, other-device cards, mixed newer/older); 5 Python API edge cases (identical timestamps, two-client conflict, missing/invalid body, full state returned); total 98 JS + 21 API tests
 
 ### Near-term
 - [ ] README with install/usage examples (including PWA install instructions)

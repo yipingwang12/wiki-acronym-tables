@@ -113,4 +113,43 @@ describe('syncWithServer', () => {
     expect(result.count).toBe(0);
     expect(putCard).not.toHaveBeenCalled();
   });
+
+  it('does not overwrite local card when timestamps are identical', async () => {
+    // LWW uses strict >, so equal timestamps → server does not win
+    const ts = '2024-03-01T12:00:00Z';
+    getAllCards.mockResolvedValue([
+      { item_key: 'k1', card_json: '{"local":true}', updated_at: ts },
+    ]);
+    mockFetch([{ item_key: 'k1', card_json: '{"local":false}', updated_at: ts }]);
+    await syncWithServer('');
+    expect(putCard).not.toHaveBeenCalled();
+  });
+
+  it('applies server cards for keys absent locally (other device reviews)', async () => {
+    // Client only has k1; server returns k1 + k2 (reviewed on another device)
+    getAllCards.mockResolvedValue([
+      { item_key: 'k1', card_json: '{"v":1}', updated_at: '2024-01-01T00:00:00Z' },
+    ]);
+    mockFetch([
+      { item_key: 'k1', card_json: '{"v":1}', updated_at: '2024-01-01T00:00:00Z' },
+      { item_key: 'k2', card_json: '{"v":7}', updated_at: '2024-06-01T00:00:00Z' },
+    ]);
+    await syncWithServer('');
+    expect(putCard).toHaveBeenCalledWith('k2', '{"v":7}', '2024-06-01T00:00:00Z');
+    expect(putCard).toHaveBeenCalledTimes(1);
+  });
+
+  it('applies only newer cards when server returns a mix', async () => {
+    getAllCards.mockResolvedValue([
+      { item_key: 'old', card_json: '{"v":1}', updated_at: '2024-06-01T00:00:00Z' },
+      { item_key: 'new', card_json: '{"v":1}', updated_at: '2024-01-01T00:00:00Z' },
+    ]);
+    mockFetch([
+      { item_key: 'old', card_json: '{"v":2}', updated_at: '2024-01-01T00:00:00Z' }, // older → skip
+      { item_key: 'new', card_json: '{"v":9}', updated_at: '2024-09-01T00:00:00Z' }, // newer → apply
+    ]);
+    await syncWithServer('');
+    expect(putCard).toHaveBeenCalledTimes(1);
+    expect(putCard).toHaveBeenCalledWith('new', '{"v":9}', '2024-09-01T00:00:00Z');
+  });
 });

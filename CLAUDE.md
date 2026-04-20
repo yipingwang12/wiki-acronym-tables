@@ -45,6 +45,7 @@ See [PRD.md](PRD.md) for pipeline configs, output format, quiz mode design ratio
 | `wiki_api.py` | Vendored MediaWiki API client. Unused by CLI. |
 | `api.py` | Flask Blueprint: `GET /api/decks`, `GET /api/deck/<id>/content`, `POST /api/sync`, `GET /pwa/*` static files. Registered in `desktop_app.py`. |
 | `deck_loader.py` | `DeckInfo`, `discover_decks()`, `load_poetry_deck()`, `load_monarchs_deck()`. Used by desktop app and API. |
+| `server.py` | WSGI entry point for Fly.io: reads `PORT`/`DB_PATH`/`CONFIG_DIR` env vars; `create_app()` factory for gunicorn. Run locally with `python server.py`. |
 
 ## PWA modules (`pwa/`)
 
@@ -55,7 +56,7 @@ See [PRD.md](PRD.md) for pipeline configs, output format, quiz mode design ratio
 | `itemKey.js` | SHA-256 item key via Web Crypto API, produces identical output to Python `hashlib.sha256().hexdigest()[:16]`. |
 | `db.js` | IndexedDB wrapper: `getCard`/`saveCard`/`countIntroducedToday` (SRSScheduler interface) + `getAllCards`/`putCard` (sync) + deck/deck-list cache. |
 | `sync.js` | Last-write-wins sync engine: POSTs local IndexedDB state to `/api/sync`, merges server response back. |
-| `sw.js` | Service worker: cache-first for `/pwa/*` static assets, network-only for `/api/*`. |
+| `sw.js` | Service worker: cache-first for `/pwa/*` static assets, network-only for `/api/*`. Exports `handleInstall`/`handleActivate`/`handleFetch` for testing; SW registration guard (`typeof self !== 'undefined'`) prevents Node import errors. |
 | `srs.bundle.js` | esbuild bundle of `srs.js` + `ts-fsrs` for browser use (committed; rebuild with `npm run build` if `srs.js` changes). |
 | `index.html` | Deck picker: fetches `/api/decks`, groups by collection, falls back to IndexedDB cache offline. |
 | `quiz.html` | Quiz UI: touch chip selection for wrong positions, health bar, live timer, answer reveal, auto-sync on completion. |
@@ -64,7 +65,7 @@ See [PRD.md](PRD.md) for pipeline configs, output format, quiz mode design ratio
 
 **To install on iPhone:** open `http://<LAN-IP>:5001/pwa/` in Safari → Share → Add to Home Screen.
 
-**Tests:** `pwa/tests/` — 82 vitest tests covering quiz display, SRS state machine, IndexedDB wrapper, sync engine, and Python↔JS parity.
+**Tests:** `pwa/tests/` — 98 vitest tests covering quiz display, SRS state machine, IndexedDB wrapper, sync engine (incl. conflict edge cases), service worker handler logic, and Python↔JS parity.
 
 ## Award configs (31)
 

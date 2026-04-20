@@ -1,6 +1,6 @@
-const CACHE = 'quiz-pwa-v1';
+export const CACHE = 'quiz-pwa-v1';
 
-const STATIC = [
+export const STATIC = [
   '/pwa/',
   '/pwa/index.html',
   '/pwa/quiz.html',
@@ -13,37 +13,36 @@ const STATIC = [
   '/pwa/icon-512.png',
 ];
 
-self.addEventListener('install', e => {
-  e.waitUntil(
-    caches.open(CACHE).then(c => c.addAll(STATIC)).then(() => self.skipWaiting())
-  );
-});
+export async function handleInstall(cachesApi, skipWaiting) {
+  const c = await cachesApi.open(CACHE);
+  await c.addAll(STATIC);
+  await skipWaiting();
+}
 
-self.addEventListener('activate', e => {
-  e.waitUntil(
-    caches.keys()
-      .then(keys => Promise.all(keys.filter(k => k !== CACHE).map(k => caches.delete(k))))
-      .then(() => self.clients.claim())
-  );
-});
+export async function handleActivate(cachesApi, claim) {
+  const keys = await cachesApi.keys();
+  await Promise.all(keys.filter(k => k !== CACHE).map(k => cachesApi.delete(k)));
+  await claim();
+}
 
-self.addEventListener('fetch', e => {
-  const { pathname } = new URL(e.request.url);
-
-  // API calls: network-only, no caching.
+export async function handleFetch(request, cachesApi, fetchFn) {
+  const { pathname } = new URL(request.url);
   if (pathname.startsWith('/api/')) {
-    e.respondWith(fetch(e.request));
-    return;
+    return fetchFn(request);
   }
+  const cached = await cachesApi.match(request);
+  if (cached) return cached;
+  const resp = await fetchFn(request);
+  if (resp.ok) {
+    const clone = resp.clone();
+    cachesApi.open(CACHE).then(c => c.put(request, clone));
+  }
+  return resp;
+}
 
-  // Static PWA assets: cache-first.
-  e.respondWith(
-    caches.match(e.request).then(cached => cached || fetch(e.request).then(resp => {
-      if (resp.ok) {
-        const clone = resp.clone();
-        caches.open(CACHE).then(c => c.put(e.request, clone));
-      }
-      return resp;
-    }))
-  );
-});
+// Service worker registration — only runs in SW context (self is defined)
+if (typeof self !== 'undefined' && typeof caches !== 'undefined') {
+  self.addEventListener('install', e => e.waitUntil(handleInstall(caches, () => self.skipWaiting())));
+  self.addEventListener('activate', e => e.waitUntil(handleActivate(caches, () => self.clients.claim())));
+  self.addEventListener('fetch', e => e.respondWith(handleFetch(e.request, caches, fetch)));
+}

@@ -127,13 +127,15 @@ A PyWebView-wrapped desktop app with an Anki-style deck picker home screen. Flas
 - **Deck loading**: async (background thread) with a polling spinner — handles slow Wikidata SPARQL calls without blocking the UI. Errors shown inline with a back link.
 - **Navigation**: "← Decks" link on every quiz page; "Study again" / "← Decks" on the completion screen.
 - **macOS .app bundle**: `~/Desktop/Quiz.app` — double-click to launch, no terminal required. Custom `.icns` icon (green rounded square, stacked flashcard motif).
+- **Remote mode**: set `QUIZ_URL=https://your-app.fly.dev` before launching; `main()` opens the PyWebView window on the hosted server and skips starting a local Flask instance.
 - **Quote normalisation**: `poetry_parser.py` normalises Unicode curly quotes (`\u2018/\u2019/\u201c/\u201d`) to ASCII before marker lookup, so YAML configs with straight apostrophes match Gutenberg text with curly quotes.
 - **SRS parameters**: desktop app uses fixed defaults (same as CLI defaults); advanced users can still use `wiki-quiz-web` / `wiki-quiz-monarchs-web` for custom params.
 
 ### iPhone PWA (`/pwa/`)
 An installable Progressive Web App that shares SRS state with the desktop app via the Flask server.
 
-- **Install**: navigate to `http://<LAN-IP>:5001/pwa/` in Safari → Share → Add to Home Screen. Runs as a standalone app (no browser chrome).
+- **Install (LAN)**: navigate to `http://<LAN-IP>:5001/pwa/` in Safari → Share → Add to Home Screen. Runs as a standalone app (no browser chrome).
+- **Install (hosted)**: same flow against the Fly.io URL once deployed (`fly deploy`). See `Dockerfile` and `fly.toml`.
 - **Offline support**: static assets cached by service worker (`sw.js`); deck content and SRS state stored in IndexedDB (`db.js`). Quiz runs fully offline once a deck has been loaded.
 - **Sync**: on page load and after each session completion, `sync.js` POSTs all local IndexedDB card state to `POST /api/sync`. Server applies last-write-wins merge (compares `updated_at` timestamps) and returns full server state; client applies any newer server cards back to IndexedDB.
 - **Shared database**: both desktop and iPhone write to the same SQLite `srs_state` table via the Flask API. Cards reviewed on either device advance the same FSRS schedule.
