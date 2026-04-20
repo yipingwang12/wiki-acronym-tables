@@ -8,7 +8,11 @@
     body { font-family: system-ui, sans-serif; background: #f5f5f5; min-height: 100vh; display: flex; align-items: center; justify-content: center; }
     .container { background: white; padding: 40px; border-radius: 12px; box-shadow: 0 2px 12px rgba(0,0,0,0.08); max-width: 720px; width: 100%; }
     h1 { font-size: 1.1em; color: #666; font-weight: 500; margin-bottom: 4px; }
-    .progress { color: #aaa; font-size: 0.85em; margin-bottom: 20px; }
+    .progress { color: #aaa; font-size: 0.85em; margin-bottom: 20px; display: flex; align-items: center; gap: 8px; }
+    .phase-badge { font-size: 0.78em; font-weight: 600; padding: 2px 8px; border-radius: 4px; white-space: nowrap; }
+    .phase-badge.learning   { background: #e3f2fd; color: #1565c0; }
+    .phase-badge.review     { background: #e8f5e9; color: #2e7d32; }
+    .phase-badge.relearning { background: #fff3e0; color: #e65100; }
     .health-label { font-size: 0.8em; color: #999; margin-bottom: 4px; }
     .health-bar { background: #eee; border-radius: 6px; height: 8px; width: 180px; margin-bottom: 28px; }
     .health-fill { border-radius: 6px; height: 8px; transition: width 0.3s; background: #4caf50; }
@@ -68,7 +72,10 @@
 
 <div class="container">
   <h1>{{ title }}</h1>
-  <div class="progress">{{ progress_text }}</div>
+  <div class="progress">
+    <span>{{ progress_text }}</span>
+    <span class="phase-badge {{ phase }}">{{ phase | capitalize }}</span>
+  </div>
 
   <div class="health-label">Health: {{ health }}/{{ max_health }}</div>
   <div class="health-bar">

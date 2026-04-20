@@ -135,6 +135,14 @@ class QuizLogger:
         )
         self._conn.commit()
 
+    def count_introduced_today(self) -> int:
+        today = datetime.now(timezone.utc).date().isoformat()
+        row = self._conn.execute(
+            "SELECT COUNT(*) FROM srs_state WHERE json_extract(card_json, '$.introduced_date') = ?",
+            (today,),
+        ).fetchone()
+        return row[0]
+
     def get_card(self, item_key: str) -> str | None:
         row = self._conn.execute(
             'SELECT card_json FROM srs_state WHERE item_key=?', (item_key,)

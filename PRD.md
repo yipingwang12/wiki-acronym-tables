@@ -77,10 +77,10 @@ Three modes are implemented, all using the same scoring and health system:
 | `digits` | `wiki-quiz-monarchs-web` | Century transition strings | One digit per position; each independently 20% chance wrong |
 
 ### Flask web app
-The quiz is served as a localhost Flask app. Features:
+The quiz is served as a localhost Flask app (`wiki-quiz-web`, `wiki-quiz-monarchs-web`). Features:
 - Live timer per item (JS `setInterval`, 100ms update)
 - Session infobox: items done, per-rating counts (E/G/H/A), average time per item
-- Progress label (item index / due count, or custom label from config)
+- Progress label (item index / due count, or custom label from config) with inline phase badge (Learning / Review / Relearning)
 - Flash messages for correct/wrong/restart outcomes
 
 ### Related research
@@ -145,18 +145,84 @@ Each response is rated by latency relative to item length:
 
 Scaling by item length ensures a 5-word line and a 20-word line are judged at appropriate speeds; a response fast for a short line is not automatically fast for a long one.
 
+#### Learning steps and new-cards-per-day
+New items go through a configurable burn-in phase before entering the FSRS schedule. Both CLIs accept:
+
+- `--learning-steps MIN [MIN ...]` — sequence of intervals in minutes a card must pass before graduating (default: `1 10`, matching Anki's default)
+- `--new-per-day N` — max new items introduced per day (default: 20); unintroduced items queue indefinitely and unused daily slots do not accumulate
+
+State is stored in the `card_json` envelope alongside the FSRS card:
+
+| Field | Meaning |
+|---|---|
+| `learning_step` | Current learning step index; `null` if graduated |
+| `step_due` | ISO timestamp when current learning step is reviewable |
+| `introduced_date` | UTC date string when card was first shown (used for daily budget) |
+| `relearning_step` | Current relearning step index after a lapse; `null` if not in relearning |
+| `relearn_step_due` | ISO timestamp when current relearning step is reviewable |
+| `fsrs` | Serialised FSRS Card (null until graduation from learning) |
+
+Correct answer at a step advances to the next step; incorrect resets to step 0. Correct at the final step graduates the card to FSRS, rated by latency as usual. Legacy `card_json` rows (bare FSRS JSON without an envelope) are treated as already-graduated cards.
+
+**Note:** learning-step cards that come due during a session are shown; cards that become due mid-session (e.g. the 1-minute step expiring while reviewing other items) are not re-queued within the same session — they appear in the next session. For fast burn-in, run short back-to-back sessions.
+
 #### Due-order quiz flow
-At session start the quiz calls `SRSScheduler.get_due_order(lines)` and `get_due_count(lines)` to sort items by FSRS due date:
+At session start `_classify_items` sorts all items into buckets and returns `(ordered_indices, due_count)`:
 
-1. New items (no prior review) — shown first
-2. Overdue items (due date in the past) — shown next, sorted by how overdue
-3. Future items (due date not yet reached) — skipped for this session
+| Priority | Bucket | Condition |
+|---|---|---|
+| 1 | New (within daily budget) | No card state; budget = `new_per_day - introduced_today` |
+| 2 | Learning/relearning due | Step due ≤ now; sorted most-overdue first |
+| 3 | FSRS review due | `card.due` ≤ now; sorted most-overdue first |
+| 4 | Learning/relearning future | Step due > now; sorted soonest first |
+| 5 | FSRS future | `card.due` > now; sorted soonest first |
+| 6 | New (over daily budget) | Queued for future days |
 
-`session['item_order']` stores the sorted index list; `session['due_count']` caps the session at items 0..due_count-1. The quiz completes when all due items have been reviewed, even if future-scheduled items remain.
+`session['item_order']` stores the full sorted index list; `session['due_count']` caps the session at buckets 1–3. The quiz completes when all due items are reviewed. Buckets 4–6 are present in the order list to support `--review-ahead`.
 
-**Overdue handling**: FSRS uses actual elapsed time when reviewing overdue cards. A correct response on an overdue card produces a longer next interval (memory proved stronger than the model predicted), which is the desired behaviour.
+#### Review-ahead (`--review-ahead N`)
+Both `wiki-quiz-web` and `wiki-quiz-monarchs-web` accept `--review-ahead N`. When set, `due_count` is extended by N to include the N soonest-due future items after the normally-due set. Future items are reviewed early, so FSRS calculates the next interval from the actual (early) review time — this shortens the next interval and increases total lifetime reviews. It is never neutral or beneficial from a scheduling-efficiency standpoint, but provides extra exposure when the user has time.
 
-Without SRS (no `--db` flag), all items are shown sequentially as before.
+**Overdue handling**: FSRS uses actual elapsed time when reviewing overdue cards.
+
+#### Memory stability asymptote and max-interval cap
+FSRS models memory stability as converging toward a personal upper limit ("stability asymptote"), documented also in SuperMemo research as "stabilization decay." In practice this means long-interval cards (>6–12 months) may still be forgotten even when FSRS predicts high retention, because FSRS's 21 trainable parameters may over-estimate an individual's stability ceiling — especially if long-interval data is sparse (a circular problem: cards are forgotten before enough data accumulates).
+
+Both CLIs accept `--max-interval N` (days, default 365). After each review, if FSRS schedules the next due date beyond the cap, it is clamped to `now + N days` and `scheduled_days` is updated to match. This trades a small increase in review frequency for protection against the stability asymptote problem. Reviewing ahead of schedule appears to FSRS as an early review, so the subsequent interval will be shorter than if the card had been reviewed on the natural due date — consistent with the review-ahead tradeoff documented above. A correct response on an overdue card produces a longer next interval (memory proved stronger than the model predicted), which is the desired behaviour.
+
+#### Lapse behavior — stability drop, difficulty increase, and relearning
+
+A **lapse** is an incorrect response on a card that has already graduated from learning steps into the FSRS queue. FSRS applies three changes simultaneously:
+
+**1. Stability drop**
+Stability collapses via FSRS's forgetting-stability formula — independent of how stable the card was beforehand. The resulting interval is typically 1–3 days. This new stability is computed at lapse time and then frozen: relearning steps (if any) are a confirmation phase that runs against this already-computed stability, not a further input to it. After relearning, the card re-enters the queue at whatever interval FSRS scheduled at the moment of the lapse.
+
+**2. Difficulty increase**
+FSRS difficulty D (scale 1–10) is updated in three steps:
+
+1. Grade adjustment: `ΔD = -w6 × (G - 3)` — Again (G=1) increases D by `2 × w6`
+2. Linear damping: `D' = D + ΔD × (10-D)/9` — as D approaches 10, changes shrink toward zero
+3. Mean reversion: `D'' = w7 × D₀(4) + (1-w7) × D'` — blends back toward a baseline (~5–6)
+
+The damping in step 2 is a trap: once D is high, even successive correct Good responses produce negligible decreases. Going from D=10 to D=9 requires ~118 consecutive Good reviews at default parameters. Mean reversion (step 3) was introduced in FSRS v2 to fix this, but the default weight `w7 = 0.001` is so small that recovery from high difficulty takes thousands of reviews. FSRS optimisation across 10,000 users found w7 frequently optimises to near zero, making mean reversion practically absent. This pathology is called "Difficulty Hell."
+
+**3. Relearning steps**
+Without relearning steps, the card re-enters the SRS queue after a single re-exposure at lapse time, then intervals ramp back up — but with higher difficulty baked in. Relearning steps instead route the card through a short-interval confirmation phase (e.g. 10 minutes) before it returns to the queue. This is supported by:
+
+- **Errorful generation**: making an error followed by prompt correction is a well-studied enhancer of long-term retention; the error itself aids re-encoding
+- **Reconsolidation window**: forgetting triggers a labile memory state; immediate re-exposure can update the trace while malleable
+- **Review density**: multiple near-term exposures after a lapse increase short-term review density without affecting the FSRS-computed post-lapse stability
+
+**Lapse interventions:**
+
+| Parameter | Default | Effect |
+|---|---|---|
+| `--relearn-steps DAYS [...]` | `1 2 3` | Day-based relearning steps after a lapse; card must pass each before re-entering the FSRS queue. Incorrect during relearning resets to step 0; health penalty applies as normal. |
+| `--difficulty-forgiveness F` | `1.0` | Scales the FSRS difficulty increase at lapse time by `(1-F)`; 1.0 = no increase, 0.0 = full FSRS default. Directly addresses Difficulty Hell, which mean reversion fails to fix in practice. |
+| `--stability-forgiveness F` | `1.0` | Scales the FSRS stability drop at lapse time by `(1-F)`; 1.0 = no drop (card returns to pre-lapse stability after relearning), 0.0 = full FSRS default. Card state is reset to Review after forgiveness is applied so FSRS treats the next real review correctly. |
+
+With both forgiveness values at 1.0 (defaults), a lapse costs nothing in FSRS terms — difficulty and stability are preserved — but the card is gated through relearning steps before re-entering the queue, providing short-term consolidation via the errorful generation and reconsolidation mechanisms described above.
+
 
 ## Non-goals
 - Web UI beyond localhost

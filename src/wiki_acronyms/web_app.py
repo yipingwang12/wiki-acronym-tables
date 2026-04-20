@@ -10,7 +10,7 @@ import time
 from flask import Flask, flash, get_flashed_messages, redirect, render_template, request, session, url_for
 
 from .logger import QuizLogger
-from .srs import SRSScheduler, classify_response
+from .srs import SRSScheduler
 from .quiz import (
     AcronymDisplay, DigitDisplay, LineDisplay,
     make_acronym_display, make_digit_display, make_line_display,
@@ -29,10 +29,11 @@ def create_app(
     wrong_prob: float = 0.15,
     mode: str = 'words',
     item_labels: list[str] | None = None,
-    logger: QuizLogger | None = None,
+    logger: QuizLogger = None,
     config_path: str | None = None,
     cfg_hash: str | None = None,
-    srs: SRSScheduler | None = None,
+    srs: SRSScheduler = None,
+    review_ahead: int = 0,
 ) -> Flask:
     app = Flask(__name__, template_folder=_TEMPLATE_DIR)
     app.secret_key = secrets.token_hex(16)
@@ -41,11 +42,6 @@ def create_app(
     app.config['WRONG_PROB'] = wrong_prob
     app.config['MODE'] = mode
     app.config['ITEM_LABELS'] = item_labels or []
-
-    def _start_log_session() -> str | None:
-        if not logger:
-            return None
-        return logger.start_session(mode, title, config_path, cfg_hash, wrong_prob)
 
     def _empty_stats() -> dict:
         return {'easy': 0, 'good': 0, 'hard': 0, 'again': 0, 'total_time': 0.0, 'completed': 0}
@@ -56,14 +52,10 @@ def create_app(
             session['health'] = _MAX_HEALTH
             session['display'] = None
             session['attempt_id'] = None
-            session['log_sid'] = _start_log_session()
+            session['log_sid'] = logger.start_session(mode, title, config_path, cfg_hash, wrong_prob)
             session['stats'] = _empty_stats()
-            if srs:
-                session['item_order'] = srs.get_due_order(lines)
-                session['due_count'] = srs.get_due_count(lines)
-            else:
-                session['item_order'] = list(range(len(lines)))
-                session['due_count'] = len(lines)
+            session['item_order'] = srs.get_due_order(lines)
+            session['due_count'] = min(len(lines), srs.get_due_count(lines) + review_ahead)
 
     def _build_display(line: str, wrong_prob: float, mode: str) -> dict:
         if mode == 'acronym':
@@ -107,7 +99,7 @@ def create_app(
                 return redirect(url_for('quiz'))
 
             response_secs = time.time() - session.get('display_time', time.time())
-            item_order = session.get('item_order') or list(range(len(lines_)))
+            item_order = session['item_order']
             actual_idx = item_order[session['line_idx']]
             item_text = lines_[actual_idx]
             raw = request.form.get('answer', '').strip()
@@ -137,14 +129,13 @@ def create_app(
                 session['line_idx'] = 0
                 session['health'] = _MAX_HEALTH
 
-            if logger and session.get('log_sid') and session.get('attempt_id'):
+            if session.get('log_sid') and session.get('attempt_id'):
                 logger.log_response(
                     session['attempt_id'], raw, keystrokes,
                     sorted(user_pos), correct, session['health'],
                 )
 
-            rating = srs.review(item_text, mode_, response_secs, correct) if srs \
-                else classify_response(mode_, item_text, response_secs, correct)
+            rating = srs.review(item_text, mode_, response_secs, correct)
 
             stats = session.get('stats') or _empty_stats()
             stats['total_time'] += response_secs
@@ -155,7 +146,7 @@ def create_app(
             if correct:
                 flash(feedback, 'correct')
             elif health_exhausted:
-                session['log_sid'] = _start_log_session()
+                session['log_sid'] = logger.start_session(mode, title, config_path, cfg_hash, wrong_prob)
                 session['stats'] = _empty_stats()
                 flash('Health exhausted — restarting from the beginning.', 'restart')
             else:
@@ -167,18 +158,18 @@ def create_app(
 
         # GET
         line_idx = session['line_idx']
-        due_count = session.get('due_count', len(lines_))
+        due_count = session['due_count']
         if line_idx >= due_count:
             return render_template('complete.html', title=title_)
 
-        item_order = session.get('item_order') or list(range(len(lines_)))
+        item_order = session['item_order']
         actual_idx = item_order[line_idx]
 
         if session.get('display') is None:
             session['display'] = _build_display(lines_[actual_idx], wrong_prob_, mode_)
             session['display_time'] = time.time()
             label = labels_[actual_idx] if labels_ and actual_idx < len(labels_) else None
-            if logger and session.get('log_sid'):
+            if session.get('log_sid'):
                 session['attempt_id'] = logger.log_display(
                     session['log_sid'], actual_idx, label,
                     lines_[actual_idx], session['display']['display'],
@@ -197,10 +188,13 @@ def create_app(
         else:
             progress_text = f"Item {line_idx + 1} of {due_count}"
 
+        phase = srs.get_phase(lines_[actual_idx])
+
         return render_template(
             'quiz.html',
             title=title_,
             progress_text=progress_text,
+            phase=phase,
             health=health,
             max_health=_MAX_HEALTH,
             health_pct=max(0, health * 100 // _MAX_HEALTH),
