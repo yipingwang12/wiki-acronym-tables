@@ -111,14 +111,28 @@ class SRSScheduler:
         raw = self._logger.get_card(key)
 
         if raw is None:
-            state = {
-                'fsrs': None,
-                'learning_step': 0,
-                'step_due': (now + timedelta(minutes=self._steps[0])).isoformat(),
-                'introduced_date': now.date().isoformat(),
-                'relearning_step': None,
-                'relearn_step_due': None,
-            }
+            if not self._steps:
+                # No learning phase — graduate immediately on first review.
+                card = Card()
+                card, _ = self._scheduler.review_card(card, rating)
+                card = self._cap_card(card)
+                state = {
+                    'fsrs': card.to_json(),
+                    'learning_step': None,
+                    'step_due': None,
+                    'introduced_date': now.date().isoformat(),
+                    'relearning_step': None,
+                    'relearn_step_due': None,
+                }
+            else:
+                state = {
+                    'fsrs': None,
+                    'learning_step': 0,
+                    'step_due': (now + timedelta(minutes=self._steps[0])).isoformat(),
+                    'introduced_date': now.date().isoformat(),
+                    'relearning_step': None,
+                    'relearn_step_due': None,
+                }
             self._logger.save_card(key, json.dumps(state))
             return rating
 

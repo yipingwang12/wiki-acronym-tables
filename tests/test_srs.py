@@ -90,45 +90,54 @@ def srs(logger):
     return SRSScheduler(logger)
 
 
+@pytest.fixture
+def graduated_srs(logger):
+    """SRSScheduler with no learning steps — cards graduate immediately on first review."""
+    return SRSScheduler(logger, learning_steps=[])
+
+
 def test_review_stores_card(srs, logger):
     srs.review('hello world', 'words', 1.0, True)
     key = item_key('hello world')
     assert logger.get_card(key) is not None
 
 
-def test_review_card_json_valid(srs, logger):
-    srs.review('hello world', 'words', 1.0, True)
-    key = item_key('hello world')
-    card_json = logger.get_card(key)
-    data = json.loads(card_json)
-    assert 'stability' in data
-    assert 'difficulty' in data
+def test_review_card_json_valid(graduated_srs, logger):
+    graduated_srs.review('hello world', 'words', 1.0, True)
+    state = json.loads(logger.get_card(item_key('hello world')))
+    card_data = json.loads(state['fsrs'])
+    assert 'stability' in card_data
+    assert 'difficulty' in card_data
 
 
 def test_review_again_keeps_short_interval(srs, logger):
     from datetime import datetime, timezone
-    from fsrs import Card
-    srs.review('hello world', 'words', 1.0, False)  # Again
-    card = Card.from_json(logger.get_card(item_key('hello world')))
-    days_until_due = (card.due - datetime.now(timezone.utc)).total_seconds() / 86400
+    srs.review('hello world', 'words', 1.0, False)  # Again → learning step 0
+    state = json.loads(logger.get_card(item_key('hello world')))
+    step_due = datetime.fromisoformat(state['step_due'])
+    days_until_due = (step_due - datetime.now(timezone.utc)).total_seconds() / 86400
     assert days_until_due <= 1
 
 
-def test_review_easy_gives_longer_interval_than_again(srs, logger):
+def test_review_easy_gives_longer_interval_than_again(graduated_srs, logger):
     from fsrs import Card
-    srs.review('easy item', 'words', 0.5, True)   # Easy
-    srs.review('hard item', 'words', 0.5, False)  # Again
-    easy_card = Card.from_json(logger.get_card(item_key('easy item')))
-    again_card = Card.from_json(logger.get_card(item_key('hard item')))
+    graduated_srs.review('easy item', 'words', 0.5, True)   # Easy → graduates immediately
+    graduated_srs.review('hard item', 'words', 0.5, False)  # Again → graduates immediately
+    easy_state = json.loads(logger.get_card(item_key('easy item')))
+    again_state = json.loads(logger.get_card(item_key('hard item')))
+    easy_card = Card.from_json(easy_state['fsrs'])
+    again_card = Card.from_json(again_state['fsrs'])
     assert easy_card.due >= again_card.due
 
 
-def test_review_updates_existing_card(srs, logger):
+def test_review_updates_existing_card(graduated_srs, logger):
     from fsrs import Card
-    srs.review('hello world', 'words', 1.0, True)
-    card_v1 = Card.from_json(logger.get_card(item_key('hello world')))
-    srs.review('hello world', 'words', 1.0, True)
-    card_v2 = Card.from_json(logger.get_card(item_key('hello world')))
+    graduated_srs.review('hello world', 'words', 1.0, True)
+    state_v1 = json.loads(logger.get_card(item_key('hello world')))
+    card_v1 = Card.from_json(state_v1['fsrs'])
+    graduated_srs.review('hello world', 'words', 1.0, True)
+    state_v2 = json.loads(logger.get_card(item_key('hello world')))
+    card_v2 = Card.from_json(state_v2['fsrs'])
     assert card_v2.last_review >= card_v1.last_review
 
 
