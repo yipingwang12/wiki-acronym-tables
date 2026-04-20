@@ -11,12 +11,20 @@
 - [x] Quiz event logger — SQLite sessions/attempts/srs_state tables
 - [x] Shakespeare pipeline — Folger API, monologue catalogue
 - [x] Desktop app — PyWebView + Anki-style deck picker, macOS .app bundle with custom icon
+- [x] PWA Phase 1 — JS ports of `quiz.py` and `srs.py` (ts-fsrs, full custom state machine); 82-test suite with Python↔JS parity fixture
+- [x] PWA Phase 2 — Flask `/api` Blueprint: `GET /api/decks`, `GET /api/deck/<id>/content`, `POST /api/sync` (last-write-wins); CORS headers; 16 tests
+- [x] PWA Phase 3 — Offline-capable iPhone PWA: IndexedDB (`db.js`), sync engine (`sync.js`), service worker (`sw.js`), manifest + icons, deck picker (`index.html`), touch quiz UI (`quiz.html`); Flask serves `/pwa/*` static files
 
 ## Planned
 
+### PWA — remaining phases
+- [ ] Phase 4: Fly.io deployment — `Dockerfile`, `fly.toml`, persistent SQLite volume, `server.py` entry point
+- [ ] Phase 5: Desktop app remote mode — `QUIZ_URL` env var switches `main()` to connect to hosted server instead of local Flask
+- [ ] Phase 6: Integration testing and hardening — end-to-end sync test, service worker update flow, conflict resolution edge cases
+
 ### Near-term
-- [ ] README with install/usage examples
-- [ ] CI: run pytest on push
+- [ ] README with install/usage examples (including PWA install instructions)
+- [ ] CI: run pytest + vitest on push
 - [ ] Validate all 31 award configs in CI (smoke test, not full fetch)
 - [ ] `--dry-run` flag: print chunk acronyms without writing xlsx
 

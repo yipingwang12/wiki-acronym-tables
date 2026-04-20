@@ -130,6 +130,26 @@ A PyWebView-wrapped desktop app with an Anki-style deck picker home screen. Flas
 - **Quote normalisation**: `poetry_parser.py` normalises Unicode curly quotes (`\u2018/\u2019/\u201c/\u201d`) to ASCII before marker lookup, so YAML configs with straight apostrophes match Gutenberg text with curly quotes.
 - **SRS parameters**: desktop app uses fixed defaults (same as CLI defaults); advanced users can still use `wiki-quiz-web` / `wiki-quiz-monarchs-web` for custom params.
 
+### iPhone PWA (`/pwa/`)
+An installable Progressive Web App that shares SRS state with the desktop app via the Flask server.
+
+- **Install**: navigate to `http://<LAN-IP>:5001/pwa/` in Safari → Share → Add to Home Screen. Runs as a standalone app (no browser chrome).
+- **Offline support**: static assets cached by service worker (`sw.js`); deck content and SRS state stored in IndexedDB (`db.js`). Quiz runs fully offline once a deck has been loaded.
+- **Sync**: on page load and after each session completion, `sync.js` POSTs all local IndexedDB card state to `POST /api/sync`. Server applies last-write-wins merge (compares `updated_at` timestamps) and returns full server state; client applies any newer server cards back to IndexedDB.
+- **Shared database**: both desktop and iPhone write to the same SQLite `srs_state` table via the Flask API. Cards reviewed on either device advance the same FSRS schedule.
+- **Quiz UI**: touch-optimised chip selection for wrong word/letter/digit positions. Health bar, live timer, answer reveal after each item, phase badge (Learning/Graduated/Review/Relearning).
+- **SRS parity**: `srs.js` is a verified port of `srs.py` using `ts-fsrs`. Python↔JS parity is tested by a fixture generator that replays identical review sequences through both implementations and asserts matching state transitions.
+
+#### API Blueprint (`api.py`)
+Registered on the Flask app alongside existing quiz routes. Serves both the JSON API and PWA static files.
+
+| Endpoint | Description |
+|---|---|
+| `GET /api/decks` | Lists all decks with stable SHA-256 IDs, mode, group, last-studied date |
+| `GET /api/deck/<id>/content` | Returns `{items, mode, labels, title}` for a deck; 500 on load failure |
+| `POST /api/sync` | Last-write-wins merge; body: `{changes:[{item_key,card_json,updated_at}]}`; returns full server state |
+| `GET /pwa/*` | Serves PWA static files from `pwa/` directory |
+
 ### Related research
 No known tool combines acronym cueing with adversarial partial-letter reveal. Closest prior work:
 

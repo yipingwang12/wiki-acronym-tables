@@ -43,6 +43,28 @@ See [PRD.md](PRD.md) for pipeline configs, output format, quiz mode design ratio
 | `shakespeare_cli.py` | `wiki-shakespeare` entry point. |
 | `list_parser.py` | Wikipedia wikitext → `[(year, name)]`. Unused by CLI; kept for potential future use. |
 | `wiki_api.py` | Vendored MediaWiki API client. Unused by CLI. |
+| `api.py` | Flask Blueprint: `GET /api/decks`, `GET /api/deck/<id>/content`, `POST /api/sync`, `GET /pwa/*` static files. Registered in `desktop_app.py`. |
+| `deck_loader.py` | `DeckInfo`, `discover_decks()`, `load_poetry_deck()`, `load_monarchs_deck()`. Used by desktop app and API. |
+
+## PWA modules (`pwa/`)
+
+| File | Role |
+|---|---|
+| `srs.js` | Port of `srs.py` — `SRSScheduler` class using `ts-fsrs`; preserves all custom modifications (learning→graduated→FSRS state machine, lapse forgiveness, interval cap). |
+| `quiz.js` | Port of `quiz.py` — blindman's bluff display generators and scorers for all three modes. |
+| `itemKey.js` | SHA-256 item key via Web Crypto API, produces identical output to Python `hashlib.sha256().hexdigest()[:16]`. |
+| `db.js` | IndexedDB wrapper: `getCard`/`saveCard`/`countIntroducedToday` (SRSScheduler interface) + `getAllCards`/`putCard` (sync) + deck/deck-list cache. |
+| `sync.js` | Last-write-wins sync engine: POSTs local IndexedDB state to `/api/sync`, merges server response back. |
+| `sw.js` | Service worker: cache-first for `/pwa/*` static assets, network-only for `/api/*`. |
+| `srs.bundle.js` | esbuild bundle of `srs.js` + `ts-fsrs` for browser use (committed; rebuild with `npm run build` if `srs.js` changes). |
+| `index.html` | Deck picker: fetches `/api/decks`, groups by collection, falls back to IndexedDB cache offline. |
+| `quiz.html` | Quiz UI: touch chip selection for wrong positions, health bar, live timer, answer reveal, auto-sync on completion. |
+| `manifest.json` | PWA manifest — enables "Add to Home Screen" on iPhone. Scope: `/pwa/`. |
+| `sw.js` | Service worker for offline caching. Registered from `index.html`. |
+
+**To install on iPhone:** open `http://<LAN-IP>:5001/pwa/` in Safari → Share → Add to Home Screen.
+
+**Tests:** `pwa/tests/` — 82 vitest tests covering quiz display, SRS state machine, IndexedDB wrapper, sync engine, and Python↔JS parity.
 
 ## Award configs (31)
 
