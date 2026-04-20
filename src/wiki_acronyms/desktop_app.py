@@ -13,6 +13,7 @@ from datetime import datetime, timezone
 
 from flask import Flask, flash, redirect, render_template, request, session, url_for
 
+from .api import api_bp
 from .deck_loader import discover_decks, load_monarchs_deck, load_poetry_deck
 from .logger import QuizLogger, config_hash
 from .quiz import (
@@ -48,6 +49,7 @@ def create_full_app(config_dir: Path, logger: QuizLogger) -> Flask:
     app = Flask(__name__, template_folder=_TEMPLATE_DIR)
     app.secret_key = secrets.token_hex(16)
     app.config['CONFIG_DIR'] = config_dir
+    app.config['LOGGER'] = logger
     app.config['DECK'] = None
     app.config['LOAD_STATE'] = 'idle'
     app.config['LOAD_ERROR'] = None
@@ -297,6 +299,7 @@ def create_full_app(config_dir: Path, logger: QuizLogger) -> Flask:
         session.clear()
         return redirect(url_for('quiz'))
 
+    app.register_blueprint(api_bp)
     return app
 
 
