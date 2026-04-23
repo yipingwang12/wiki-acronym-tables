@@ -126,6 +126,31 @@ def test_fetch_empty():
         assert fetch_monarchs(["Q18810062"]) == []
 
 
+def test_fetch_populates_wp_title():
+    bindings = [{
+        **_SAMPLE_BINDINGS[2],
+        "wpTitle": {"value": "William I of England"},
+    }]
+    with patch("wiki_acronyms.monarchs._sparql_session", return_value=bindings):
+        monarchs = fetch_monarchs(["Q18810062"])
+    assert monarchs[0].wp_title == "William I of England"
+
+
+def test_fetch_wp_title_none_when_absent():
+    with patch("wiki_acronyms.monarchs._sparql_session", return_value=[_SAMPLE_BINDINGS[0]]):
+        monarchs = fetch_monarchs(["Q18810062"])
+    assert monarchs[0].wp_title is None
+
+
+def test_fetch_merges_wp_title():
+    # First row has no sitelink; second (same person) has one — should be saved
+    row1 = {**_SAMPLE_BINDINGS[0]}
+    row2 = {**_SAMPLE_BINDINGS[0], "wpTitle": {"value": "Alfred the Great"}}
+    with patch("wiki_acronyms.monarchs._sparql_session", return_value=[row1, row2]):
+        monarchs = fetch_monarchs(["Q18810062"])
+    assert monarchs[0].wp_title == "Alfred the Great"
+
+
 # make_monarch_chunks
 def _monarchs(*year_name_pairs):
     return [Monarch(name=n, accession_year=y, end_year=None, father="", mother="") for y, n in year_name_pairs]

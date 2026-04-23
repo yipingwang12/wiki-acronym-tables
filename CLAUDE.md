@@ -30,19 +30,25 @@ See [PRD.md](PRD.md) for pipeline configs, output format, quiz mode design ratio
 | `gutenberg.py` | HTTP fetch + cache in `cache/gutenberg/`. |
 | `folger.py` | Folger Digital Texts API; caches HTML under `cache/folger/`. |
 | `poetry_parser.py` | `extract_poem(text, start_marker, end_marker)` → `list[str \| None]`. `None` = blank line. |
-| `monarchs.py` | `fetch_monarchs`, `make_monarch_chunks`; deduplicates by person Q-number. |
+| `monarchs.py` | `fetch_monarchs` (includes `wp_title` sitelink), `make_monarch_chunks`; deduplicates by person Q-number. |
+| `country_registry.py` | `fetch_country_registry` via Wikidata P1906 → `CountryEntry` list; `save_registry`/`load_registry` YAML I/O. |
+| `coverage.py` | `check_coverage`: compares Wikidata monarch sitelinks against Wikipedia list article links; returns `CoverageReport`. |
+| `derive_positions.py` | `load_ruler_titles` filters xlsx/csv by occupation keywords; `fetch_positions_for_titles` batch-queries Wikidata P39 to rank position Q-IDs by holder count. |
 | `quiz.py` | Blindman's bluff display + health-bar scoring. Three modes: words / acronym / digits. |
 | `srs.py` | FSRS-6 card state + due-order scheduling. |
 | `logger.py` | SQLite event log (`sessions`, `attempts`, `srs_state`). `FORMAT_VERSIONS` must be bumped manually on display changes. |
 | `web_app.py` | Flask routes + Jinja templates. Timer, session infobox, phase badge. |
 | `cli.py` | `wiki-acronym-tables` entry point. Supports `manual_entries` and `exclude_entries` config keys. |
 | `poetry_cli.py` | `wiki-poetry` entry point. Single-poem and multi-poem collection configs. |
-| `monarchs_cli.py` | `wiki-monarchs` entry point. |
+| `monarchs_cli.py` | `wiki-monarchs` entry point. Reads `wikipedia_list` field from config for coverage checks. |
+| `registry_cli.py` | `wiki-registry-generate` — queries Wikidata P1906, writes `configs/monarchs/country_registry.yaml`. |
+| `coverage_cli.py` | `wiki-coverage-check` — takes `--config` or `--country`/`--registry`; reports rulers in Wikipedia list missing from Wikidata fetch. |
+| `derive_positions_cli.py` | `wiki-derive-positions` — takes `--input` xlsx/csv + optional `--nationality`; prints ranked position Q-IDs for adding to YAML configs. |
 | `web_cli.py` | `wiki-quiz-web` entry point. |
 | `monarchs_web_cli.py` | `wiki-quiz-monarchs-web` entry point. |
 | `shakespeare_cli.py` | `wiki-shakespeare` entry point. |
 | `list_parser.py` | Wikipedia wikitext → `[(year, name)]`. Unused by CLI; kept for potential future use. |
-| `wiki_api.py` | Vendored MediaWiki API client. Unused by CLI. |
+| `wiki_api.py` | MediaWiki API client. `fetch_article_links(title)` used by coverage checker. |
 | `api.py` | Flask Blueprint: `GET /api/decks`, `GET /api/deck/<id>/content`, `POST /api/sync`, `GET /pwa/*` static files. Registered in `desktop_app.py`. |
 | `deck_loader.py` | `DeckInfo`, `discover_decks()`, `load_poetry_deck()`, `load_monarchs_deck()`. Used by desktop app and API. |
 | `server.py` | WSGI entry point for Fly.io: reads `PORT`/`DB_PATH`/`CONFIG_DIR` env vars; `create_app()` factory for gunicorn. Run locally with `python server.py`. |
@@ -78,6 +84,8 @@ See [PRD.md](PRD.md) for pipeline configs, output format, quiz mode design ratio
 ## Key implementation notes
 
 - Wikidata gap-fill for monarchs: when a monarch's end year ≠ next accession year, end year is inserted as fallback event (corrects known Wikidata lag)
+- Monarch coverage workflow: (1) `wiki-registry-generate` → `country_registry.yaml`; (2) add `wikipedia_list` field to config; (3) `wiki-coverage-check --config <yaml>` reports gaps; (4) `wiki-derive-positions --input politicians_rulers.xlsx` suggests position Q-IDs for historical polities not covered by P1906
+- `Monarch.wp_title` is fetched via SPARQL sitelinks (`schema:isPartOf <https://en.wikipedia.org/>`); used as join key by coverage checker
 - Folger API responses cached under `cache/folger/`; segments under `cache/folger/segments/`
 - Excel output: two sheets — Detail (one row per entry) + Summary (one row per chunk)
 - `results/` is gitignored; long-term xlsx storage is local in-repo

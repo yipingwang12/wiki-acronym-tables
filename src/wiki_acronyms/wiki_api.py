@@ -46,6 +46,31 @@ class WikiApiClient:
             time.sleep(self.rate_limit_s)
         return result
 
+    def fetch_article_links(self, title: str, namespace: int = 0) -> set[str]:
+        """Return all article titles linked from a Wikipedia page in the given namespace."""
+        result: set[str] = set()
+        params: dict = {
+            "action": "query",
+            "titles": title,
+            "prop": "links",
+            "pllimit": "500",
+            "plnamespace": str(namespace),
+            "format": "json",
+            "formatversion": "2",
+        }
+        while True:
+            resp = self.session.get(self.api_url, params=params, timeout=30)
+            resp.raise_for_status()
+            data = resp.json()
+            for page in data.get("query", {}).get("pages", []):
+                for link in page.get("links", []):
+                    result.add(link["title"])
+            if "continue" not in data:
+                break
+            params.update(data["continue"])
+            time.sleep(self.rate_limit_s)
+        return result
+
     def _query(self, params: dict) -> dict:
         """Execute API query, handling continuation."""
         result: dict = {}

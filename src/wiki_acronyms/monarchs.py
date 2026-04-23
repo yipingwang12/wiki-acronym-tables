@@ -15,6 +15,7 @@ class Monarch:
     end_year: int | None
     father: str
     mother: str
+    wp_title: str | None = None  # English Wikipedia article title (from sitelinks)
 
 
 @dataclass
@@ -26,7 +27,7 @@ class MonarchChunk:
 
 
 _QUERY = """\
-SELECT ?person ?personLabel ?start ?end ?fatherLabel ?motherLabel WHERE {{
+SELECT ?person ?personLabel ?start ?end ?fatherLabel ?motherLabel ?wpTitle WHERE {{
   VALUES ?pos {{ {positions} }}
   ?person p:P39 ?stmt .
   ?stmt ps:P39 ?pos .
@@ -34,6 +35,11 @@ SELECT ?person ?personLabel ?start ?end ?fatherLabel ?motherLabel WHERE {{
   OPTIONAL {{ ?stmt pq:P582 ?end }}
   OPTIONAL {{ ?person wdt:P22 ?father }}
   OPTIONAL {{ ?person wdt:P25 ?mother }}
+  OPTIONAL {{
+    ?wpArticle schema:about ?person ;
+               schema:isPartOf <https://en.wikipedia.org/> ;
+               schema:name ?wpTitle .
+  }}
   SERVICE wikibase:label {{ bd:serviceParam wikibase:language "en" }}
 }}
 ORDER BY ?start
@@ -77,6 +83,7 @@ def fetch_monarchs(
         end_year = _parse_year(end_val) if end_val else None
         father = b.get("fatherLabel", {}).get("value", "")
         mother = b.get("motherLabel", {}).get("value", "")
+        wp_title = b.get("wpTitle", {}).get("value") or None
         if person_id not in seen:
             seen[person_id] = Monarch(
                 name=name,
@@ -84,16 +91,24 @@ def fetch_monarchs(
                 end_year=end_year,
                 father=father,
                 mother=mother,
+                wp_title=wp_title,
             )
         else:
             m = seen[person_id]
-            # Keep earliest accession year across all position statements
+            # Keep earliest accession year and latest end year across all position statements.
+            # A monarch deposed and restored (e.g. Stephen 1135–1141, 1141–1154) appears twice;
+            # we want accession=1135 and end_year=1154 so the gap-fill logic doesn't insert the
+            # intermediate deposition year as a spurious transition event.
             if year < m.accession_year:
                 m.accession_year = year
+            if end_year is not None and (m.end_year is None or end_year > m.end_year):
+                m.end_year = end_year
             if not m.father and father:
                 m.father = father
             if not m.mother and mother:
                 m.mother = mother
+            if not m.wp_title and wp_title:
+                m.wp_title = wp_title
 
     return sorted(seen.values(), key=lambda m: m.accession_year)
 
@@ -118,12 +133,18 @@ def make_monarch_chunks(
     # for same-year accessions) + end-year fallbacks for monarchs whose death year
     # is not captured by any known accession year (e.g. Wikidata records Æthelstan
     # as 927 but Edward the Elder died in 924).
+    # Only insert end-year fallback when the gap to the next known accession year
+    # is small (≤ _MAX_GAP_FILL_YEARS), distinguishing Wikidata date lag from genuine
+    # interregnums (e.g. Stephen 1141–1154, Henry VI 1471–1483, Commonwealth 1649–1660).
+    _MAX_GAP_FILL_YEARS = 5
     accession_year_set = {m.accession_year for m in monarchs}
+    sorted_accessions = sorted(accession_year_set)
     events: list[int] = sorted(m.accession_year for m in monarchs)
-    for i, m in enumerate(monarchs):
-        if (m.end_year is not None
-                and i + 1 < len(monarchs)
-                and m.end_year not in accession_year_set):
+    for m in monarchs:
+        if m.end_year is None or m.end_year in accession_year_set:
+            continue
+        next_acc = next((y for y in sorted_accessions if y > m.end_year), None)
+        if next_acc is not None and (next_acc - m.end_year) <= _MAX_GAP_FILL_YEARS:
             events.append(m.end_year)
     events.sort()
 

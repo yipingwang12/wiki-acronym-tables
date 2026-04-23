@@ -30,6 +30,7 @@ wiki-monologue-archive = "wiki_acronyms.monologue_archive_cli:main"
 wiki-quiz-app = "wiki_acronyms.desktop_app:main"
 wiki-registry-generate = "wiki_acronyms.registry_cli:main"
 wiki-coverage-check = "wiki_acronyms.coverage_cli:main"
+wiki-derive-positions = "wiki_acronyms.derive_positions_cli:main"
 
 [tool.setuptools.packages.find]
 where = ["src"]
