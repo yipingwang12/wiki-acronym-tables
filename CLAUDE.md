@@ -15,7 +15,7 @@ See [PRD.md](PRD.md) for pipeline configs, output format, quiz mode design ratio
 
 ## Quiz
 
-- **Method**: blindman's bluff — first letter of each word shown, remaining as underscores, one random non-first letter revealed
+- **Method**: blindman's bluff — first letter + every 4th alpha position (for 5+ letter words) auto-shown; one random non-pinned letter revealed per word
 - **SRS**: FSRS-6 with per-mode rating thresholds and lapse behavior
 - **Interface**: Flask web app
 

@@ -93,9 +93,9 @@ Given an acronym line as cue, test whether the user can recall the full text lin
 | **Blindman's bluff** (selected) | 1 keypress | Yes, objectively | See below |
 
 ### Selected method — blindman's bluff
-Display: first letter of each word shown; remaining letters as underscores; one randomly selected non-first letter revealed, correct 80–90% of the time and wrong 10–20% of the time.
+Display: first letter of each word shown; remaining letters as underscores; one randomly selected non-first, non-pinned letter revealed, correct 80–90% of the time and wrong 10–20% of the time. For words with 5+ alphabetic characters, every 4th alpha position (4th, 8th, 12th…) is also auto-shown as a positional anchor.
 
-Task: type the number of the word containing the wrong letter, or leave blank if all letters are correct.
+Task: identify the word containing the wrong letter (if any).
 
 Scoring: uses a limited health bar (max 10). Missing a wrong letter (false negative) costs 3 health. Claiming a wrong letter when all are correct (false alarm) costs 1 health. Reaching zero health restarts from the beginning.
 
@@ -109,7 +109,7 @@ Three modes are implemented, all using the same scoring and health system:
 
 | Mode | CLI | Items | Display |
 |---|---|---|---|
-| `words` | `wiki-quiz-web --mode words` | Poetry lines | Per word: first letter + one random non-first letter; underscores for rest |
+| `words` | `wiki-quiz-web --mode words` | Poetry lines | Per word: first letter + every 4th alpha position (for 5+ letter words) always shown; one random non-pinned letter revealed; underscores for rest |
 | `acronym` | `wiki-quiz-web --mode acronym` | Poetry lines | One letter per word (first letter only); each independently 20% chance wrong |
 | `digits` | `wiki-quiz-monarchs-web` | Century transition strings | One digit per position; each independently 20% chance wrong |
 
@@ -139,7 +139,7 @@ An installable Progressive Web App that shares SRS state with the desktop app vi
 - **Offline support**: static assets cached by service worker (`sw.js`); deck content and SRS state stored in IndexedDB (`db.js`). Quiz runs fully offline once a deck has been loaded.
 - **Sync**: on page load and after each session completion, `sync.js` POSTs all local IndexedDB card state to `POST /api/sync`. Server applies last-write-wins merge (compares `updated_at` timestamps) and returns full server state; client applies any newer server cards back to IndexedDB.
 - **Shared database**: both desktop and iPhone write to the same SQLite `srs_state` table via the Flask API. Cards reviewed on either device advance the same FSRS schedule.
-- **Quiz UI**: touch-optimised chip selection for wrong word/letter/digit positions. Health bar, live timer, answer reveal after each item, phase badge (Learning/Graduated/Review/Relearning).
+- **Quiz UI**: touch-optimised chip selection for wrong word/letter/digit positions (iPhone/browser). On the desktop app (PyWebView), detected via `window.pywebview`, chips are non-interactive and a text input is shown instead — type space/comma-separated word numbers and press Enter or Submit. Health bar, live timer, answer reveal after each item, phase badge (Learning/Graduated/Review/Relearning).
 - **SRS parity**: `srs.js` is a verified port of `srs.py` using `ts-fsrs`. Python↔JS parity is tested by a fixture generator that replays identical review sequences through both implementations and asserts matching state transitions.
 
 #### API Blueprint (`api.py`)

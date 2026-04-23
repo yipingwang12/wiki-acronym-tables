@@ -40,6 +40,12 @@ header { display: flex; align-items: center; gap: 8px; padding: 10px 0 6px; bord
 .phase.review { background: #2d2d00; color: #ffd700; }
 .phase.relearning { background: #4a1a1a; color: #ff8888; }
 
+/* Mode toggle */
+.mode-toggle { display: flex; gap: 4px; flex-shrink: 0; }
+.mode-toggle label { display: flex; align-items: center; gap: 3px; font-size: 0.72rem; color: var(--muted); cursor: pointer; padding: 2px 8px; border-radius: 8px; border: 1px solid transparent; white-space: nowrap; }
+.mode-toggle label:has(input:checked) { border-color: #ffffff30; color: var(--text); background: var(--card); }
+.mode-toggle input[type=radio] { display: none; }
+
 /* Main quiz area */
 main { flex: 1; display: flex; flex-direction: column; overflow-y: auto; padding: 8px 0; }
 
@@ -101,6 +107,17 @@ main { flex: 1; display: flex; flex-direction: column; overflow-y: auto; padding
 /* Loading / Error */
 .center { text-align: center; padding: 40px 0; color: var(--muted); }
 .error { color: var(--danger); }
+
+/* Desktop keyboard input */
+.chips.non-interactive .chip { cursor: default; pointer-events: none; }
+.chips.non-interactive .chip:active { transform: none; }
+#numInput {
+  width: 100%; background: var(--surface); border: 1px solid #ffffff30;
+  color: var(--text); padding: 12px 14px; border-radius: var(--radius);
+  font-size: 1.1rem; font-family: 'Courier New', monospace;
+  margin-bottom: 12px; outline: none;
+}
+#numInput:focus { border-color: var(--green-bright); }
 </style>
 </head>
 <body>
@@ -108,6 +125,10 @@ main { flex: 1; display: flex; flex-direction: column; overflow-y: auto; padding
   <button class="back-btn" onclick="location.href='index.html'">←</button>
   <div class="deck-title" id="deckTitle">Loading…</div>
   <div class="phase" id="phaseBadge"></div>
+  <div class="mode-toggle" id="modeToggle">
+    <label><input type="radio" name="quizMode" id="studyRadio" checked> Study</label>
+    <label><input type="radio" name="quizMode" id="testRadio"> Test</label>
+  </div>
   <div class="progress" id="progress"></div>
 </header>
 <div class="health-row">
@@ -133,6 +154,7 @@ const params = new URLSearchParams(location.search);
 const deckId = params.get('deck_id') || '';
 const deckName = params.get('deck_name') || 'Deck';
 const mode = params.get('mode') || 'words';
+const isDesktop = typeof window.pywebview !== 'undefined';
 
 const db = { getCard, saveCard, countIntroducedToday };
 const srs = new SRSScheduler(db, {
@@ -157,6 +179,10 @@ let timerInterval = null;
 let timerStart = null;
 let currentDisplay = null;
 let responding = false;
+let testMode = false;
+
+document.getElementById('testRadio').addEventListener('change', () => { testMode = true; });
+document.getElementById('studyRadio').addEventListener('change', () => { testMode = false; });
 
 // --- Health display ---
 function renderHealth() {
@@ -245,22 +271,33 @@ async function showItem() {
   const selected = new Set();
 
   const noun = mode === 'digits' ? 'digit' : mode === 'acronym' ? 'letter' : 'word';
-  const instruction = `Tap wrong ${noun}s, then submit. Leave all unselected if none wrong.`;
+  const instruction = isDesktop
+    ? `Enter wrong ${noun} numbers (space or comma separated), or leave blank if none wrong.`
+    : `Tap wrong ${noun}s, then submit. Leave all unselected if none wrong.`;
 
   document.getElementById('main').innerHTML = `
     <p class="display-prompt">${label ? `<strong>${label}</strong>` : ''}</p>
-    <div class="chips" id="chips">${renderChips(parts, selected)}</div>
+    <div class="chips ${isDesktop ? 'non-interactive' : ''}" id="chips">${renderChips(parts, selected)}</div>
     <p class="instruction">${instruction}</p>
+    ${isDesktop ? `<input type="text" id="numInput" placeholder="e.g. 1 3" autocomplete="off">` : ''}
     <button class="submit-btn" id="submitBtn">Submit</button>
   `;
 
-  document.getElementById('chips').addEventListener('click', e => {
-    const chip = e.target.closest('.chip');
-    if (!chip || responding) return;
-    const num = parseInt(chip.dataset.num);
-    if (selected.has(num)) selected.delete(num); else selected.add(num);
-    document.getElementById('chips').innerHTML = renderChips(parts, selected);
-  });
+  if (!isDesktop) {
+    document.getElementById('chips').addEventListener('click', e => {
+      const chip = e.target.closest('.chip');
+      if (!chip || responding) return;
+      const num = parseInt(chip.dataset.num);
+      if (selected.has(num)) selected.delete(num); else selected.add(num);
+      document.getElementById('chips').innerHTML = renderChips(parts, selected);
+    });
+  } else {
+    const numInput = document.getElementById('numInput');
+    numInput.focus();
+    numInput.addEventListener('keydown', e => {
+      if (e.key === 'Enter') document.getElementById('submitBtn').click();
+    });
+  }
 
   document.getElementById('submitBtn').addEventListener('click', async () => {
     if (responding) return;
@@ -268,7 +305,16 @@ async function showItem() {
     const responseSecs = stopTimer();
     document.getElementById('submitBtn').disabled = true;
 
-    const userPositions = [...selected].sort((a, b) => a - b);
+    let userPositions, userSet;
+    if (isDesktop) {
+      const raw = document.getElementById('numInput')?.value ?? '';
+      userPositions = [...new Set(raw.split(/[\s,]+/).map(Number).filter(n => Number.isInteger(n) && n > 0))].sort((a, b) => a - b);
+      userSet = new Set(userPositions);
+    } else {
+      userPositions = [...selected].sort((a, b) => a - b);
+      userSet = selected;
+    }
+
     let correct, message;
     if (mode === 'words') [correct, message] = scoreResponse(currentDisplay, userPositions);
     else if (mode === 'acronym') [correct, message] = scoreAcronymResponse(currentDisplay, userPositions);
@@ -276,18 +322,18 @@ async function showItem() {
 
     // Health deduction
     if (!correct) {
-      const missed = currentDisplay.wrongPositions.filter(p => !selected.has(p)).length;
-      const falseAlarms = [...selected].filter(p => !currentDisplay.wrongPositions.includes(p)).length;
+      const missed = currentDisplay.wrongPositions.filter(p => !userSet.has(p)).length;
+      const falseAlarms = [...userSet].filter(p => !currentDisplay.wrongPositions.includes(p)).length;
       health = Math.max(0, health - missed * MISS_COST - falseAlarms * FALSE_ALARM_COST);
     }
     renderHealth();
 
-    // SRS update
+    // SRS update (skipped in test mode)
     const now = new Date();
-    await srs.review(item, mode, responseSecs, correct, now);
+    if (!testMode) await srs.review(item, mode, responseSecs, correct, now);
 
     // Show feedback with highlighted chips
-    const highlightedChips = renderChips(parts, selected, 'result', currentDisplay.wrongPositions);
+    const highlightedChips = renderChips(parts, userSet, 'result', currentDisplay.wrongPositions);
     const ratingLabel = correct
       ? (responseSecs < 3 ? 'Easy' : responseSecs < 8 ? 'Good' : 'Hard')
       : 'Again';
@@ -336,11 +382,14 @@ async function showComplete() {
   document.getElementById('timer').textContent = '';
   document.getElementById('phaseBadge').textContent = '';
 
-  setStatus('Syncing…');
-  const result = await syncWithServer('');
-  const syncMsg = result.synced
-    ? `Synced ${result.count} cards`
-    : `Offline — will sync later`;
+  let syncMsg;
+  if (testMode) {
+    syncMsg = 'Test mode — no changes saved';
+  } else {
+    setStatus('Syncing…');
+    const result = await syncWithServer('');
+    syncMsg = result.synced ? `Synced ${result.count} cards` : `Offline — will sync later`;
+  }
 
   document.getElementById('main').innerHTML = `
     <div class="complete">

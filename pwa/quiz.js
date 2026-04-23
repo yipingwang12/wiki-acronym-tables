@@ -38,12 +38,22 @@ export function alphaIndices(word) {
   return [...word].map((c, i) => [c, i]).filter(([c]) => /[a-zA-Z]/.test(c)).map(([, i]) => i);
 }
 
+/** Returns Set of char indices auto-shown: first letter, plus every 4th alpha (positions 4,8,12…) for words with 5+ alpha chars. */
+export function pinnedIndices(word) {
+  const alpha = alphaIndices(word);
+  const pinned = new Set(alpha.length > 0 ? [alpha[0]] : []);
+  if (alpha.length >= 5) {
+    for (let i = 3; i < alpha.length; i += 4) pinned.add(alpha[i]);
+  }
+  return pinned;
+}
+
 export function twoLetterDisplay(word, extraPos, extraCh) {
   const alpha = alphaIndices(word);
   if (alpha.length <= 1) return word;
-  const firstIdx = alpha[0];
+  const pinned = pinnedIndices(word);
   return [...word].map((c, i) => {
-    if (!/[a-zA-Z]/.test(c) || i === firstIdx) return c;
+    if (!/[a-zA-Z]/.test(c) || pinned.has(i)) return c;
     if (i === extraPos) return extraCh;
     return '_';
   }).join('');
@@ -56,12 +66,13 @@ export function makeLineDisplay(line, wrongProb = 0.15) {
 
   for (let i = 0; i < words.length; i++) {
     const w = words[i];
-    const nonFirst = alphaIndices(w).slice(1);
-    if (nonFirst.length === 0) {
+    const pinned = pinnedIndices(w);
+    const nonPinned = alphaIndices(w).filter(idx => !pinned.has(idx));
+    if (nonPinned.length === 0) {
       parts.push(`${i + 1}:${w}`);
       continue;
     }
-    const ci = choice(nonFirst);
+    const ci = choice(nonPinned);
     const actualCh = w[ci];
     const hasWrong = Math.random() < wrongProb;
     const shownCh = hasWrong ? pickConfusable(actualCh) : actualCh;
