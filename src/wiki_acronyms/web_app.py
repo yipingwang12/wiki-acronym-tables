@@ -10,7 +10,7 @@ import time
 from flask import Flask, flash, get_flashed_messages, redirect, render_template, request, session, url_for
 
 from .logger import QuizLogger
-from .srs import SRSScheduler
+from .srs import SRSScheduler, classify_response
 from .quiz import (
     AcronymDisplay, DigitDisplay, LineDisplay,
     make_acronym_display, make_digit_display, make_line_display,
@@ -53,6 +53,7 @@ def create_app(
             session['health'] = _MAX_HEALTH
             session['display'] = None
             session['attempt_id'] = None
+            session['test_mode'] = False
             session['log_sid'] = logger.start_session(mode, title, config_path, cfg_hash, wrong_prob)
             session['stats'] = _empty_stats()
             session['item_order'] = srs.get_due_order(lines)
@@ -99,6 +100,9 @@ def create_app(
             if not session.get('display'):
                 return redirect(url_for('quiz'))
 
+            test_mode = request.form.get('test_mode') == '1'
+            session['test_mode'] = test_mode
+
             response_secs = time.time() - session.get('display_time', time.time())
             item_order = session['item_order']
             actual_idx = item_order[session['line_idx']]
@@ -130,13 +134,15 @@ def create_app(
                 session['line_idx'] = 0
                 session['health'] = _MAX_HEALTH
 
-            if session.get('log_sid') and session.get('attempt_id'):
-                logger.log_response(
-                    session['attempt_id'], raw, keystrokes,
-                    sorted(user_pos), correct, session['health'],
-                )
-
-            rating = srs.review(item_text, mode_, response_secs, correct)
+            if not test_mode:
+                if session.get('log_sid') and session.get('attempt_id'):
+                    logger.log_response(
+                        session['attempt_id'], raw, keystrokes,
+                        sorted(user_pos), correct, session['health'],
+                    )
+                rating = srs.review(item_text, mode_, response_secs, correct)
+            else:
+                rating = classify_response(mode_, item_text, response_secs, correct)
 
             stats = session.get('stats') or _empty_stats()
             stats['total_time'] += response_secs
@@ -147,7 +153,8 @@ def create_app(
             if correct:
                 flash(feedback, 'correct')
             elif health_exhausted:
-                session['log_sid'] = logger.start_session(mode, title, config_path, cfg_hash, wrong_prob)
+                if not test_mode:
+                    session['log_sid'] = logger.start_session(mode, title, config_path, cfg_hash, wrong_prob)
                 session['stats'] = _empty_stats()
                 flash('Health exhausted — restarting from the beginning.', 'restart')
             else:
@@ -170,7 +177,7 @@ def create_app(
             session['display'] = _build_display(lines_[actual_idx], wrong_prob_, mode_)
             session['display_time'] = time.time()
             label = labels_[actual_idx] if labels_ and actual_idx < len(labels_) else None
-            if session.get('log_sid'):
+            if session.get('log_sid') and not session.get('test_mode'):
                 session['attempt_id'] = logger.log_display(
                     session['log_sid'], actual_idx, label,
                     lines_[actual_idx], session['display']['display'],
@@ -206,6 +213,7 @@ def create_app(
             avg_time_str=avg_time_str,
             total_items=due_count,
             display_time=session.get('display_time', time.time()),
+            test_mode=session.get('test_mode', False),
         )
 
     return app

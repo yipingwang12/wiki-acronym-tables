@@ -224,3 +224,97 @@ def test_srs_completion_after_due_items_only():
     c.post('/quiz', data={'answer': ''})  # correct → line_idx becomes 1
     resp = c.get('/quiz')
     assert b'Complete' in resp.data
+
+
+# --- test mode ---
+
+@pytest.fixture
+def test_mode_app():
+    mock_logger = _mock_logger()
+    mock_srs = _mock_srs()
+    app = create_app(_LINES, 'T', wrong_prob=0.0, logger=mock_logger, srs=mock_srs)
+    app.config['TESTING'] = True
+    return app, mock_logger, mock_srs
+
+
+def test_test_mode_skips_srs_review(test_mode_app):
+    app, mock_logger, mock_srs = test_mode_app
+    c = app.test_client()
+    c.get('/quiz')
+    c.post('/quiz', data={'answer': '', 'test_mode': '1'})
+    mock_srs.review.assert_not_called()
+
+
+def test_test_mode_skips_log_response(test_mode_app):
+    app, mock_logger, mock_srs = test_mode_app
+    c = app.test_client()
+    c.get('/quiz')
+    c.post('/quiz', data={'answer': '', 'test_mode': '1'})
+    mock_logger.log_response.assert_not_called()
+
+
+def test_test_mode_skips_log_display(test_mode_app):
+    app, mock_logger, mock_srs = test_mode_app
+    c = app.test_client()
+    with c.session_transaction() as sess:
+        sess['line_idx'] = 0
+        sess['health'] = 10
+        sess['display'] = None
+        sess['attempt_id'] = None
+        sess['test_mode'] = True
+        sess['log_sid'] = 'test-session-id'
+        sess['stats'] = {'easy': 0, 'good': 0, 'hard': 0, 'again': 0, 'total_time': 0.0, 'completed': 0}
+        sess['item_order'] = [0, 1]
+        sess['due_count'] = 2
+    c.get('/quiz')
+    mock_logger.log_display.assert_not_called()
+
+
+def test_test_mode_still_advances_card(test_mode_app):
+    app, _, _ = test_mode_app
+    c = app.test_client()
+    c.get('/quiz')
+    c.post('/quiz', data={'answer': '', 'test_mode': '1'})
+    with c.session_transaction() as sess:
+        assert sess['line_idx'] == 1
+
+
+def test_test_mode_stored_in_session(test_mode_app):
+    app, _, _ = test_mode_app
+    c = app.test_client()
+    c.get('/quiz')
+    c.post('/quiz', data={'answer': '', 'test_mode': '1'})
+    with c.session_transaction() as sess:
+        assert sess['test_mode'] is True
+
+
+def test_study_mode_calls_srs_review(test_mode_app):
+    app, mock_logger, mock_srs = test_mode_app
+    c = app.test_client()
+    c.get('/quiz')
+    c.post('/quiz', data={'answer': '', 'test_mode': '0'})
+    mock_srs.review.assert_called_once()
+
+
+def test_test_mode_badge_shown_in_template(test_mode_app):
+    app, _, _ = test_mode_app
+    c = app.test_client()
+    with c.session_transaction() as sess:
+        sess['line_idx'] = 0
+        sess['health'] = 10
+        sess['display'] = None
+        sess['attempt_id'] = None
+        sess['test_mode'] = True
+        sess['log_sid'] = 'test-session-id'
+        sess['stats'] = {'easy': 0, 'good': 0, 'hard': 0, 'again': 0, 'total_time': 0.0, 'completed': 0}
+        sess['item_order'] = [0, 1]
+        sess['due_count'] = 2
+    resp = c.get('/quiz')
+    assert b'Test mode' in resp.data
+
+
+def test_study_mode_no_badge(test_mode_app):
+    app, _, _ = test_mode_app
+    c = app.test_client()
+    resp = c.get('/quiz')
+    assert b'Test mode' not in resp.data
