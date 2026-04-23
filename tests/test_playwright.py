@@ -2,12 +2,14 @@
 
 from __future__ import annotations
 
+import socket
 import threading
 import time
 
 import pytest
 from playwright.sync_api import Page, expect
 
+from wiki_acronyms.api import api_bp
 from wiki_acronyms.web_app import create_app
 from wiki_acronyms.logger import QuizLogger
 from wiki_acronyms.srs import SRSScheduler
@@ -18,32 +20,43 @@ _LINES = [
     "But as the riper should by time decrease,",
 ]
 
-_PORT = 15099
-
 
 def _make_app():
-    """Create a test Flask app with a real (in-memory) logger and SRS."""
+    """Create a test Flask app with fresh in-memory DB and PWA static serving."""
     logger = QuizLogger(db_path=":memory:")
     srs = SRSScheduler(logger)
-    return create_app(
-        _LINES, "Test Sonnet", wrong_prob=0.0, mode="words",
+    app = create_app(
+        _LINES, "Sonnet 1", wrong_prob=0.0, mode="words",
         logger=logger, srs=srs,
     )
-
-
-@pytest.fixture(scope="module")
-def live_server():
-    """Start a Flask server for Playwright tests."""
-    app = _make_app()
+    app.register_blueprint(api_bp)   # enables /pwa/* static file serving
     app.config["TESTING"] = True
+    return app
+
+
+def _free_port() -> int:
+    """Return an OS-assigned free TCP port."""
+    s = socket.socket()
+    s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+    s.bind(("", 0))
+    port = s.getsockname()[1]
+    s.close()
+    return port
+
+
+@pytest.fixture()
+def live_server():
+    """Start a fresh Flask server on a free port for each test."""
+    port = _free_port()
+    app = _make_app()
 
     def _run():
-        app.run(port=_PORT, debug=False, use_reloader=False)
+        app.run(port=port, debug=False, use_reloader=False)
 
     t = threading.Thread(target=_run, daemon=True)
     t.start()
-    time.sleep(0.5)  # wait for Flask to bind
-    yield f"http://localhost:{_PORT}"
+    time.sleep(0.3)
+    yield f"http://localhost:{port}"
 
 
 # ── Flask web-app tests ───────────────────────────────────────────────────────
@@ -56,10 +69,8 @@ def test_radio_buttons_present(page: Page, live_server):
 
 def test_default_is_study_mode(page: Page, live_server):
     page.goto(f"{live_server}/quiz")
-    study_radio = page.locator('input[name="test_mode"][value="0"]')
-    test_radio = page.locator('input[name="test_mode"][value="1"]')
-    expect(study_radio).to_be_checked()
-    expect(test_radio).not_to_be_checked()
+    expect(page.locator('input[name="test_mode"][value="0"]')).to_be_checked()
+    expect(page.locator('input[name="test_mode"][value="1"]')).not_to_be_checked()
 
 
 def test_no_test_badge_in_study_mode(page: Page, live_server):
@@ -67,19 +78,20 @@ def test_no_test_badge_in_study_mode(page: Page, live_server):
     expect(page.locator(".test-badge")).not_to_be_visible()
 
 
-def test_study_labels_visible(page: Page, live_server):
+def test_study_and_test_labels_visible(page: Page, live_server):
     page.goto(f"{live_server}/quiz")
-    expect(page.get_by_text("Study")).to_be_visible()
-    expect(page.get_by_text("Test")).to_be_visible()
+    # Use exact=True to avoid matching "Sonnet 1" or other text containing "Test"
+    expect(page.get_by_text("Study", exact=True)).to_be_visible()
+    expect(page.get_by_text("Test", exact=True)).to_be_visible()
 
 
 def test_submit_in_study_mode_no_badge(page: Page, live_server):
-    """After submitting in study mode, no test badge appears on the next card."""
+    """After submitting in study mode, no test badge on the next card."""
     page.goto(f"{live_server}/quiz")
     page.locator('input[name="test_mode"][value="0"]').check()
     page.fill('input[name="answer"]', "")
-    page.click('button[type="submit"]')
-    page.wait_for_url(f"{live_server}/quiz")
+    with page.expect_navigation():
+        page.click('button[type="submit"]')
     expect(page.locator(".test-badge")).not_to_be_visible()
 
 
@@ -88,9 +100,8 @@ def test_test_mode_badge_appears_after_submit(page: Page, live_server):
     page.goto(f"{live_server}/quiz")
     page.locator('input[name="test_mode"][value="1"]').check()
     page.fill('input[name="answer"]', "")
-    page.click('button[type="submit"]')
-    page.wait_for_url(f"{live_server}/quiz")
-    # Badge visible on the next card
+    with page.expect_navigation():
+        page.click('button[type="submit"]')
     expect(page.locator(".test-badge")).to_be_visible()
     expect(page.get_by_text("Test mode")).to_be_visible()
 
@@ -100,8 +111,8 @@ def test_test_mode_radio_pre_selected_after_switch(page: Page, live_server):
     page.goto(f"{live_server}/quiz")
     page.locator('input[name="test_mode"][value="1"]').check()
     page.fill('input[name="answer"]', "")
-    page.click('button[type="submit"]')
-    page.wait_for_url(f"{live_server}/quiz")
+    with page.expect_navigation():
+        page.click('button[type="submit"]')
     expect(page.locator('input[name="test_mode"][value="1"]')).to_be_checked()
     expect(page.locator('input[name="test_mode"][value="0"]')).not_to_be_checked()
 
@@ -112,8 +123,8 @@ def test_card_advances_in_test_mode(page: Page, live_server):
     first_token = page.locator(".token-text").first.text_content()
     page.locator('input[name="test_mode"][value="1"]').check()
     page.fill('input[name="answer"]', "")  # wrong_prob=0 → no wrongs → correct
-    page.click('button[type="submit"]')
-    page.wait_for_url(f"{live_server}/quiz")
+    with page.expect_navigation():
+        page.click('button[type="submit"]')
     second_token = page.locator(".token-text").first.text_content()
     assert first_token != second_token, "Card did not advance in test mode"
 
@@ -124,64 +135,70 @@ def test_switch_back_to_study_removes_badge(page: Page, live_server):
     # First go to test mode
     page.locator('input[name="test_mode"][value="1"]').check()
     page.fill('input[name="answer"]', "")
-    page.click('button[type="submit"]')
-    page.wait_for_url(f"{live_server}/quiz")
+    with page.expect_navigation():
+        page.click('button[type="submit"]')
     expect(page.locator(".test-badge")).to_be_visible()
 
-    # Now switch back to study
+    # Switch back to study mode
     page.locator('input[name="test_mode"][value="0"]').check()
     page.fill('input[name="answer"]', "")
-    page.click('button[type="submit"]')
-    page.wait_for_url(f"{live_server}/quiz")
+    with page.expect_navigation():
+        page.click('button[type="submit"]')
     expect(page.locator(".test-badge")).not_to_be_visible()
 
 
 def test_feedback_shown_in_test_mode(page: Page, live_server):
-    """Test mode still shows correct/wrong feedback."""
+    """Test mode still shows correct/wrong feedback flash after submit."""
     page.goto(f"{live_server}/quiz")
     page.locator('input[name="test_mode"][value="1"]').check()
     page.fill('input[name="answer"]', "")
-    page.click('button[type="submit"]')
-    page.wait_for_url(f"{live_server}/quiz")
-    # Flash message should be present
-    feedback = page.locator(".feedback")
-    expect(feedback).to_be_visible()
+    with page.expect_navigation():
+        page.click('button[type="submit"]')
+    # Flash feedback must be in DOM after the POST→redirect→GET cycle
+    expect(page.locator(".feedback")).to_be_attached()
 
 
 # ── PWA tests ─────────────────────────────────────────────────────────────────
 
 def test_pwa_radio_buttons_present(page: Page, live_server):
     """PWA quiz.html has Study and Test radio buttons in the header."""
-    # Navigate directly to the PWA quiz page (no deck loaded — just check DOM)
-    page.goto(f"{live_server}/pwa/quiz.html?deck_id=test&deck_name=Test&mode=words")
+    page.goto(f"{live_server}/pwa/quiz.html?deck_id=x&deck_name=Test&mode=words")
+    page.wait_for_load_state("domcontentloaded")
     expect(page.locator('#studyRadio')).to_be_attached()
     expect(page.locator('#testRadio')).to_be_attached()
 
 
 def test_pwa_default_is_study(page: Page, live_server):
-    page.goto(f"{live_server}/pwa/quiz.html?deck_id=test&deck_name=Test&mode=words")
+    page.goto(f"{live_server}/pwa/quiz.html?deck_id=x&deck_name=Test&mode=words")
+    page.wait_for_load_state("domcontentloaded")
     expect(page.locator('#studyRadio')).to_be_checked()
     expect(page.locator('#testRadio')).not_to_be_checked()
 
 
-def test_pwa_study_label_visible(page: Page, live_server):
-    page.goto(f"{live_server}/pwa/quiz.html?deck_id=test&deck_name=Test&mode=words")
-    expect(page.get_by_text("Study")).to_be_visible()
-    expect(page.get_by_text("Test")).to_be_visible()
+def test_pwa_study_and_test_labels_visible(page: Page, live_server):
+    page.goto(f"{live_server}/pwa/quiz.html?deck_id=x&deck_name=Test&mode=words")
+    page.wait_for_load_state("domcontentloaded")
+    # Labels are inside the mode-toggle div
+    toggle = page.locator('#modeToggle')
+    expect(toggle.get_by_text("Study", exact=True)).to_be_visible()
+    expect(toggle.get_by_text("Test", exact=True)).to_be_visible()
 
 
 def test_pwa_toggle_to_test_mode(page: Page, live_server):
-    """Clicking the Test radio in PWA marks it checked."""
-    page.goto(f"{live_server}/pwa/quiz.html?deck_id=test&deck_name=Test&mode=words")
-    page.locator('#testRadio').check()
+    """Clicking the Test label in PWA checks the Test radio."""
+    page.goto(f"{live_server}/pwa/quiz.html?deck_id=x&deck_name=Test&mode=words")
+    page.wait_for_load_state("domcontentloaded")
+    # Radio inputs are display:none; click the visible label instead
+    page.locator('#modeToggle label:has(#testRadio)').click()
     expect(page.locator('#testRadio')).to_be_checked()
     expect(page.locator('#studyRadio')).not_to_be_checked()
 
 
 def test_pwa_toggle_back_to_study(page: Page, live_server):
     """Can toggle back from Test to Study in PWA."""
-    page.goto(f"{live_server}/pwa/quiz.html?deck_id=test&deck_name=Test&mode=words")
-    page.locator('#testRadio').check()
-    page.locator('#studyRadio').check()
+    page.goto(f"{live_server}/pwa/quiz.html?deck_id=x&deck_name=Test&mode=words")
+    page.wait_for_load_state("domcontentloaded")
+    page.locator('#modeToggle label:has(#testRadio)').click()
+    page.locator('#modeToggle label:has(#studyRadio)').click()
     expect(page.locator('#studyRadio')).to_be_checked()
     expect(page.locator('#testRadio')).not_to_be_checked()

@@ -19,7 +19,7 @@
 
 - [x] PWA Phase 4 — Fly.io deployment: `Dockerfile`, `fly.toml` (256MB shared-cpu, persistent `/data` volume, auto-stop), `server.py` WSGI entry point; `pywebview` moved to optional `[desktop]` extra; `gunicorn` added as `[server]` extra
 - [x] PWA Phase 5 — Desktop remote mode: `QUIZ_URL` env var in `desktop_app.main()` opens PyWebView window on hosted server instead of starting local Flask
-- [x] Flask test mode — Study/Test radio toggle; test mode skips SRS updates and logging; `test-badge` shown in template; 8 unit + 9 Playwright tests
+- [x] Flask test mode — Study/Test radio toggle; test mode skips SRS updates and logging; `test-badge` shown in template; 16 unit + 15 Playwright e2e tests (Flask + PWA)
 - [x] PWA Phase 6 — Integration testing and hardening: `sw.js` refactored to export `handleInstall`/`handleActivate`/`handleFetch`; 13 SW tests (cache versioning, install, activate purge, fetch routing); 4 sync conflict edge cases (identical timestamps, two-client LWW, other-device cards, mixed newer/older); 5 Python API edge cases (identical timestamps, two-client conflict, missing/invalid body, full state returned); total 98 JS + 21 API tests
 - [x] Pinned letters — for words with 5+ alpha chars, every 4th alpha position (4, 8, 12…) auto-shown alongside first letter; challenge letter drawn from remaining hidden positions; 12 new vitest tests
 - [x] Desktop keyboard input — PyWebView detected via `window.pywebview`; chips rendered non-interactive; text input replaces tap selection; Enter submits; browser/iPhone path unchanged
