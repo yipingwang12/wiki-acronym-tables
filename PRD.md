@@ -45,8 +45,8 @@ Collection config: top-level `collection_title` + `poems` list, each with `poem_
 ### 3. Monarch Reigns (`wiki-monarchs`)
 - Source: Wikidata SPARQL (position Q-numbers)
 - Output: per-century transition-digit strings (last digit of accession year per monarch)
-- **Gap-fill**: when a monarch's recorded end year doesn't match any accession year (e.g. Wikidata shows Æthelstan at 927 but Edward the Elder died in 924), the end year is inserted into the transition string as a fallback event. This corrects Wikidata's known lag between a monarch's death and the next monarch's formal accession date.
-- **Deduplication by person Q-number**: monarchs whose title changed mid-reign (e.g. George III: King of GB 1760 → King of UK 1801) appear once with their earliest accession year.
+- **Gap-fill**: when a monarch's recorded end year doesn't match any accession year and the gap to the next known accession is ≤ 5 years, the end year is inserted into the transition string as a fallback event (e.g. Edward the Elder died 924, Æthelstan crowned 927 → 924 inserted). The 5-year threshold distinguishes Wikidata date lag from genuine interregnums (e.g. Stephen deposed 1141→Henry II 1154, Commonwealth 1649–1660).
+- **Deduplication by person Q-number**: monarchs whose title changed mid-reign (e.g. George III: King of GB 1760 → King of UK 1801) or who were deposed and restored (e.g. Stephen, Henry VI) appear once with their earliest accession year and latest end year.
 - **Fragmented Q-numbers**: Britain requires four position Q-numbers across eras (`Q18810062` England pre-1707, `Q110324075` GB 1707–1801, `Q111722535` UK 1801–1927, `Q9134365` UK 1927–present).
 
 | Field | Required | Default | Notes |
@@ -140,6 +140,7 @@ An installable Progressive Web App that shares SRS state with the desktop app vi
 - **Sync**: on page load and after each session completion, `sync.js` POSTs all local IndexedDB card state to `POST /api/sync`. Server applies last-write-wins merge (compares `updated_at` timestamps) and returns full server state; client applies any newer server cards back to IndexedDB.
 - **Shared database**: both desktop and iPhone write to the same SQLite `srs_state` table via the Flask API. Cards reviewed on either device advance the same FSRS schedule.
 - **Quiz UI**: touch-optimised chip selection for wrong word/letter/digit positions (iPhone/browser). On the desktop app (PyWebView), detected via `window.pywebview`, chips are non-interactive and a text input is shown instead — type space/comma-separated word numbers and press Enter or Submit. Health bar, live timer, answer reveal after each item, phase badge (Learning/Graduated/Review/Relearning).
+- **Flask quiz input modes**: default is text input (type space-separated wrong-word numbers). A "Switch to click" toggle button in the mode bar enables click-to-select — word cards become clickable; clicking highlights them red and populates a hidden form field. Preference persists via `localStorage`.
 - **SRS parity**: `srs.js` is a verified port of `srs.py` using `ts-fsrs`. Python↔JS parity is tested by a fixture generator that replays identical review sequences through both implementations and asserts matching state transitions.
 
 #### API Blueprint (`api.py`)
