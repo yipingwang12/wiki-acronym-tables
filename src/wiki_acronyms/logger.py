@@ -11,7 +11,7 @@ from pathlib import Path
 
 # Bump the relevant version string whenever the display format for that mode changes.
 FORMAT_VERSIONS: dict[str, str] = {
-    'words': 'words-v1',
+    'words': 'words-v2',
     'acronym': 'acronym-v1',
     'digits': 'digits-v1',
 }

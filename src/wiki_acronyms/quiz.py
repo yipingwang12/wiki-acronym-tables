@@ -67,14 +67,27 @@ def _alpha_indices(word: str) -> list[int]:
     return [i for i, c in enumerate(word) if c.isalpha()]
 
 
-def _two_letter_display(word: str, extra_pos: int, extra_ch: str) -> str:
-    """Show first alpha char + extra_ch at extra_pos; underscore other alpha chars; preserve non-alpha."""
+def _pinned_indices(word: str) -> set[int]:
+    """First alpha char + every 4th alpha position (indices 3,7,11,…) for words with 5+ alpha chars."""
+    alpha = _alpha_indices(word)
+    pinned: set[int] = set()
+    if not alpha:
+        return pinned
+    pinned.add(alpha[0])
+    if len(alpha) >= 5:
+        for i in range(3, len(alpha), 4):
+            pinned.add(alpha[i])
+    return pinned
+
+
+def _bluff_display(word: str, extra_pos: int, extra_ch: str) -> str:
+    """Show pinned chars + extra_ch at extra_pos; underscore other alpha chars; preserve non-alpha."""
+    pinned = _pinned_indices(word)
     alpha = _alpha_indices(word)
     if len(alpha) <= 1:
         return word
-    first_idx = alpha[0]
     return ''.join(
-        c if (not c.isalpha() or i == first_idx)
+        c if (not c.isalpha() or i in pinned)
         else (extra_ch if i == extra_pos else '_')
         for i, c in enumerate(word)
     )
@@ -88,23 +101,25 @@ class LineDisplay:
 
 
 def make_line_display(line: str, wrong_prob: float = 0.15) -> LineDisplay:
-    """Build masked display; each word reveals one non-first letter, wrong with prob wrong_prob."""
+    """Build masked display; each word reveals one non-pinned letter, wrong with prob wrong_prob."""
     words = line.split()
     wrong_words: list[int] = []
     parts: list[str] = []
 
     for i, w in enumerate(words):
-        non_first = _alpha_indices(w)[1:]
-        if not non_first:
+        alpha = _alpha_indices(w)
+        pinned = _pinned_indices(w)
+        non_pinned = [idx for idx in alpha if idx not in pinned]
+        if not non_pinned:
             parts.append(f"{i+1}:{w}")
             continue
-        ci = random.choice(non_first)
+        ci = random.choice(non_pinned)
         actual_ch = w[ci]
         has_wrong = random.random() < wrong_prob
         shown_ch = pick_confusable(actual_ch) if has_wrong else actual_ch
         if has_wrong:
             wrong_words.append(i + 1)
-        parts.append(f"{i+1}:{_two_letter_display(w, ci, shown_ch)}")
+        parts.append(f"{i+1}:{_bluff_display(w, ci, shown_ch)}")
 
     return LineDisplay(
         display='  '.join(parts),

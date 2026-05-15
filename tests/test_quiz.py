@@ -8,7 +8,8 @@ from wiki_acronyms.quiz import (
     DigitDisplay,
     LineDisplay,
     _alpha_indices,
-    _two_letter_display,
+    _bluff_display,
+    _pinned_indices,
     make_acronym_display,
     make_digit_display,
     make_line_display,
@@ -62,27 +63,54 @@ def test_alpha_indices_single_letter():
     assert _alpha_indices("a") == [0]
 
 
-# --- _two_letter_display ---
+# --- _pinned_indices ---
 
-def test_two_letter_display_shows_first_and_extra_with_underscores():
-    assert _two_letter_display("hello", 2, 'x') == "h_x__"
-
-
-def test_two_letter_display_preserves_trailing_punctuation():
-    assert _two_letter_display("hello,", 2, 'x') == "h_x__,"
+def test_pinned_indices_short_word_only_first():
+    # "hello" has 5 alpha chars → pinned = {0, 3} (first + alpha[3])
+    assert _pinned_indices("hello") == {0, 3}
 
 
-def test_two_letter_display_preserves_leading_punctuation():
-    # alpha indices of "(word" = [1,2,3,4]; first=1('w'), extra_pos=3('r') → "(w_x_"
-    assert _two_letter_display("(word", 3, 'x') == "(w_x_"
+def test_pinned_indices_four_alpha_only_first():
+    # 4 alpha chars → no every-4th pinning, just first
+    assert _pinned_indices("word") == {0}
 
 
-def test_two_letter_display_single_alpha_returns_word():
-    assert _two_letter_display("a", 0, 'x') == "a"
+def test_pinned_indices_long_word():
+    # "creatures" = 9 alpha chars → pinned = alpha[0]=0, alpha[3]=3, alpha[7]=7
+    assert _pinned_indices("creatures") == {0, 3, 7}
 
 
-def test_two_letter_display_no_alpha_returns_word():
-    assert _two_letter_display("---", 0, 'x') == "---"
+def test_pinned_indices_leading_punctuation():
+    # "(word" alpha=[1,2,3,4] (4 chars) → only first pinned → {1}
+    assert _pinned_indices("(word") == {1}
+
+
+def test_pinned_indices_empty():
+    assert _pinned_indices("---") == set()
+
+
+# --- _bluff_display ---
+
+def test_bluff_display_short_word_shows_pinned_and_extra():
+    # "hello" alpha=[0..4], pinned={0,3} → h(pinned), _(1), x(extra at 2), l(pinned at 3), _(4)
+    assert _bluff_display("hello", 2, 'x') == "h_xl_"
+
+
+def test_bluff_display_preserves_trailing_punctuation():
+    assert _bluff_display("hello,", 2, 'x') == "h_xl_,"
+
+
+def test_bluff_display_preserves_leading_punctuation():
+    # "(word" alpha=[1,2,3,4] (4 chars), pinned={1}; extra_pos=3 → "(w_x_"
+    assert _bluff_display("(word", 3, 'x') == "(w_x_"
+
+
+def test_bluff_display_single_alpha_returns_word():
+    assert _bluff_display("a", 0, 'x') == "a"
+
+
+def test_bluff_display_no_alpha_returns_word():
+    assert _bluff_display("---", 0, 'x') == "---"
 
 
 # --- make_line_display ---
@@ -129,6 +157,15 @@ def test_make_line_display_no_wrong_when_no_candidates():
     result = make_line_display("a b c", wrong_prob=1.0)
     assert not result.has_wrong
     assert result.wrong_words == []
+
+
+def test_make_line_display_pinned_letters_shown():
+    # "creatures" = c(0)r(1)e(2)a(3)t(4)u(5)r(6)e(7)s(8), pinned={0,3,7} → c,a,e always shown
+    result = make_line_display("creatures", wrong_prob=0.0)
+    word_part = result.display.split(":")[1]
+    assert word_part[0] == 'c'   # alpha[0] pinned
+    assert word_part[3] == 'a'   # alpha[3] pinned
+    assert word_part[7] == 'e'   # alpha[7] pinned
 
 
 def test_make_line_display_punctuation_preserved():
