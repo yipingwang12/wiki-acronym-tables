@@ -18,16 +18,22 @@
     .health-fill { border-radius: 6px; height: 8px; transition: width 0.3s; background: #4caf50; }
     .health-fill.low { background: #f44336; }
     .display { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 32px; }
-    .token-card { background: #f9f9f9; border: 1px solid #e8e8e8; border-radius: 6px; padding: 10px 14px; }
+    .token-card { background: #f9f9f9; border: 2px solid #e8e8e8; border-radius: 6px; padding: 10px 14px; transition: all 0.12s; }
     .token-card.letter { padding: 10px 18px; }
     .token-num { font-size: 0.6em; color: #bbb; display: block; margin-bottom: 3px; }
     .token-text { font-family: 'Courier New', monospace; font-size: 1.25em; letter-spacing: 2px; color: #222; }
     .token-card.letter .token-text { font-size: 1.6em; letter-spacing: 0; }
+    .clickable .token-card { cursor: pointer; user-select: none; }
+    .clickable .token-card:active { transform: scale(0.96); }
+    .clickable .token-card.selected { border-color: #e53935; background: #ffebee; }
+    .clickable .token-card.selected .token-num { color: #e53935; }
     form { display: flex; gap: 10px; }
     input[type=text] { flex: 1; font-size: 1em; padding: 10px 14px; border: 2px solid #ddd; border-radius: 6px; }
     input[type=text]:focus { outline: none; border-color: #4caf50; }
     button { padding: 10px 24px; background: #4caf50; color: white; border: none; border-radius: 6px; font-size: 1em; cursor: pointer; }
     button:hover { background: #43a047; }
+    .input-mode-toggle { font-size: 0.75em; color: #aaa; background: none; border: 1px solid #ddd; border-radius: 4px; padding: 4px 10px; cursor: pointer; white-space: nowrap; }
+    .input-mode-toggle:hover { background: #f5f5f5; color: #666; }
     .feedback { margin-top: 20px; padding: 12px 16px; border-radius: 6px; font-size: 0.9em; }
     .feedback.correct { background: #e8f5e9; color: #2e7d32; }
     .feedback.wrong { background: #ffebee; color: #c62828; }
@@ -89,10 +95,10 @@
     <div class="health-fill{% if health <= 3 %} low{% endif %}" style="width: {{ health_pct }}%"></div>
   </div>
 
-  <div class="display">
+  <div class="display" id="display">
     {% for token in tokens %}
     {% set parts = token.split(':', 1) %}
-    <div class="token-card{% if mode == 'acronym' %} letter{% endif %}">
+    <div class="token-card{% if mode == 'acronym' %} letter{% endif %}" data-num="{{ parts[0] }}">
       <span class="token-num">{{ parts[0] }}</span>
       <span class="token-text">{{ parts[1] }}</span>
     </div>
@@ -101,13 +107,20 @@
 
   <form method="POST" action="/quiz" id="quiz-form">
     <input type="hidden" id="keystrokes" name="keystrokes" value="[]">
+    <input type="hidden" id="answer-hidden" name="answer" value="">
     <div class="mode-toggle">
       <label><input type="radio" name="test_mode" value="0" {% if not test_mode %}checked{% endif %}> Study</label>
       <label><input type="radio" name="test_mode" value="1" {% if test_mode %}checked{% endif %}> Test</label>
+      <button type="button" class="input-mode-toggle" id="input-mode-btn"></button>
     </div>
-    <input type="text" name="answer" id="answer" autofocus
-           placeholder="Wrong {{ item_label }} numbers (e.g. 2 5), or leave blank">
-    <button type="submit">Submit</button>
+    <div id="text-input-row" style="display:flex;gap:10px;width:100%;">
+      <input type="text" id="answer" autofocus
+             placeholder="Wrong {{ item_label }} numbers (e.g. 2 5), or leave blank">
+      <button type="submit">Submit</button>
+    </div>
+    <div id="click-input-row" style="display:none;gap:10px;width:100%;">
+      <button type="submit" style="width:100%;">Submit</button>
+    </div>
   </form>
   <script>
     const displayedAt = {{ display_time }};
@@ -121,11 +134,63 @@
     document.getElementById('answer').addEventListener('keydown', e => {
       strokes.push([e.key, Date.now() - t0]);
     });
+
+    // --- Click-to-select mode ---
+    const STORAGE_KEY = 'quiz-click-mode';
+    let clickMode = localStorage.getItem(STORAGE_KEY) === '1';
+    const display = document.getElementById('display');
+    const textRow = document.getElementById('text-input-row');
+    const clickRow = document.getElementById('click-input-row');
+    const modeBtn = document.getElementById('input-mode-btn');
+    const answerHidden = document.getElementById('answer-hidden');
+    const selected = new Set();
+
+    function applyMode() {
+      if (clickMode) {
+        display.classList.add('clickable');
+        textRow.style.display = 'none';
+        clickRow.style.display = 'flex';
+        modeBtn.textContent = 'Switch to type';
+        answerHidden.name = 'answer';
+        document.getElementById('answer').removeAttribute('name');
+      } else {
+        display.classList.remove('clickable');
+        textRow.style.display = 'flex';
+        clickRow.style.display = 'none';
+        modeBtn.textContent = 'Switch to click';
+        document.getElementById('answer').name = 'answer';
+        answerHidden.removeAttribute('name');
+      }
+    }
+
+    modeBtn.addEventListener('click', () => {
+      clickMode = !clickMode;
+      localStorage.setItem(STORAGE_KEY, clickMode ? '1' : '0');
+      selected.clear();
+      display.querySelectorAll('.token-card').forEach(c => c.classList.remove('selected'));
+      answerHidden.value = '';
+      applyMode();
+      if (!clickMode) document.getElementById('answer').focus();
+    });
+
+    display.addEventListener('click', e => {
+      if (!clickMode) return;
+      const card = e.target.closest('.token-card');
+      if (!card) return;
+      const num = card.dataset.num;
+      if (selected.has(num)) { selected.delete(num); card.classList.remove('selected'); }
+      else { selected.add(num); card.classList.add('selected'); }
+      answerHidden.value = [...selected].join(' ');
+    });
+
     document.getElementById('quiz-form').addEventListener('submit', () => {
       document.getElementById('keystrokes').value = JSON.stringify(strokes);
     });
+
+    applyMode();
+    if (!clickMode) document.getElementById('answer').focus();
   </script>
-  <p class="hint">Enter {{ item_label }} numbers with wrong letters, space-separated. Leave blank if all are correct.</p>
+  <p class="hint" id="hint-text">Enter {{ item_label }} numbers with wrong letters, space-separated. Leave blank if all are correct.</p>
 
   {% with messages = get_flashed_messages(with_categories=true) %}
     {% for category, message in messages %}
