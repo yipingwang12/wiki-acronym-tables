@@ -3,9 +3,9 @@ from __future__ import annotations
 import json
 
 import pytest
-from fsrs import Rating
+from fsrs import Card, Rating, State
 from wiki_acronyms.logger import QuizLogger, item_key
-from wiki_acronyms.srs import SRSScheduler, classify_response, _thresholds
+from wiki_acronyms.srs import SRSScheduler, classify_response, _thresholds, _normalize_card_json
 
 
 # --- classify_response ---
@@ -244,3 +244,80 @@ def test_graduated_phase_counts_as_due(logger):
     srs = SRSScheduler(logger)
     _seed_in_graduated_phase(logger, 'alpha')
     assert srs.get_due_count(['alpha']) == 1
+
+
+# --- ts-fsrs card deserialization (Bug 2 regression) ---
+
+_TS_FSRS_CARD = json.dumps({
+    'due': '2026-06-14T00:00:00.000Z',
+    'stability': 2.5,
+    'difficulty': 5.0,
+    'elapsed_days': 1,
+    'scheduled_days': 2,
+    'reps': 3,
+    'lapses': 0,
+    'learning_steps': 0,
+    'state': 2,  # Review
+})
+
+_PYTHON_FSRS_CARD = json.dumps({
+    'card_id': 12345,
+    'state': 2,
+    'step': None,
+    'stability': 2.5,
+    'difficulty': 5.0,
+    'due': '2026-06-14T00:00:00+00:00',
+    'last_review': None,
+})
+
+
+def test_normalize_card_json_ts_fsrs_no_raise():
+    """ts-fsrs-shaped JSON must not raise KeyError."""
+    normalized = _normalize_card_json(_TS_FSRS_CARD)
+    card = Card.from_json(normalized)
+    assert card.stability == pytest.approx(2.5)
+    assert card.difficulty == pytest.approx(5.0)
+    assert card.state == State.Review
+
+
+def test_normalize_card_json_ts_fsrs_passthrough_python():
+    """Python-shaped JSON must pass through unchanged."""
+    normalized = _normalize_card_json(_PYTHON_FSRS_CARD)
+    card = Card.from_json(normalized)
+    assert card.stability == pytest.approx(2.5)
+    assert card.difficulty == pytest.approx(5.0)
+
+
+def _seed_ts_fsrs_card(logger, item_text: str) -> None:
+    """Write a ts-fsrs-shaped card state (as produced by iPhone PWA after graduation)."""
+    state = {
+        'fsrs': _TS_FSRS_CARD,
+        'learning_step': None,
+        'step_due': None,
+        'introduced_date': '2026-06-12',
+        'graduated_step': None,
+        'graduated_step_due': None,
+        'relearning_step': None,
+        'relearn_step_due': None,
+    }
+    logger.save_card(item_key(item_text), json.dumps(state))
+
+
+def test_review_with_ts_fsrs_card_no_crash(srs, logger):
+    """review() must not crash when card_json is ts-fsrs-shaped (KeyError regression)."""
+    _seed_ts_fsrs_card(logger, 'hello world')
+    srs.review('hello world', 'words', 1.0, True)  # must not raise
+
+
+def test_classify_items_with_ts_fsrs_card_no_crash(srs, logger):
+    """_classify_items() must not crash when card_json is ts-fsrs-shaped."""
+    _seed_ts_fsrs_card(logger, 'hello world')
+    order = srs.get_due_order(['hello world'])  # must not raise
+    assert len(order) == 1
+
+
+def test_get_phase_with_ts_fsrs_card_no_crash(srs, logger):
+    """get_phase() must not crash when card_json is ts-fsrs-shaped."""
+    _seed_ts_fsrs_card(logger, 'hello world')
+    phase = srs.get_phase('hello world')
+    assert phase == 'review'

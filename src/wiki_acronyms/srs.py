@@ -46,6 +46,39 @@ def classify_response(mode: str, item_text: str, response_secs: float, correct: 
     return Rating.Hard
 
 
+def _normalize_card_json(card_json: str) -> str:
+    """Return a Python-fsrs-compatible card JSON string.
+
+    Accepts either Python-fsrs format ({card_id, state, step, ...}) or
+    ts-fsrs format ({elapsed_days, scheduled_days, reps, lapses, ...}).
+    ts-fsrs cards are missing card_id/step/last_review; supply safe defaults.
+    """
+    data = json.loads(card_json)
+    if 'card_id' in data:
+        return card_json  # already Python-fsrs shaped
+
+    # ts-fsrs shaped: map to Python-fsrs fields
+    due_str = data.get('due', datetime.now(timezone.utc).isoformat())
+    # Normalise Z suffix so datetime.fromisoformat works on Python < 3.11
+    due_str = due_str.replace('Z', '+00:00')
+    due_dt = datetime.fromisoformat(due_str)
+
+    # Derive last_review from due - scheduled_days (best approximation)
+    scheduled_days = int(data.get('scheduled_days', 0))
+    last_review_dt = due_dt - timedelta(days=scheduled_days) if scheduled_days else None
+
+    normalized = {
+        'card_id': 0,
+        'state': int(data.get('state', 0)),
+        'step': None,
+        'stability': data.get('stability'),
+        'difficulty': data.get('difficulty'),
+        'due': due_dt.isoformat(),
+        'last_review': last_review_dt.isoformat() if last_review_dt else None,
+    }
+    return json.dumps(normalized)
+
+
 def _load_state(card_json: str) -> dict:
     """Parse card_json, upgrading legacy bare-FSRS format to state envelope."""
     data = json.loads(card_json)
@@ -183,7 +216,7 @@ class SRSScheduler:
                     state['relearn_step_due'] = (now + timedelta(days=self._relearn_steps[next_step])).isoformat()
 
         else:
-            card = Card.from_json(state['fsrs'])
+            card = Card.from_json(_normalize_card_json(state['fsrs']))
             if rating == Rating.Again:
                 old_stability = card.stability
                 old_difficulty = card.difficulty
@@ -242,7 +275,7 @@ class SRSScheduler:
                 else:
                     learning_future.append((step_due, idx))
             else:
-                card = Card.from_json(state['fsrs'])
+                card = Card.from_json(_normalize_card_json(state['fsrs']))
                 if card.due <= now:
                     fsrs_due.append(((card.due - now).total_seconds(), idx))
                 else:

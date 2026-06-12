@@ -28,7 +28,7 @@ export async function syncWithServer(serverUrl = '') {
     const localMap = Object.fromEntries(local.map(c => [c.item_key, c]));
     for (const sc of serverCards) {
       const lc = localMap[sc.item_key];
-      if (!lc || sc.updated_at > lc.updated_at) {
+      if (!lc || Date.parse(sc.updated_at) > Date.parse(lc.updated_at)) {
         await putCard(sc.item_key, sc.card_json, sc.updated_at);
       }
     }

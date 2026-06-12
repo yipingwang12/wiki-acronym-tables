@@ -302,3 +302,58 @@ class TestSyncEdgeCases:
         }]})
         keys = {c['item_key'] for c in resp.get_json()['cards']}
         assert keys == {'a', 'b'}
+
+
+class TestSyncTimestampFormats:
+    """Regression: LWW must compare timestamps as instants, not strings.
+
+    Python emits '2026-06-12T14:00:05+00:00' (no ms, numeric offset).
+    JS emits '2026-06-12T14:00:05.000Z' (always ms, Z suffix).
+    String comparison of these is unreliable; parsed comparison must be correct.
+    """
+
+    def test_js_z_suffix_newer_than_python_offset_format(self, client, app):
+        # Server has Python-style ts; client sends 1 second later in JS/Z style.
+        # Client is newer → must win.
+        server_json = '{"v":1}'
+        client_json = '{"v":2}'
+        logger = _mock_logger({'key1': (server_json, '2026-06-12T14:00:05+00:00')})
+        app.config['LOGGER'] = logger
+        resp = client.post('/api/sync', json={'changes': [{
+            'item_key': 'key1',
+            'card_json': client_json,
+            'updated_at': '2026-06-12T14:00:06.000Z',
+        }]})
+        cards = {c['item_key']: c for c in resp.get_json()['cards']}
+        assert cards['key1']['card_json'] == client_json
+
+    def test_python_offset_format_newer_than_js_z_suffix(self, client, app):
+        # Server has JS/Z-style ts; client sends 1 second earlier in Python style.
+        # Server is newer → client must NOT overwrite.
+        server_json = '{"v":99}'
+        client_json = '{"v":1}'
+        logger = _mock_logger({'key1': (server_json, '2026-06-12T14:00:06.000Z')})
+        app.config['LOGGER'] = logger
+        resp = client.post('/api/sync', json={'changes': [{
+            'item_key': 'key1',
+            'card_json': client_json,
+            'updated_at': '2026-06-12T14:00:05+00:00',
+        }]})
+        cards = {c['item_key']: c for c in resp.get_json()['cards']}
+        assert cards['key1']['card_json'] == server_json
+
+    def test_same_instant_different_formats_server_wins(self, client, app):
+        # Same instant expressed as Python vs JS format → server wins (strict >).
+        ts_python = '2026-06-12T14:00:05+00:00'
+        ts_js = '2026-06-12T14:00:05.000Z'
+        server_json = '{"v":9}'
+        client_json = '{"v":0}'
+        logger = _mock_logger({'key1': (server_json, ts_python)})
+        app.config['LOGGER'] = logger
+        resp = client.post('/api/sync', json={'changes': [{
+            'item_key': 'key1',
+            'card_json': client_json,
+            'updated_at': ts_js,
+        }]})
+        cards = {c['item_key']: c for c in resp.get_json()['cards']}
+        assert cards['key1']['card_json'] == server_json

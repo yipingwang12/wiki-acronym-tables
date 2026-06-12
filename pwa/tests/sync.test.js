@@ -152,4 +152,42 @@ describe('syncWithServer', () => {
     expect(putCard).toHaveBeenCalledTimes(1);
     expect(putCard).toHaveBeenCalledWith('new', '{"v":9}', '2024-09-01T00:00:00Z');
   });
+
+  // Regression: mixed Python (+00:00) and JS (Z) timestamp formats must compare by instant.
+
+  it('server Z-suffix newer than local +00:00 format → applies server card', async () => {
+    // Local has Python-style ts; server has JS/Z style 1 second later → server wins.
+    getAllCards.mockResolvedValue([
+      { item_key: 'k1', card_json: '{"v":1}', updated_at: '2026-06-12T14:00:05+00:00' },
+    ]);
+    mockFetch([
+      { item_key: 'k1', card_json: '{"v":2}', updated_at: '2026-06-12T14:00:06.000Z' },
+    ]);
+    await syncWithServer('');
+    expect(putCard).toHaveBeenCalledWith('k1', '{"v":2}', '2026-06-12T14:00:06.000Z');
+  });
+
+  it('server +00:00 older than local Z-suffix → does not overwrite local card', async () => {
+    // Server has Python-style ts 1 second earlier; local has JS/Z ts → local wins.
+    getAllCards.mockResolvedValue([
+      { item_key: 'k1', card_json: '{"v":99}', updated_at: '2026-06-12T14:00:06.000Z' },
+    ]);
+    mockFetch([
+      { item_key: 'k1', card_json: '{"v":1}', updated_at: '2026-06-12T14:00:05+00:00' },
+    ]);
+    await syncWithServer('');
+    expect(putCard).not.toHaveBeenCalled();
+  });
+
+  it('same instant: Z and +00:00 formats are equal → server does not overwrite', async () => {
+    // '2026-06-12T14:00:05.000Z' == '2026-06-12T14:00:05+00:00' chronologically.
+    getAllCards.mockResolvedValue([
+      { item_key: 'k1', card_json: '{"v":9}', updated_at: '2026-06-12T14:00:05+00:00' },
+    ]);
+    mockFetch([
+      { item_key: 'k1', card_json: '{"v":0}', updated_at: '2026-06-12T14:00:05.000Z' },
+    ]);
+    await syncWithServer('');
+    expect(putCard).not.toHaveBeenCalled();
+  });
 });

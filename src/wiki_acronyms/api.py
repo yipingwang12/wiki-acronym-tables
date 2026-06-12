@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import hashlib
+from datetime import datetime, timezone
 from pathlib import Path
 
 from flask import Blueprint, current_app, jsonify, request, send_from_directory
@@ -12,6 +13,11 @@ from .deck_loader import discover_decks, load_monarchs_deck, load_poetry_deck
 _PWA_DIR = Path(__file__).resolve().parent.parent.parent / 'pwa'
 
 api_bp = Blueprint('api', __name__)
+
+
+def _parse_ts(ts: str) -> datetime:
+    """Parse an ISO-8601 UTC timestamp from either Python (+00:00) or JS (Z) format."""
+    return datetime.fromisoformat(ts.replace('Z', '+00:00'))
 
 
 def _deck_id(config_path: str, poem_title: str | None) -> str:
@@ -99,7 +105,7 @@ def sync():
         row = logger._conn.execute(
             'SELECT updated_at FROM srs_state WHERE item_key=?', (key,)
         ).fetchone()
-        if row is None or updated_at > row[0]:
+        if row is None or _parse_ts(updated_at) > _parse_ts(row[0]):
             logger._conn.execute(
                 'INSERT INTO srs_state (item_key, card_json, updated_at) VALUES (?,?,?) '
                 'ON CONFLICT(item_key) DO UPDATE SET '
