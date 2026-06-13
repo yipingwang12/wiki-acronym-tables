@@ -1,5 +1,42 @@
 /** Blindman's bluff quiz display + scoring. Port of quiz.py. */
 
+/** Escape a string for safe insertion into HTML. */
+export function escapeHtml(s) {
+  return s
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+/**
+ * Create session state capturing original order/count at start.
+ * @param {number[]} order
+ * @param {number} dueCount
+ */
+export function makeSessionState(order, dueCount) {
+  return {
+    order: [...order],
+    dueCount,
+    originalOrder: [...order],
+    originalDueCount: dueCount,
+    currentIdx: 0,
+  };
+}
+
+/**
+ * Restart a session: reset index to 0 and restore the original order/count
+ * captured at session start (mirrors Flask behaviour — does NOT recompute).
+ * @param {{ originalOrder: number[], originalDueCount: number }} state
+ */
+export function restartSession(state) {
+  state.currentIdx = 0;
+  state.order = [...state.originalOrder];
+  state.dueCount = state.originalDueCount;
+  return state;
+}
+
 export const DIGIT_CONFUSABLES = {
   '0': ['8', '6'], '1': ['7', '4'], '2': ['7', '3'], '3': ['8', '2'],
   '4': ['1', '9'], '5': ['6', '3'], '6': ['9', '0'], '7': ['1', '2'],

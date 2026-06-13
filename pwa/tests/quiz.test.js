@@ -4,6 +4,8 @@ import {
   pinnedIndices, twoLetterDisplay, makeLineDisplay, makeAcronymDisplay,
   makeDigitDisplay, scoreResponse, scoreAcronymResponse,
   scoreDigitResponse, CONFUSABLES, DIGIT_CONFUSABLES,
+  escapeHtml,
+  makeSessionState, restartSession,
 } from '../quiz.js';
 
 describe('alphaIndices', () => {
@@ -230,5 +232,74 @@ describe('scoreDigitResponse', () => {
     const display = { wrongPositions: [1] };
     const [, msg] = scoreDigitResponse(display, []);
     expect(msg).toContain('digit');
+  });
+});
+
+// M1 — escapeHtml regression tests
+describe('escapeHtml', () => {
+  it('escapes & < > " \'', () => {
+    expect(escapeHtml('a & b')).toBe('a &amp; b');
+    expect(escapeHtml('<script>')).toBe('&lt;script&gt;');
+    expect(escapeHtml('"quoted"')).toBe('&quot;quoted&quot;');
+    expect(escapeHtml("it's")).toBe('it&#39;s');
+  });
+  it('leaves plain text unchanged', () => {
+    expect(escapeHtml('hello world')).toBe('hello world');
+  });
+  it('handles empty string', () => {
+    expect(escapeHtml('')).toBe('');
+  });
+  it('escapes multiple occurrences', () => {
+    expect(escapeHtml('a < b & c > d')).toBe('a &lt; b &amp; c &gt; d');
+  });
+  it('renders poetry lines with special chars safely', () => {
+    const line = "O'er the ramparts & fields";
+    const escaped = escapeHtml(line);
+    expect(escaped).not.toContain("'");
+    // raw & replaced; only entity-form remains
+    expect(escaped).not.toMatch(/&(?!amp;|lt;|gt;|quot;|#39;)/);
+    expect(escaped).toContain('&#39;');
+    expect(escaped).toContain('&amp;');
+  });
+});
+
+// M2 — session state capture + restart regression tests
+describe('makeSessionState / restartSession', () => {
+  it('captures original order and dueCount at session start', () => {
+    const order = [2, 0, 1];
+    const state = makeSessionState(order, 3);
+    expect(state.order).toEqual([2, 0, 1]);
+    expect(state.dueCount).toBe(3);
+    expect(state.originalOrder).toEqual([2, 0, 1]);
+    expect(state.originalDueCount).toBe(3);
+  });
+
+  it('restartSession resets index to 0 and restores original order/count', () => {
+    const order = [2, 0, 1];
+    const state = makeSessionState(order, 3);
+    // Simulate several reviews advancing the index and SRS mutations
+    state.currentIdx = 2;
+    state.order = [0]; // shrunken due to SRS re-query
+    state.dueCount = 1;
+
+    const restarted = restartSession(state);
+    expect(restarted.currentIdx).toBe(0);
+    expect(restarted.order).toEqual([2, 0, 1]);
+    expect(restarted.dueCount).toBe(3);
+  });
+
+  it('restartSession does not recompute from current SRS state', () => {
+    // originalOrder must be preserved even if order would be different post-review
+    const order = [0, 1, 2, 3];
+    const state = makeSessionState(order, 4);
+    state.currentIdx = 3;
+    // Simulate what getDueOrder would return after reviews (only 1 item still "due")
+    state.order = [3];
+    state.dueCount = 1;
+
+    const restarted = restartSession(state);
+    expect(restarted.dueCount).toBe(4);          // original, not 1
+    expect(restarted.order).toHaveLength(4);      // full deck, not shrunken
+    expect(restarted.order).toEqual([0, 1, 2, 3]);
   });
 });

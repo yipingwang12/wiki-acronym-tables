@@ -142,6 +142,7 @@ import { SRSScheduler, Rating } from './srs.bundle.js';
 import {
   makeLineDisplay, makeAcronymDisplay, makeDigitDisplay,
   scoreResponse, scoreAcronymResponse, scoreDigitResponse,
+  escapeHtml, makeSessionState, restartSession,
 } from './quiz.js';
 import { getCard, saveCard, countIntroducedToday, getDeckCache, saveDeckCache } from './db.js';
 import { syncWithServer } from './sync.js';
@@ -172,9 +173,12 @@ document.getElementById('deckTitle').textContent = deckName;
 
 // --- State ---
 let items = [], labels = null;
-let order = [], dueCount = 0;
-let currentIdx = 0;       // index into order[]
+let session = makeSessionState([], 0); // captures originalOrder/originalDueCount at start
 let health = MAX_HEALTH;
+
+// Convenience aliases kept in sync with session object
+let order, dueCount, currentIdx;
+function syncAliases() { ({ order, dueCount, currentIdx } = session); }
 let timerInterval = null;
 let timerStart = null;
 let currentDisplay = null;
@@ -241,13 +245,14 @@ function renderChips(parts, selectedNums = new Set(), highlightMode = null, wron
     }
     return `<div class="${cls}" data-num="${num}">
       <span class="num">${num}</span>
-      <span class="text">${text}</span>
+      <span class="text">${escapeHtml(text)}</span>
     </div>`;
   }).join('');
 }
 
 // --- Show current item ---
 async function showItem() {
+  syncAliases();
   if (currentIdx >= dueCount) {
     showComplete();
     return;
@@ -276,7 +281,7 @@ async function showItem() {
     : `Tap wrong ${noun}s, then submit. Leave all unselected if none wrong.`;
 
   document.getElementById('main').innerHTML = `
-    <p class="display-prompt">${label ? `<strong>${label}</strong>` : ''}</p>
+    <p class="display-prompt">${label ? `<strong>${escapeHtml(label)}</strong>` : ''}</p>
     <div class="chips ${isDesktop ? 'non-interactive' : ''}" id="chips">${renderChips(parts, selected)}</div>
     <p class="instruction">${instruction}</p>
     ${isDesktop ? `<input type="text" id="numInput" placeholder="e.g. 1 3" autocomplete="off">` : ''}
@@ -340,11 +345,11 @@ async function showItem() {
 
     document.getElementById('main').innerHTML = `
       <div class="feedback ${correct ? 'correct' : 'wrong'}">
-        <div class="feedback-title">${correct ? '✓ Correct!' : '✗ ' + message}</div>
+        <div class="feedback-title">${correct ? '✓ Correct!' : '✗ ' + escapeHtml(message)}</div>
         <div class="feedback-detail">${responseSecs.toFixed(1)}s · ${ratingLabel}</div>
         <div class="answer-reveal">
           <div class="answer-label">Answer</div>
-          <div class="answer-text">${item}</div>
+          <div class="answer-text">${escapeHtml(item)}</div>
         </div>
       </div>
       <div class="chips">${highlightedChips}</div>
@@ -354,16 +359,14 @@ async function showItem() {
       }
     `;
 
-    document.getElementById('nextBtn').addEventListener('click', async () => {
+    document.getElementById('nextBtn').addEventListener('click', () => {
       responding = false;
       if (health === 0) {
         health = MAX_HEALTH;
         renderHealth();
-        currentIdx = 0;
-        order = await srs.getDueOrder(items, new Date());
-        dueCount = await srs.getDueCount(items, new Date());
+        restartSession(session);
       } else {
-        currentIdx++;
+        session.currentIdx++;
       }
       startTimer();
       showItem();
@@ -428,10 +431,10 @@ async function init() {
   labels = deckData.labels;
 
   const now = new Date();
-  order = await srs.getDueOrder(items, now);
-  dueCount = await srs.getDueCount(items, now);
+  const initOrder = await srs.getDueOrder(items, now);
+  const initDueCount = await srs.getDueCount(items, now);
 
-  if (dueCount === 0) {
+  if (initDueCount === 0) {
     document.getElementById('main').innerHTML =
       `<div class="complete">
         <h2>All done!</h2>
@@ -440,6 +443,9 @@ async function init() {
       </div>`;
     return;
   }
+
+  session = makeSessionState(initOrder, initDueCount);
+  syncAliases();
 
   renderHealth();
   startTimer();
