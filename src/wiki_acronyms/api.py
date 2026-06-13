@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import hashlib
+import json
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -102,6 +103,12 @@ def sync():
         updated_at = change.get('updated_at')
         if not (key and card_json and updated_at):
             continue
+        try:
+            parsed = json.loads(card_json)
+            if not isinstance(parsed, dict):
+                raise ValueError('card_json must be a JSON object')
+        except (json.JSONDecodeError, ValueError) as exc:
+            return jsonify({'error': f'invalid card_json for key {key!r}: {exc}'}), 400
         row = logger._conn.execute(
             'SELECT updated_at FROM srs_state WHERE item_key=?', (key,)
         ).fetchone()

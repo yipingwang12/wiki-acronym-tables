@@ -92,3 +92,15 @@ def test_header_rows_excluded():
     entries = parse_entries(SIMPLE, year_col=0, name_col=1)
     # All parsed years should be integers, not strings like "Year"
     assert all(isinstance(e.year, int) for e in entries)
+
+
+def test_strip_cell_attrs_plain_pipe_preserved():
+    """Plain cells with a bare pipe (no '=') must not lose the prefix."""
+    from wiki_acronyms.list_parser import _strip_cell_attrs
+    assert _strip_cell_attrs('Smith | Jones') == 'Smith | Jones'
+
+
+def test_strip_cell_attrs_style_prefix_stripped():
+    """Attribute-spec prefixes (containing '=') should still be stripped."""
+    from wiki_acronyms.list_parser import _strip_cell_attrs
+    assert _strip_cell_attrs('style="text-align:center;" | 1901') == '1901'

@@ -238,6 +238,41 @@ class TestSync:
         cards = resp.get_json()['cards']
         assert len(cards) == 5
 
+    def test_malformed_card_json_rejected_with_400(self, client, app):
+        """Malformed card_json must be rejected; valid cards in same request still persist."""
+        logger = _mock_logger()
+        app.config['LOGGER'] = logger
+        resp = client.post('/api/sync', json={'changes': [{
+            'item_key': 'bad',
+            'card_json': 'not-valid-json{{{',
+            'updated_at': '2024-01-01T00:00:00+00:00',
+        }]})
+        assert resp.status_code == 400
+
+    def test_non_object_card_json_rejected_with_400(self, client, app):
+        """card_json that parses as a non-object (e.g. a JSON array) must be rejected."""
+        logger = _mock_logger()
+        app.config['LOGGER'] = logger
+        resp = client.post('/api/sync', json={'changes': [{
+            'item_key': 'bad',
+            'card_json': '[1, 2, 3]',
+            'updated_at': '2024-01-01T00:00:00+00:00',
+        }]})
+        assert resp.status_code == 400
+
+    def test_valid_card_json_still_accepted(self, client, app):
+        """Valid card_json must still be stored normally after validation is added."""
+        logger = _mock_logger()
+        app.config['LOGGER'] = logger
+        resp = client.post('/api/sync', json={'changes': [{
+            'item_key': 'good',
+            'card_json': '{"learning_step": 0}',
+            'updated_at': '2024-01-01T00:00:00+00:00',
+        }]})
+        assert resp.status_code == 200
+        cards = {c['item_key']: c for c in resp.get_json()['cards']}
+        assert 'good' in cards
+
 
 class TestSyncEdgeCases:
     def test_identical_timestamps_server_wins(self, client, app):

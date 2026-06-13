@@ -130,8 +130,9 @@ def _split_inline_cells(text: str) -> list[str]:
 def _strip_cell_attrs(cell: str) -> str:
     """Remove style/class attribute prefix (e.g. 'style="..." | content' → 'content')."""
     cell = cell.strip()
-    # Match only when the prefix contains no [ or { (i.e. no wikilinks/templates)
-    m = re.match(r"^([^[{\n|]*)\|(.+)$", cell, re.DOTALL)
+    # Only strip when the prefix looks like an attribute spec (contains '=')
+    # and has no wikilinks/templates; a plain 'text | text' is preserved intact.
+    m = re.match(r"^([^[{\n|]*=[^[{\n|]*)\|(.+)$", cell, re.DOTALL)
     if m:
         return m.group(2).strip()
     return cell
