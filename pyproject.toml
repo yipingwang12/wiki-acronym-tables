@@ -17,7 +17,7 @@ dependencies = [
 [project.optional-dependencies]
 desktop = ["pywebview"]
 server = ["gunicorn"]
-dev = ["pytest", "playwright", "pytest-playwright"]
+dev = ["pytest", "playwright==1.60.0", "pytest-playwright==0.8.0"]
 
 [project.scripts]
 wiki-acronym-tables = "wiki_acronyms.cli:main"
