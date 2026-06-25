@@ -14,8 +14,8 @@ from datetime import datetime, timezone
 from flask import Flask, flash, redirect, render_template, request, session, url_for
 
 from .api import api_bp
-from .deck_loader import discover_decks, load_monarchs_deck, load_poetry_deck
-from .logger import QuizLogger, config_hash
+from .deck_loader import deck_config_hash, discover_decks, load_monarchs_deck, load_poetry_deck
+from .logger import QuizLogger
 from .quiz import (
     AcronymDisplay, DigitDisplay, LineDisplay,
     make_acronym_display, make_digit_display, make_line_display,
@@ -29,7 +29,7 @@ _MAX_HEALTH = 10
 _PORT = 5001
 _TEMPLATE_DIR = os.path.join(os.path.dirname(__file__), 'templates')
 _ROOT = Path(__file__).resolve().parent.parent.parent
-_CONFIG_DIR = _ROOT / 'configs'
+_DECKS_DIR = _ROOT / 'data' / 'decks'
 
 
 def _make_srs(logger: QuizLogger) -> SRSScheduler:
@@ -45,10 +45,10 @@ def _make_srs(logger: QuizLogger) -> SRSScheduler:
     )
 
 
-def create_full_app(config_dir: Path, logger: QuizLogger) -> Flask:
+def create_full_app(decks_dir: Path, logger: QuizLogger) -> Flask:
     app = Flask(__name__, template_folder=_TEMPLATE_DIR)
     app.secret_key = secrets.token_hex(16)
-    app.config['CONFIG_DIR'] = config_dir
+    app.config['DECKS_DIR'] = decks_dir
     app.config['LOGGER'] = logger
     app.config['DECK'] = None
     app.config['LOAD_STATE'] = 'idle'
@@ -109,7 +109,7 @@ def create_full_app(config_dir: Path, logger: QuizLogger) -> Flask:
 
     @app.route('/')
     def home():
-        decks = discover_decks(config_dir, logger)
+        decks = discover_decks(decks_dir, logger)
         return render_template('home.html', decks=decks)
 
     @app.route('/start', methods=['POST'])
@@ -128,11 +128,13 @@ def create_full_app(config_dir: Path, logger: QuizLogger) -> Flask:
         def _load():
             try:
                 if deck_type == 'poetry':
-                    lines, title = load_poetry_deck(Path(config_path), poem_title)
+                    lines, title = load_poetry_deck(config_path, poem_title, decks_dir)
                     mode, item_labels = 'words', None
+                    cfg_hash = deck_config_hash(config_path, poem_title, decks_dir)
                 else:
-                    lines, title, item_labels = load_monarchs_deck(Path(config_path))
+                    lines, title, item_labels = load_monarchs_deck(config_path, decks_dir)
                     mode = 'digits'
+                    cfg_hash = deck_config_hash(config_path, decks_dir=decks_dir)
 
                 wrong_prob = 0.15 if mode == 'words' else 0.2
                 srs = _make_srs(logger)
@@ -145,7 +147,7 @@ def create_full_app(config_dir: Path, logger: QuizLogger) -> Flask:
                         'wrong_prob': wrong_prob,
                         'item_labels': item_labels,
                         'config_path': config_path,
-                        'cfg_hash': config_hash(Path(config_path)),
+                        'cfg_hash': cfg_hash,
                         'srs': srs,
                     }
                     app.config['LOAD_STATE'] = 'ready'
@@ -314,7 +316,7 @@ def main() -> None:
         return
 
     logger = QuizLogger(db_path=_ROOT / 'logs' / 'quiz.db')
-    app = create_full_app(_CONFIG_DIR, logger)
+    app = create_full_app(_DECKS_DIR, logger)
 
     server = threading.Thread(
         target=lambda: app.run(port=_PORT, debug=False, use_reloader=False),

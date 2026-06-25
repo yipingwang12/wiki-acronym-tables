@@ -56,26 +56,26 @@ def _cors(response):
 @api_bp.route('/api/decks')
 def list_decks():
     logger = current_app.config['LOGGER']
-    config_dir = current_app.config['CONFIG_DIR']
-    decks = discover_decks(config_dir, logger)
+    decks_dir = current_app.config['DECKS_DIR']
+    decks = discover_decks(decks_dir, logger)
     return jsonify([_deck_to_dict(d) for d in decks])
 
 
 @api_bp.route('/api/deck/<deck_id>/content')
 def deck_content(deck_id: str):
     logger = current_app.config['LOGGER']
-    config_dir = current_app.config['CONFIG_DIR']
-    decks = discover_decks(config_dir, logger)
+    decks_dir = current_app.config['DECKS_DIR']
+    decks = discover_decks(decks_dir, logger)
     deck = next((d for d in decks if _deck_id(d.config_path, d.poem_title) == deck_id), None)
     if deck is None:
         return jsonify({'error': 'deck not found'}), 404
 
     try:
         if deck.deck_type == 'poetry':
-            items, title = load_poetry_deck(Path(deck.config_path), deck.poem_title)
+            items, title = load_poetry_deck(deck.config_path, deck.poem_title, decks_dir)
             return jsonify({'items': items, 'mode': 'words', 'title': title, 'labels': None})
         else:
-            items, title, labels = load_monarchs_deck(Path(deck.config_path))
+            items, title, labels = load_monarchs_deck(deck.config_path, decks_dir)
             return jsonify({'items': items, 'mode': 'digits', 'title': title, 'labels': labels})
     except Exception as exc:
         return jsonify({'error': str(exc)}), 500

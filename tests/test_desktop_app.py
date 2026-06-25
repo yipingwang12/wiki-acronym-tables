@@ -51,9 +51,9 @@ def _fake_deck(app, lines=_LINES, mode='words'):
 
 @pytest.fixture
 def app(tmp_path):
-    (tmp_path / 'poetry').mkdir()
-    (tmp_path / 'monarchs').mkdir()
-    a = create_full_app(tmp_path, _mock_logger())
+    decks_dir = tmp_path / 'decks'
+    decks_dir.mkdir()
+    a = create_full_app(decks_dir, _mock_logger())
     a.config['TESTING'] = True
     return a
 
@@ -73,10 +73,7 @@ def test_home_shows_no_decks_message(client):
     assert b'No configs' in client.get('/').data
 
 
-def test_home_shows_deck_name(app, client, tmp_path):
-    (tmp_path / 'monarchs' / 'brit.yaml').write_text(
-        'subject: "British Monarchs"\npositions: []\n'
-    )
+def test_home_shows_deck_name(app, client):
     with patch('wiki_acronyms.desktop_app.discover_decks') as mock:
         mock.return_value = [DeckInfo(
             name='British Monarchs', deck_type='monarchs',

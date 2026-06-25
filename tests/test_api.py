@@ -17,6 +17,19 @@ def _deck_id(config_path: str, poem_title: str | None) -> str:
     return hashlib.sha256(f"{config_path}|{poem_title or ''}".encode()).hexdigest()[:12]
 
 
+def _write_artifact(decks_dir, *, name, deck_type, mode, title, items=None, labels=None,
+                    group=None, poem_title=None, config_path='/cfg.yaml',
+                    config_hash='deadbeef', order=0):
+    """Write a deck artifact mirroring deck_export output."""
+    decks_dir = Path(decks_dir)
+    decks_dir.mkdir(parents=True, exist_ok=True)
+    (decks_dir / f'{deck_type}_{order}.json').write_text(json.dumps({
+        'order': order, 'name': name, 'deck_type': deck_type, 'mode': mode,
+        'title': title, 'items': items or [], 'labels': labels, 'group': group,
+        'poem_title': poem_title, 'config_path': config_path, 'config_hash': config_hash,
+    }))
+
+
 def _mock_logger(cards: dict | None = None):
     """In-memory logger mock backed by a real SQLite connection."""
     import sqlite3
@@ -54,9 +67,9 @@ def _mock_logger(cards: dict | None = None):
 
 @pytest.fixture
 def app(tmp_path):
-    (tmp_path / 'poetry').mkdir()
-    (tmp_path / 'monarchs').mkdir()
-    a = create_full_app(tmp_path, _mock_logger())
+    decks_dir = tmp_path / 'decks'
+    decks_dir.mkdir()
+    a = create_full_app(decks_dir, _mock_logger())
     a.config['TESTING'] = True
     return a
 
@@ -74,15 +87,10 @@ class TestListDecks:
         assert resp.status_code == 200
         assert resp.get_json() == []
 
-    def test_returns_poetry_deck(self, tmp_path, client, app):
-        (tmp_path / 'poetry' / 'sonnet.yaml').write_text(
-            "poem_title: Sonnet 18\ngutenberg_id: 1041\n"
-            "start_marker: foo\nend_marker: bar\n"
-        )
-        app.config['CONFIG_DIR'] = tmp_path
-        with patch('wiki_acronyms.deck_loader.QuizLogger'):
-            resp = client.get('/api/decks')
-        data = resp.get_json()
+    def test_returns_poetry_deck(self, client, app):
+        _write_artifact(app.config['DECKS_DIR'], name='Sonnet 18', deck_type='poetry',
+                        mode='words', title='Sonnet 18', poem_title='Sonnet 18')
+        data = client.get('/api/decks').get_json()
         assert len(data) == 1
         deck = data[0]
         assert deck['name'] == 'Sonnet 18'
@@ -90,51 +98,38 @@ class TestListDecks:
         assert deck['type'] == 'poetry'
         assert 'id' in deck
 
-    def test_returns_monarchs_deck(self, tmp_path, client, app):
-        (tmp_path / 'monarchs' / 'britain.yaml').write_text(
-            "subject: British Monarchs\npositions: [Q9134365]\n"
-        )
-        app.config['CONFIG_DIR'] = tmp_path
-        with patch('wiki_acronyms.deck_loader.QuizLogger'):
-            resp = client.get('/api/decks')
-        data = resp.get_json()
+    def test_returns_monarchs_deck(self, client, app):
+        _write_artifact(app.config['DECKS_DIR'], name='British Monarchs', deck_type='monarchs',
+                        mode='digits', title='British Monarchs')
+        data = client.get('/api/decks').get_json()
         assert any(d['type'] == 'monarchs' for d in data)
 
     def test_cors_header(self, client):
         resp = client.get('/api/decks')
         assert resp.headers.get('Access-Control-Allow-Origin') == '*'
 
-    def test_collection_deck_has_group(self, tmp_path, client, app):
-        (tmp_path / 'poetry' / 'collection.yaml').write_text(
-            "collection_title: Sonnets\npoems:\n"
-            "  - poem_title: Sonnet 18\n    gutenberg_id: 1041\n"
-            "    start_marker: foo\n    end_marker: bar\n"
-        )
-        app.config['CONFIG_DIR'] = tmp_path
-        resp = client.get('/api/decks')
-        data = resp.get_json()
+    def test_collection_deck_has_group(self, client, app):
+        _write_artifact(app.config['DECKS_DIR'], name='Sonnet 18', deck_type='poetry',
+                        mode='words', title='Sonnet 18', poem_title='Sonnet 18', group='Sonnets')
+        data = client.get('/api/decks').get_json()
         assert data[0]['group'] == 'Sonnets'
 
 
 # --- /api/deck/<id>/content ---
 
 class TestDeckContent:
-    def _setup_poetry_deck(self, tmp_path, app):
-        cfg = tmp_path / 'poetry' / 'sonnet.yaml'
-        cfg.write_text(
-            "poem_title: Sonnet 18\ngutenberg_id: 1041\n"
-            "start_marker: foo\nend_marker: bar\n"
-        )
-        app.config['CONFIG_DIR'] = tmp_path
-        did = _deck_id(str(cfg), 'Sonnet 18')
-        return did
+    def _setup_poetry_deck(self, app):
+        cfg = '/cfg/sonnet.yaml'
+        _write_artifact(app.config['DECKS_DIR'], name='Sonnet 18', deck_type='poetry',
+                        mode='words', title='Sonnet 18', poem_title='Sonnet 18', config_path=cfg)
+        return _deck_id(cfg, 'Sonnet 18')
 
     def test_unknown_id_returns_404(self, client):
         resp = client.get('/api/deck/deadbeef0000/content')
         assert resp.status_code == 404
 
-    def test_poetry_deck_content(self, tmp_path, client, app):
-        did = self._setup_poetry_deck(tmp_path, app)
+    def test_poetry_deck_content(self, client, app):
+        did = self._setup_poetry_deck(app)
         items = ['line one', 'line two']
         with patch('wiki_acronyms.api.load_poetry_deck', return_value=(items, 'Sonnet 18')):
             resp = client.get(f'/api/deck/{did}/content')
@@ -145,11 +140,11 @@ class TestDeckContent:
         assert data['title'] == 'Sonnet 18'
         assert data['labels'] is None
 
-    def test_monarchs_deck_content(self, tmp_path, client, app):
-        cfg = tmp_path / 'monarchs' / 'britain.yaml'
-        cfg.write_text("subject: British Monarchs\npositions: [Q9134365]\n")
-        app.config['CONFIG_DIR'] = tmp_path
-        did = _deck_id(str(cfg), None)
+    def test_monarchs_deck_content(self, client, app):
+        cfg = '/cfg/britain.yaml'
+        _write_artifact(app.config['DECKS_DIR'], name='British Monarchs', deck_type='monarchs',
+                        mode='digits', title='British Monarchs', config_path=cfg)
+        did = _deck_id(cfg, None)
         with patch('wiki_acronyms.api.load_monarchs_deck',
                    return_value=(['12345', '67890'], 'British Monarchs', ['900–999', '1000–1099'])):
             resp = client.get(f'/api/deck/{did}/content')
@@ -158,8 +153,8 @@ class TestDeckContent:
         assert data['mode'] == 'digits'
         assert data['labels'] == ['900–999', '1000–1099']
 
-    def test_load_error_returns_500(self, tmp_path, client, app):
-        did = self._setup_poetry_deck(tmp_path, app)
+    def test_load_error_returns_500(self, client, app):
+        did = self._setup_poetry_deck(app)
         with patch('wiki_acronyms.api.load_poetry_deck', side_effect=RuntimeError('network fail')):
             resp = client.get(f'/api/deck/{did}/content')
         assert resp.status_code == 500

@@ -23,6 +23,7 @@ dev = ["pytest", "playwright==1.60.0", "pytest-playwright==0.8.0"]
 wiki-acronym-tables = "wiki_acronyms.cli:main"
 wiki-poetry = "wiki_acronyms.poetry_cli:main"
 wiki-monarchs = "wiki_acronyms.monarchs_cli:main"
+wiki-export-decks = "wiki_acronyms.deck_export:main"
 wiki-quiz-web = "wiki_acronyms.web_cli:main"
 wiki-quiz-monarchs-web = "wiki_acronyms.monarchs_web_cli:main"
 wiki-shakespeare = "wiki_acronyms.shakespeare_cli:main"

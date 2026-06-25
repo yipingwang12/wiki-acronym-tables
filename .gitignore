@@ -10,3 +10,4 @@ logs/
 .worktrees/
 pwa/tests/parity_fixture.json
 pwa/node_modules/
+data/decks/

@@ -1,17 +1,21 @@
-"""Deck discovery and content loading for the desktop quiz app."""
+"""Deck discovery and content loading from exported JSON artifacts.
+
+The quiz reads decks produced by ``deck_export`` (``data/decks/*.json``) — it does not
+regenerate content or touch the network. Artifacts are matched to a config by resolved
+path, so callers may pass relative or absolute config paths interchangeably.
+"""
 
 from __future__ import annotations
 
+import json
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Optional
 
-import yaml
+from .logger import QuizLogger
 
-from .gutenberg import fetch_text
-from .logger import QuizLogger, config_hash
-from .monarchs import fetch_monarchs, make_monarch_chunks
-from .poetry_parser import extract_poem
+_ROOT = Path(__file__).resolve().parent.parent.parent
+DEFAULT_DECKS_DIR = _ROOT / 'data' / 'decks'
 
 
 @dataclass
@@ -25,37 +29,27 @@ class DeckInfo:
     last_studied: Optional[str] = None  # ISO UTC datetime or None
 
 
-def discover_decks(config_dir: Path, logger: QuizLogger) -> list[DeckInfo]:
-    decks: list[DeckInfo] = []
+def _read_artifacts(decks_dir: Path) -> list[dict]:
+    decks_dir = Path(decks_dir)
+    if not decks_dir.exists():
+        return []
+    return [json.loads(p.read_text(encoding='utf-8')) for p in sorted(decks_dir.glob('*.json'))]
 
-    for yaml_path in sorted(config_dir.glob('poetry/*.yaml')):
-        cfg = yaml.safe_load(yaml_path.read_text())
-        poems = cfg.get('poems', [cfg])
-        group = cfg.get('collection_title') if 'poems' in cfg else None
-        for pc in poems:
-            title = pc['poem_title']
-            decks.append(DeckInfo(
-                name=title,
-                deck_type='poetry',
-                config_path=str(yaml_path),
-                mode='words',
-                poem_title=title,
-                group=group,
-                last_studied=_last_studied(logger, str(yaml_path), title),
-            ))
 
-    for yaml_path in sorted(config_dir.glob('monarchs/*.yaml')):
-        cfg = yaml.safe_load(yaml_path.read_text())
-        title = cfg.get('subject', yaml_path.stem)
-        decks.append(DeckInfo(
-            name=title,
-            deck_type='monarchs',
-            config_path=str(yaml_path),
-            mode='digits',
-            last_studied=_last_studied(logger, str(yaml_path), title),
-        ))
-
-    return decks
+def discover_decks(decks_dir: Path, logger: QuizLogger) -> list[DeckInfo]:
+    artifacts = sorted(_read_artifacts(decks_dir), key=lambda a: a.get('order', 0))
+    return [
+        DeckInfo(
+            name=a['name'],
+            deck_type=a['deck_type'],
+            config_path=a['config_path'],
+            mode=a['mode'],
+            poem_title=a.get('poem_title'),
+            group=a.get('group'),
+            last_studied=_last_studied(logger, a['config_path'], a['title']),
+        )
+        for a in artifacts
+    ]
 
 
 def _last_studied(logger: QuizLogger, config_path: str, title: str) -> Optional[str]:
@@ -66,19 +60,32 @@ def _last_studied(logger: QuizLogger, config_path: str, title: str) -> Optional[
     return row[0] if row and row[0] else None
 
 
-def load_poetry_deck(config_path: Path, poem_title: str) -> tuple[list[str], str]:
-    cfg = yaml.safe_load(config_path.read_text())
-    text = fetch_text(cfg['gutenberg_id'])
-    poems = cfg.get('poems', [cfg])
-    pc = next((p for p in poems if p['poem_title'] == poem_title), poems[0])
-    lines = [l for l in extract_poem(text, pc['start_marker'], pc['end_marker']) if l is not None]
-    return lines, pc['poem_title']
+def _find_artifact(decks_dir: Path, config_path, poem_title: Optional[str] = None) -> dict:
+    """Return the artifact for a config, preferring an exact poem match (else the first)."""
+    target = Path(config_path).resolve()
+    matches = [a for a in _read_artifacts(decks_dir) if Path(a['config_path']).resolve() == target]
+    if not matches:
+        raise FileNotFoundError(
+            f"No exported deck for {config_path!r}; run wiki-export-decks"
+        )
+    if poem_title:
+        for a in matches:
+            if a.get('poem_title') == poem_title:
+                return a
+    return matches[0]
 
 
-def load_monarchs_deck(config_path: Path) -> tuple[list[str], str, list[str]]:
-    cfg = yaml.safe_load(config_path.read_text())
-    monarchs = fetch_monarchs(cfg['positions'])
-    chunks = make_monarch_chunks(monarchs, cfg.get('chunk_years', 100), cfg.get('chunk_start_year'))
-    items = [c.transition_string for c in chunks]
-    labels = [f"{c.start_year}\u2013{c.end_year}" for c in chunks]
-    return items, cfg.get('subject', config_path.stem), labels
+def load_poetry_deck(config_path, poem_title, decks_dir: Path = DEFAULT_DECKS_DIR) -> tuple[list[str], str]:
+    a = _find_artifact(decks_dir, config_path, poem_title)
+    return a['items'], a['title']
+
+
+def load_monarchs_deck(config_path, decks_dir: Path = DEFAULT_DECKS_DIR) -> tuple[list[str], str, list[str]]:
+    a = _find_artifact(decks_dir, config_path)
+    return a['items'], a['title'], a['labels']
+
+
+def deck_config_hash(config_path, poem_title: Optional[str] = None,
+                     decks_dir: Path = DEFAULT_DECKS_DIR) -> str:
+    """Config hash recorded in the artifact — keeps session ``cfg_hash`` stable post-split."""
+    return _find_artifact(decks_dir, config_path, poem_title)['config_hash']

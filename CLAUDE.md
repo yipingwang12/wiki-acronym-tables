@@ -18,6 +18,7 @@ See [PRD.md](PRD.md) for pipeline configs, output format, quiz mode design ratio
 - **Method**: blindman's bluff — first letter + every 4th alpha position (for 5+ letter words) auto-shown; one random non-pinned letter revealed per word
 - **SRS**: FSRS-6 with per-mode rating thresholds and lapse behavior
 - **Interface**: Flask web app
+- **Decks**: quiz reads exported artifacts (`data/decks/*.json`) produced by `wiki-export-decks`, not the configs — no generation/network at quiz time
 
 ## Modules
 
@@ -50,7 +51,8 @@ See [PRD.md](PRD.md) for pipeline configs, output format, quiz mode design ratio
 | `list_parser.py` | Wikipedia wikitext → `[(year, name)]`. Unused by CLI; kept for potential future use. |
 | `wiki_api.py` | MediaWiki API client. `fetch_article_links(title)` used by coverage checker. |
 | `api.py` | Flask Blueprint: `GET /api/decks`, `GET /api/deck/<id>/content`, `POST /api/sync`, `GET /pwa/*` static files. Registered in `desktop_app.py`. |
-| `deck_loader.py` | `DeckInfo`, `discover_decks()`, `load_poetry_deck()`, `load_monarchs_deck()`. Used by desktop app and API. |
+| `deck_export.py` | `wiki-export-decks` entry point. Runs the generation pipeline and writes one self-contained JSON artifact per deck to `data/decks/` (the generator→quiz boundary). Mirrors `discover_decks` iteration so config paths / poem titles / item strings stay byte-identical, preserving deck ids and FSRS item keys. |
+| `deck_loader.py` | `DeckInfo`, `discover_decks()`, `load_poetry_deck()`, `load_monarchs_deck()`, `deck_config_hash()`. Reads exported `data/decks/*.json` — no generation or network. Used by desktop app and API. |
 | `server.py` | WSGI entry point for Fly.io: reads `PORT`/`DB_PATH`/`CONFIG_DIR` env vars; `create_app()` factory for gunicorn. Run locally with `python server.py`. |
 
 ## PWA modules (`pwa/`)

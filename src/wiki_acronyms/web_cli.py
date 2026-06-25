@@ -7,11 +7,8 @@ import threading
 import webbrowser
 from pathlib import Path
 
-import yaml
-
-from .gutenberg import fetch_text
-from .logger import QuizLogger, config_hash
-from .poetry_parser import extract_poem
+from .deck_loader import deck_config_hash, load_poetry_deck
+from .logger import QuizLogger
 from .srs import SRSScheduler
 from .web_app import create_app
 
@@ -41,26 +38,17 @@ def main(argv=None) -> None:
                    help='scale lapse stability drop by (1-F); 1.0=no drop, 0.0=full FSRS (default 1.0)')
     args = p.parse_args(argv)
 
-    config = yaml.safe_load(args.config.read_text())
-    text = fetch_text(config['gutenberg_id'])
-    poem_cfgs = config['poems'] if 'poems' in config else [config]
-
-    if args.poem:
-        poem_cfgs = [pc for pc in poem_cfgs if pc.get('poem_title') == args.poem]
-        if not poem_cfgs:
-            print(f"Poem '{args.poem}' not found.")
-            return
-
-    pc = poem_cfgs[0]
-    title = pc['poem_title']
-    lines = [l for l in extract_poem(text, pc['start_marker'], pc['end_marker']) if l is not None]
+    lines, title = load_poetry_deck(args.config, args.poem)
+    if args.poem and title != args.poem:
+        print(f"Poem '{args.poem}' not found.")
+        return
 
     logger = QuizLogger()
     app = create_app(
         lines, title, args.wrong_prob, args.mode,
         logger=logger,
         config_path=str(args.config),
-        cfg_hash=config_hash(args.config),
+        cfg_hash=deck_config_hash(args.config, args.poem),
         srs=SRSScheduler(logger, max_interval_days=args.max_interval or None,
                          learning_steps=args.learning_steps, graduated_steps=args.graduated_steps,
                          new_cards_per_day=args.new_per_day, relearn_steps=args.relearn_steps,
