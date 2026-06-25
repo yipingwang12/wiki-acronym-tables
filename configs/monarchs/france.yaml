@@ -1,0 +1,10 @@
+subject: "Monarchs of France"
+positions:
+  - Q22923081   # king of the Franks (Merovingian/Carolingian, 481–987)
+  - Q24851389   # king of France (Capetian/Valois, 1180–1610)
+  - Q3439798    # King of France and Navarre (Bourbon, 1589–1792)
+  - Q3439814    # King of the French (1791–1848)
+  - Q5373953    # Emperor of the French (1804–1870)
+chunk_years: 100
+chunk_start_year: 480
+wikipedia_list: "List of French monarchs"

@@ -1,0 +1,8 @@
+subject: "Emperors of Japan"
+positions:
+  - Q208233   # Emperor of Japan
+chunk_years: 100
+# Start at 500 CE: the 11 legendary emperors with traditional BCE/early-CE
+# accession dates (Jimmu 660 BCE …) are excluded; deck covers the historical line.
+chunk_start_year: 500
+wikipedia_list: "List of emperors of Japan"
