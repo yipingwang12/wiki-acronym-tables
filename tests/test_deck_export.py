@@ -1,21 +1,22 @@
-"""Tests for deck export and the export→load round-trip.
+"""Tests for deck export — the generator→quiz artifact boundary.
 
-The golden parity tests are the critical guard: exported deck items must be
+The quiz reader lives in the ``memory-quiz-app`` repo; here we verify the written
+artifacts directly. The critical guard is item-key parity: exported items must be
 byte-identical to what the live generation pipeline produces, so FSRS item keys
 (sha256(item)[:16]) — and thus every card's review history — survive the split.
+``item_key``/``config_hash`` are inlined to keep the generator self-contained.
 """
 
 from __future__ import annotations
 
-from unittest.mock import MagicMock, patch
+import hashlib
+import json
+from pathlib import Path
+from unittest.mock import patch
 
 import pytest
 
 from wiki_acronyms import deck_export
-from wiki_acronyms.deck_loader import (
-    deck_config_hash, discover_decks, load_monarchs_deck, load_poetry_deck,
-)
-from wiki_acronyms.logger import config_hash, item_key
 from wiki_acronyms.monarchs import Monarch, make_monarch_chunks
 from wiki_acronyms.poetry_parser import extract_poem
 
@@ -36,11 +37,30 @@ _MONARCHS = [
 ]
 
 
-def _mock_logger():
-    """Logger stub whose _last_studied lookup returns None."""
-    logger = MagicMock()
-    logger._conn.execute.return_value.fetchone.return_value = None
-    return logger
+# --- artifact readers (mirror the quiz's deck_loader, without importing it) ---
+
+def _item_key(text: str) -> str:
+    return hashlib.sha256(text.encode()).hexdigest()[:16]
+
+
+def _config_hash(path: Path) -> str:
+    return hashlib.sha256(Path(path).read_bytes()).hexdigest()
+
+
+def _artifacts(decks_dir: Path) -> list[dict]:
+    return [json.loads(p.read_text()) for p in sorted(Path(decks_dir).glob('*.json'))]
+
+
+def _find(decks_dir: Path, config_path, poem_title=None) -> dict:
+    target = Path(config_path).resolve()
+    matches = [a for a in _artifacts(decks_dir) if Path(a['config_path']).resolve() == target]
+    if not matches:
+        raise FileNotFoundError(config_path)
+    if poem_title:
+        for a in matches:
+            if a.get('poem_title') == poem_title:
+                return a
+    return matches[0]
 
 
 def _write_poetry(config_dir, *, multi=False):
@@ -94,21 +114,18 @@ class TestSchema:
         cfg = _write_poetry(tmp_path)
         decks = tmp_path / 'decks'
         _export(tmp_path, decks)
-        logger = _mock_logger()
-        info = discover_decks(decks, logger)
-        assert len(info) == 1
-        d = info[0]
-        assert (d.name, d.deck_type, d.mode, d.poem_title) == ('Sonnet 18', 'poetry', 'words', 'Sonnet 18')
-        assert d.config_path == str(cfg)
-        assert d.group is None
+        assert len(_artifacts(decks)) == 1
+        a = _find(decks, cfg)
+        assert (a['name'], a['deck_type'], a['mode'], a['poem_title']) == ('Sonnet 18', 'poetry', 'words', 'Sonnet 18')
+        assert a['config_path'] == str(cfg)
+        assert a['group'] is None
 
     def test_monarchs_artifact_fields(self, tmp_path):
-        _write_monarchs(tmp_path)
+        cfg = _write_monarchs(tmp_path)
         decks = tmp_path / 'decks'
         _export(tmp_path, decks)
-        info = discover_decks(decks, _mock_logger())
-        d = next(x for x in info if x.deck_type == 'monarchs')
-        assert (d.name, d.mode, d.poem_title) == ('British Monarchs', 'digits', None)
+        a = _find(decks, cfg)
+        assert (a['name'], a['mode'], a['deck_type'], a['poem_title']) == ('British Monarchs', 'digits', 'monarchs', None)
 
     def test_collection_group_and_multi_filenames(self, tmp_path):
         _write_poetry(tmp_path, multi=True)
@@ -116,9 +133,9 @@ class TestSchema:
         written = _export(tmp_path, decks)
         assert len(written) == 2
         assert len({p.name for p in written}) == 2  # unique filenames
-        info = discover_decks(decks, _mock_logger())
-        assert all(d.group == 'My Collection' for d in info)
-        assert {d.poem_title for d in info} == {'First Half', 'Second Half'}
+        arts = _artifacts(decks)
+        assert all(a['group'] == 'My Collection' for a in arts)
+        assert {a['poem_title'] for a in arts} == {'First Half', 'Second Half'}
 
     def test_export_clears_stale_artifacts(self, tmp_path):
         decks = tmp_path / 'decks'
@@ -132,17 +149,17 @@ class TestSchema:
 # --- config hash continuity ---
 
 class TestConfigHash:
-    def test_artifact_hash_matches_logger_config_hash(self, tmp_path):
+    def test_poetry_artifact_hash_matches_config_bytes(self, tmp_path):
         cfg = _write_poetry(tmp_path)
         decks = tmp_path / 'decks'
         _export(tmp_path, decks)
-        assert deck_config_hash(cfg, 'Sonnet 18', decks) == config_hash(cfg)
+        assert _find(decks, cfg, 'Sonnet 18')['config_hash'] == _config_hash(cfg)
 
     def test_monarchs_hash_matches(self, tmp_path):
         cfg = _write_monarchs(tmp_path)
         decks = tmp_path / 'decks'
         _export(tmp_path, decks)
-        assert deck_config_hash(cfg, decks_dir=decks) == config_hash(cfg)
+        assert _find(decks, cfg)['config_hash'] == _config_hash(cfg)
 
 
 # --- golden parity: exported items identical to live generation ---
@@ -154,19 +171,19 @@ class TestParity:
         _export(tmp_path, decks)
         expected = [l for l in extract_poem(_POEM_TEXT, "Shall I compare", "short a date.")
                     if l is not None]
-        items, title = load_poetry_deck(cfg, 'Sonnet 18', decks)
-        assert items == expected
-        assert title == 'Sonnet 18'
+        a = _find(decks, cfg, 'Sonnet 18')
+        assert a['items'] == expected
+        assert a['title'] == 'Sonnet 18'
 
     def test_poetry_item_keys_preserved(self, tmp_path):
         """FSRS card identity must be unchanged for every item."""
         cfg = _write_poetry(tmp_path)
         decks = tmp_path / 'decks'
         _export(tmp_path, decks)
-        items, _ = load_poetry_deck(cfg, 'Sonnet 18', decks)
+        items = _find(decks, cfg, 'Sonnet 18')['items']
         expected = [l for l in extract_poem(_POEM_TEXT, "Shall I compare", "short a date.")
                     if l is not None]
-        assert [item_key(i) for i in items] == [item_key(e) for e in expected]
+        assert [_item_key(i) for i in items] == [_item_key(e) for e in expected]
 
     def test_monarchs_items_and_labels_match_live_generation(self, tmp_path):
         cfg = _write_monarchs(tmp_path)
@@ -175,10 +192,10 @@ class TestParity:
         chunks = make_monarch_chunks(_MONARCHS, 100, 800)
         exp_items = [c.transition_string for c in chunks]
         exp_labels = [f"{c.start_year}–{c.end_year}" for c in chunks]
-        items, title, labels = load_monarchs_deck(cfg, decks)
-        assert items == exp_items
-        assert labels == exp_labels
-        assert title == 'British Monarchs'
+        a = _find(decks, cfg)
+        assert a['items'] == exp_items
+        assert a['labels'] == exp_labels
+        assert a['title'] == 'British Monarchs'
 
     def test_relative_and_absolute_config_paths_resolve_same_deck(self, tmp_path, monkeypatch):
         cfg = _write_poetry(tmp_path)
@@ -186,9 +203,7 @@ class TestParity:
         _export(tmp_path, decks)
         monkeypatch.chdir(tmp_path)
         rel = cfg.relative_to(tmp_path)
-        items_rel, _ = load_poetry_deck(rel, 'Sonnet 18', decks)
-        items_abs, _ = load_poetry_deck(cfg, 'Sonnet 18', decks)
-        assert items_rel == items_abs
+        assert _find(decks, rel, 'Sonnet 18')['items'] == _find(decks, cfg, 'Sonnet 18')['items']
 
 
 # --- missing artifact ---
@@ -197,4 +212,4 @@ def test_missing_artifact_raises(tmp_path):
     decks = tmp_path / 'decks'
     decks.mkdir()
     with pytest.raises(FileNotFoundError):
-        load_poetry_deck(tmp_path / 'poetry' / 'nope.yaml', 'X', decks)
+        _find(decks, tmp_path / 'poetry' / 'nope.yaml', 'X')

@@ -1,8 +1,10 @@
 # CLAUDE.md — wiki-acronym-tables
 
-Generates Excel acronym-tables from Wikipedia/Wikidata sources (award laureates, poetry lines, monarch reigns, Shakespeare passages). Includes a spaced-repetition CLI quiz using FSRS-6 and the blindman's bluff recall method.
+Generates Excel acronym-tables from Wikipedia/Wikidata sources (award laureates, poetry lines, monarch reigns, Shakespeare passages), and exports per-deck JSON artifacts (`wiki-export-decks` → `data/decks/`) consumed by the quiz app.
 
-See [PRD.md](PRD.md) for pipeline configs, output format, quiz mode design rationale, FSRS-6 parameters, and success criteria.
+**The spaced-repetition quiz (FSRS-6 + PWA) lives in the separate `memory-quiz-app` repo** — split out via the `data/decks/*.json` artifact seam. This repo is generator-only; it never imports the quiz.
+
+See [PRD.md](PRD.md) for pipeline configs, output format, and success criteria.
 
 ## Pipelines
 
@@ -12,13 +14,6 @@ See [PRD.md](PRD.md) for pipeline configs, output format, quiz mode design ratio
 | `wiki-poetry` | Project Gutenberg | Per-line acronyms |
 | `wiki-monarchs` | Wikidata SPARQL | Per-century transition-digit strings |
 | `wiki-shakespeare` | Folger Digital Texts API | YAML catalogue of monologue passages |
-
-## Quiz
-
-- **Method**: blindman's bluff — first letter + every 4th alpha position (for 5+ letter words) auto-shown; one random non-pinned letter revealed per word
-- **SRS**: FSRS-6 with per-mode rating thresholds and lapse behavior
-- **Interface**: Flask web app
-- **Decks**: quiz reads exported artifacts (`data/decks/*.json`) produced by `wiki-export-decks`, not the configs — no generation/network at quiz time
 
 ## Modules
 
@@ -35,45 +30,16 @@ See [PRD.md](PRD.md) for pipeline configs, output format, quiz mode design ratio
 | `country_registry.py` | `fetch_country_registry` via Wikidata P1906 → `CountryEntry` list; `save_registry`/`load_registry` YAML I/O. |
 | `coverage.py` | `check_coverage`: compares Wikidata monarch sitelinks against Wikipedia list article links; returns `CoverageReport`. |
 | `derive_positions.py` | `load_ruler_titles` filters xlsx/csv by occupation keywords; `fetch_positions_for_titles` batch-queries Wikidata P39 to rank position Q-IDs by holder count. |
-| `quiz.py` | Blindman's bluff display + health-bar scoring. Three modes: words / acronym / digits. |
-| `srs.py` | FSRS-6 card state + due-order scheduling. |
-| `logger.py` | SQLite event log (`sessions`, `attempts`, `srs_state`). `FORMAT_VERSIONS` must be bumped manually on display changes. |
-| `web_app.py` | Flask routes + Jinja templates. Timer, session infobox, phase badge. |
 | `cli.py` | `wiki-acronym-tables` entry point. Supports `manual_entries` and `exclude_entries` config keys. |
 | `poetry_cli.py` | `wiki-poetry` entry point. Single-poem and multi-poem collection configs. |
 | `monarchs_cli.py` | `wiki-monarchs` entry point. Reads `wikipedia_list` field from config for coverage checks. |
 | `registry_cli.py` | `wiki-registry-generate` — queries Wikidata P1906, writes `configs/monarchs/country_registry.yaml`. |
 | `coverage_cli.py` | `wiki-coverage-check` — takes `--config` or `--country`/`--registry`; reports rulers in Wikipedia list missing from Wikidata fetch. |
 | `derive_positions_cli.py` | `wiki-derive-positions` — takes `--input` xlsx/csv + optional `--nationality`; prints ranked position Q-IDs for adding to YAML configs. |
-| `web_cli.py` | `wiki-quiz-web` entry point. |
-| `monarchs_web_cli.py` | `wiki-quiz-monarchs-web` entry point. |
 | `shakespeare_cli.py` | `wiki-shakespeare` entry point. |
 | `list_parser.py` | Wikipedia wikitext → `[(year, name)]`. Unused by CLI; kept for potential future use. |
 | `wiki_api.py` | MediaWiki API client. `fetch_article_links(title)` used by coverage checker. |
-| `api.py` | Flask Blueprint: `GET /api/decks`, `GET /api/deck/<id>/content`, `POST /api/sync`, `GET /pwa/*` static files. Registered in `desktop_app.py`. |
-| `deck_export.py` | `wiki-export-decks` entry point. Runs the generation pipeline and writes one self-contained JSON artifact per deck to `data/decks/` (the generator→quiz boundary). Mirrors `discover_decks` iteration so config paths / poem titles / item strings stay byte-identical, preserving deck ids and FSRS item keys. |
-| `deck_loader.py` | `DeckInfo`, `discover_decks()`, `load_poetry_deck()`, `load_monarchs_deck()`, `deck_config_hash()`. Reads exported `data/decks/*.json` — no generation or network. Used by desktop app and API. |
-| `server.py` | WSGI entry point for Fly.io: reads `PORT`/`DB_PATH`/`CONFIG_DIR` env vars; `create_app()` factory for gunicorn. Run locally with `python server.py`. |
-
-## PWA modules (`pwa/`)
-
-| File | Role |
-|---|---|
-| `srs.js` | Port of `srs.py` — `SRSScheduler` class using `ts-fsrs`; preserves all custom modifications (learning→graduated→FSRS state machine, lapse forgiveness, interval cap). |
-| `quiz.js` | Port of `quiz.py` — blindman's bluff display generators and scorers for all three modes. |
-| `itemKey.js` | SHA-256 item key via Web Crypto API, produces identical output to Python `hashlib.sha256().hexdigest()[:16]`. |
-| `db.js` | IndexedDB wrapper: `getCard`/`saveCard`/`countIntroducedToday` (SRSScheduler interface) + `getAllCards`/`putCard` (sync) + deck/deck-list cache. |
-| `sync.js` | Last-write-wins sync engine: POSTs local IndexedDB state to `/api/sync`, merges server response back. |
-| `sw.js` | Service worker: cache-first for `/pwa/*` static assets, network-only for `/api/*`. Exports `handleInstall`/`handleActivate`/`handleFetch` for testing; SW registration guard (`typeof self !== 'undefined'`) prevents Node import errors. |
-| `srs.bundle.js` | esbuild bundle of `srs.js` + `ts-fsrs` for browser use (committed; rebuild with `npm run build` if `srs.js` changes). |
-| `index.html` | Deck picker: fetches `/api/decks`, groups by collection, falls back to IndexedDB cache offline. |
-| `quiz.html` | Quiz UI: touch chip selection for wrong positions, health bar, live timer, answer reveal, auto-sync on completion. |
-| `manifest.json` | PWA manifest — enables "Add to Home Screen" on iPhone. Scope: `/pwa/`. |
-| `sw.js` | Service worker for offline caching. Registered from `index.html`. |
-
-**To install on iPhone:** open `http://<LAN-IP>:5001/pwa/` in Safari → Share → Add to Home Screen.
-
-**Tests:** `pwa/tests/` — 98 vitest tests covering quiz display, SRS state machine, IndexedDB wrapper, sync engine (incl. conflict edge cases), service worker handler logic, and Python↔JS parity.
+| `deck_export.py` | `wiki-export-decks` entry point — the generator→quiz boundary. Runs the generation pipeline and writes one self-contained JSON artifact per deck to `data/decks/` (`items`, `labels`, `config_hash`, …). Item strings are byte-identical to live generation, preserving deck ids and FSRS item keys (`sha256(item)[:16]`). Consumed by the `memory-quiz-app` repo. |
 
 ## Award configs (31)
 

@@ -12,6 +12,7 @@ ids and FSRS item keys (``sha256(item)[:16]``) across the migration.
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import re
 from pathlib import Path
@@ -19,13 +20,21 @@ from pathlib import Path
 import yaml
 
 from .gutenberg import fetch_text
-from .logger import config_hash
 from .monarchs import fetch_monarchs, make_monarch_chunks
 from .poetry_parser import extract_poem
 
 _ROOT = Path(__file__).resolve().parent.parent.parent
 DEFAULT_CONFIG_DIR = _ROOT / 'configs'
 DEFAULT_DECKS_DIR = _ROOT / 'data' / 'decks'
+
+
+def config_hash(path: Path) -> str:
+    """Session ``cfg_hash`` carried into each artifact — sha256 of the config bytes.
+
+    Kept here (not imported from the quiz) so the generator stays standalone after
+    the quiz split. Must match the quiz's ``logger.config_hash`` exactly.
+    """
+    return hashlib.sha256(Path(path).read_bytes()).hexdigest()
 
 
 def _slug(text: str) -> str:

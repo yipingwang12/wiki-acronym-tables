@@ -10,25 +10,18 @@ dependencies = [
     "requests",
     "openpyxl",
     "pyyaml",
-    "flask",
-    "fsrs",
 ]
 
 [project.optional-dependencies]
-desktop = ["pywebview"]
-server = ["gunicorn"]
-dev = ["pytest", "playwright==1.60.0", "pytest-playwright==0.8.0"]
+dev = ["pytest"]
 
 [project.scripts]
 wiki-acronym-tables = "wiki_acronyms.cli:main"
 wiki-poetry = "wiki_acronyms.poetry_cli:main"
 wiki-monarchs = "wiki_acronyms.monarchs_cli:main"
 wiki-export-decks = "wiki_acronyms.deck_export:main"
-wiki-quiz-web = "wiki_acronyms.web_cli:main"
-wiki-quiz-monarchs-web = "wiki_acronyms.monarchs_web_cli:main"
 wiki-shakespeare = "wiki_acronyms.shakespeare_cli:main"
 wiki-monologue-archive = "wiki_acronyms.monologue_archive_cli:main"
-wiki-quiz-app = "wiki_acronyms.desktop_app:main"
 wiki-registry-generate = "wiki_acronyms.registry_cli:main"
 wiki-coverage-check = "wiki_acronyms.coverage_cli:main"
 wiki-derive-positions = "wiki_acronyms.derive_positions_cli:main"
