@@ -1,0 +1,6 @@
+subject: "Holy Roman Emperors"
+positions:
+  - Q181765   # Holy Roman Emperor (800–1806)
+chunk_years: 100
+chunk_start_year: 800
+wikipedia_list: "List of Holy Roman emperors"
