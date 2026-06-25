@@ -4,7 +4,7 @@
 Memorizing ordered lists (award laureates, poem lines, historical rulers) is hard. Acronym mnemonics help, but generating them from authoritative sources is tedious.
 
 ## Goal
-Generate Excel acronym-tables from Wikipedia/Wikidata sources automatically, grouped by configurable time windows. Run spaced-repetition quizzes against the generated material.
+Generate Excel acronym-tables and per-deck JSON artifacts from Wikipedia/Wikidata sources automatically, grouped by configurable time windows. The spaced-repetition **quiz app now lives in a separate repo** (`memory-quiz-app`, see its PRD); this repo is generator-only and emits `data/decks/*.json` consumed by the quiz via the orchestrator's Dagster `decks` asset.
 
 ## Users
 Personal / educational use. Single user driving batch runs via CLI.
@@ -55,6 +55,15 @@ Collection config: top-level `collection_title` + `poems` list, each with `poem_
 | `positions` | yes | — | List of Wikidata position Q-numbers (P39 values) |
 | `chunk_years` | no | 100 | Years per chunk |
 | `chunk_start_year` | no | earliest accession year | First year of first chunk |
+
+#### Monarch deck set (2026-06 expansion)
+Decks now ship for: **Britain, English Commonwealth** (original), **+9 European** (Scotland, Denmark, Norway, Sweden, Holy Roman Empire, Byzantium, Hungary, Portugal, Bohemia), and **France + Japan** — 13 monarch decks total. Selection was data-driven from a full Wikidata survey:
+- **Survey**: ~566 monarch positions (`wdt:P279* wd:Q116`) carry reign holders; 268 have ≥8 reigns. Median date coverage 92%. Full categorized list saved at `results/monarch_positions_wikidata.md`.
+- **Quality gates** (what makes a good deck): **date coverage** ≥70% (sparse `P580` start-years → weak deck) and **per-century density** ≤~15 holders (each accession = one transition digit, so a dense century = an unlearnably long card).
+- **Multi-QID chains** (France-style, like Britain's): France = king of the Franks → king of France → King of France and Navarre → King of the French → Emperor of the French (`Q22923081, Q24851389, Q3439798, Q3439814, Q5373953`), `chunk_start_year: 480`. `fetch_monarchs` dedups by person across the chain.
+- **BCE handling**: setting `chunk_start_year` to a CE value cleanly excludes earlier (legendary/BCE) reigns — the chunk loop only buckets events ≥ start. Japan starts at 500 (drops 11 legendary BCE emperors); `e % 10` is safe for negative years but BCE labels are ugly.
+- **China deferred**: "Emperor of China" (`Q268218`) conflates all parallel claimants during fragmentation eras (Three/Sixteen Kingdoms, Five Dynasties) → century cards of 33–44 digits. Wikidata has **no** per-dynasty positions and models parallel-state rulers inconsistently, so the transition-digit format can't represent it cleanly without a different (dynasty-membership) data model.
+- **Remaining opportunity**: ~111 more positions are clean/viable for batch generation now (≥70% dated, ≤15 density); ~22 marginal; 5 China-like dense; 46 too sparse; 72 excluded (consorts + ecclesiastical). Iberia (Aragon/Castile/León/Navarre) is fragmented and would need France-style chains or per-kingdom decks.
 
 ### 4. Shakespeare Passages (`wiki-shakespeare`)
 - Source: Folger Digital Texts API (`folgerdigitaltexts.org`)
