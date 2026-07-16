@@ -20,7 +20,7 @@ from pathlib import Path
 import yaml
 
 from .gutenberg import fetch_text
-from .monarchs import fetch_monarchs, make_monarch_chunks
+from .monarchs import fetch_monarchs, filter_by_accession, make_monarch_chunks
 from .poetry_parser import extract_poem
 
 _ROOT = Path(__file__).resolve().parent.parent.parent
@@ -74,8 +74,13 @@ def build_deck_artifacts(config_dir: Path) -> list[dict]:
     for yaml_path in sorted(Path(config_dir).glob('monarchs/*.yaml')):
         cfg = yaml.safe_load(yaml_path.read_text())
         title = cfg.get('subject', yaml_path.stem)
-        monarchs = fetch_monarchs(cfg['positions'])
-        chunks = make_monarch_chunks(monarchs, cfg.get('chunk_years', 100), cfg.get('chunk_start_year'))
+        monarchs = fetch_monarchs(cfg['positions'], house_ids=cfg.get('houses'))
+        monarchs = filter_by_accession(monarchs, cfg.get('accession_min_year'), cfg.get('accession_max_year'))
+        chunks = make_monarch_chunks(
+            monarchs, cfg.get('chunk_years', 100), cfg.get('chunk_start_year'),
+            add_transition_years=cfg.get('add_transition_years'),
+            drop_transition_years=cfg.get('drop_transition_years'),
+        )
         artifacts.append({
             'order': order,
             'name': title,

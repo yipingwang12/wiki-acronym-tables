@@ -1,0 +1,9 @@
+subject: "Qing Dynasty Emperors"
+positions:
+  - Q268218     # Emperor of China (shared across dynasties)
+houses:
+  - Q934262     # Aisin Gioro
+  - Q10948084   # House of Aisin Gioro — together isolate the Qing emperors
+chunk_years: 100
+chunk_start_year: 1600
+wikipedia_list: "List of emperors of the Qing dynasty"

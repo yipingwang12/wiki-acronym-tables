@@ -1,0 +1,7 @@
+subject: "Ottoman Sultans"
+positions:
+  - Q15315411   # sultan of the Ottoman Empire
+accession_max_year: 1922   # last sultan Mehmed VI (dep. 1922); excludes post-abolition pretender claims
+chunk_years: 100
+chunk_start_year: 1200
+wikipedia_list: "List of sultans of the Ottoman Empire"

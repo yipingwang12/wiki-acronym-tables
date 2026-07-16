@@ -8,7 +8,7 @@ from pathlib import Path
 
 import yaml
 
-from .monarchs import fetch_monarchs, make_monarch_chunks
+from .monarchs import fetch_monarchs, filter_by_accession, make_monarch_chunks
 from .xlsx_writer import write_monarchs_xlsx
 
 
@@ -39,13 +39,18 @@ def main(argv=None) -> None:
         output = Path("results") / f"{slug}.xlsx"
     output.parent.mkdir(parents=True, exist_ok=True)
 
-    monarchs = fetch_monarchs(position_ids)
+    monarchs = fetch_monarchs(position_ids, house_ids=config.get("houses"))
+    monarchs = filter_by_accession(monarchs, config.get("accession_min_year"), config.get("accession_max_year"))
     if not monarchs:
         print(f"Error: no monarchs found for positions {position_ids}", file=sys.stderr)
         sys.exit(1)
 
     print(f"Fetched {len(monarchs)} monarchs for '{subject}'")
-    chunks = make_monarch_chunks(monarchs, chunk_years=chunk_years, chunk_start_year=chunk_start_year)
+    chunks = make_monarch_chunks(
+        monarchs, chunk_years=chunk_years, chunk_start_year=chunk_start_year,
+        add_transition_years=config.get("add_transition_years"),
+        drop_transition_years=config.get("drop_transition_years"),
+    )
     print(f"Grouped into {len(chunks)} chunks of {chunk_years} years")
 
     write_monarchs_xlsx(chunks, output, subject=subject)

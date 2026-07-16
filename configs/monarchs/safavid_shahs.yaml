@@ -1,0 +1,6 @@
+subject: "Safavid Shahs"
+positions:
+  - Q20110796   # Safavid monarch (used as the P39 position value for Safavid shahs on Wikidata)
+chunk_years: 100
+chunk_start_year: 1500
+wikipedia_list: "Safavid dynasty"

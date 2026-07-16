@@ -2,7 +2,9 @@ from unittest.mock import patch
 
 import pytest
 
-from wiki_acronyms.monarchs import Monarch, MonarchChunk, fetch_monarchs, make_monarch_chunks
+from wiki_acronyms.monarchs import (
+    Monarch, MonarchChunk, fetch_monarchs, filter_by_accession, make_monarch_chunks,
+)
 
 _SAMPLE_BINDINGS = [
     {
@@ -126,6 +128,22 @@ def test_fetch_empty():
         assert fetch_monarchs(["Q18810062"]) == []
 
 
+def test_fetch_no_house_clause_by_default():
+    with patch("wiki_acronyms.monarchs._sparql_session", return_value=[]) as mock_session:
+        fetch_monarchs(["Q18810062"])
+    query = mock_session.call_args[0][1]
+    assert "wdt:P53" not in query   # unfiltered position query unchanged
+
+
+def test_fetch_adds_house_clause_when_given():
+    with patch("wiki_acronyms.monarchs._sparql_session", return_value=[]) as mock_session:
+        fetch_monarchs(["Q268218"], house_ids=["Q5185064", "Q934262"])
+    query = mock_session.call_args[0][1]
+    assert "wdt:P53" in query
+    assert "wd:Q5185064" in query
+    assert "wd:Q934262" in query
+
+
 def test_fetch_populates_wp_title():
     bindings = [{
         **_SAMPLE_BINDINGS[2],
@@ -154,6 +172,25 @@ def test_fetch_merges_wp_title():
 # make_monarch_chunks
 def _monarchs(*year_name_pairs):
     return [Monarch(name=n, accession_year=y, end_year=None, father="", mother="") for y, n in year_name_pairs]
+
+
+# filter_by_accession
+def test_filter_by_accession_max_caps_dynasty():
+    # Abbasid case: drop the Cairo figureheads acceding after the 1258 Baghdad fall
+    ms = _monarchs((750, "As-Saffah"), (1242, "Al-Musta'sim"), (1261, "Al-Mustansir (Cairo)"))
+    kept = filter_by_accession(ms, max_year=1258)
+    assert [m.name for m in kept] == ["As-Saffah", "Al-Musta'sim"]
+
+
+def test_filter_by_accession_min_and_max_window():
+    ms = _monarchs((1368, "Hongwu"), (1627, "Chongzhen"), (1644, "Southern Ming"))
+    kept = filter_by_accession(ms, min_year=1368, max_year=1643)
+    assert [m.name for m in kept] == ["Hongwu", "Chongzhen"]
+
+
+def test_filter_by_accession_none_bounds_keep_all():
+    ms = _monarchs((661, "Mu'awiya"), (744, "Marwan II"))
+    assert filter_by_accession(ms) == ms
 
 
 def test_chunks_single_century():
@@ -216,8 +253,10 @@ def test_gap_inserts_end_year():
 
 
 def test_no_gap_no_extra_digit():
-    # Normal succession: Henry dies 1547, Edward accedes 1547 → no extra digit
-    monarchs = _monarchs_with_ends((1509, 1547, "Henry VIII"), (1547, 1553, "Edward VI"))
+    # Normal succession: Henry dies 1547, Edward accedes 1547 → 1547 appears once, not
+    # twice. (Edward still reigning / no end year, to isolate this from the terminal-end
+    # rule covered by test_dynasty_end_year_included.)
+    monarchs = _monarchs_with_ends((1509, 1547, "Henry VIII"), (1547, None, "Edward VI"))
     chunks = make_monarch_chunks(monarchs, chunk_years=100, chunk_start_year=1500)
     assert chunks[0].transition_string == "97"   # 1509 % 10, 1547 % 10
 
@@ -240,6 +279,57 @@ def test_gap_cnut_harold(monkeypatch):
     idx_cnut = ts.index('6')     # 1016 % 10
     assert ts[idx_cnut + 1] == '5'   # 1035 % 10 inserted next
     assert ts[idx_cnut + 2] == '7'   # 1037 % 10
+
+
+def test_dynasty_end_year_included():
+    # Final ruler has no successor: their end year must still appear (e.g. Umayyad
+    # Marwan II acceded 744, killed 750 → the dynasty-ending 750 belongs in the 700s).
+    monarchs = _monarchs_with_ends((661, 680, "Mu'awiya"), (744, 750, "Marwan II"))
+    chunks = make_monarch_chunks(monarchs, chunk_years=100, chunk_start_year=600)
+    seven_hundreds = next(c for c in chunks if c.start_year == 700)
+    assert seven_hundreds.transition_string == "40"   # 744 accession, 750 end
+
+
+def test_interregnum_start_year_included():
+    # Large gap between a reign's end and the next accession (a genuine interregnum):
+    # the end year now marks the interregnum's start (Commonwealth: Charles I end 1649,
+    # Charles II accession 1660 — 1649 must appear, unlike the old ≤5-year-only rule).
+    monarchs = _monarchs_with_ends((1625, 1649, "Charles I"), (1660, 1685, "Charles II"))
+    chunks = make_monarch_chunks(monarchs, chunk_years=100, chunk_start_year=1600)
+    ts = chunks[0].transition_string
+    assert "9" in ts        # 1649 end (interregnum start) included
+    assert ts == "5905"     # 1625, 1649, 1660, 1685
+
+
+def test_add_transition_year_inserts_missing_event():
+    # al-Muqtadir case: Wikidata records 908–932 unbroken, omitting the brief 929
+    # deposition for al-Qahir. The manual year is sorted into place.
+    monarchs = _monarchs_with_ends((908, 932, "al-Muqtadir"), (932, None, "al-Qahir"))
+    chunks = make_monarch_chunks(monarchs, chunk_years=100, chunk_start_year=900,
+                                 add_transition_years=[929])
+    assert chunks[0].transition_string == "892"   # 908, 929, 932
+
+
+def test_drop_transition_year_removes_artifact():
+    # al-Musta'in case: Wikidata's 865 end date is a dating artifact; the real
+    # transition is 866 (al-Mu'tazz's accession), already present.
+    monarchs = _monarchs_with_ends((862, 865, "al-Musta'in"), (866, None, "al-Mu'tazz"))
+    assert make_monarch_chunks(monarchs, 100, 800)[0].transition_string == "256"  # 862,865,866
+    chunks = make_monarch_chunks(monarchs, 100, 800, drop_transition_years=[865])
+    assert chunks[0].transition_string == "26"    # 865 gone
+
+
+def test_drop_removes_all_occurrences_of_year():
+    monarchs = _monarchs((744, "Yazid III"), (744, "Ibrahim"), (750, "Marwan II"))
+    chunks = make_monarch_chunks(monarchs, 100, 700, drop_transition_years=[744])
+    assert chunks[0].transition_string == "0"
+
+
+def test_add_and_drop_combined():
+    monarchs = _monarchs_with_ends((900, 910, "A"), (910, 920, "B"))
+    chunks = make_monarch_chunks(monarchs, 100, 900,
+                                 add_transition_years=[915], drop_transition_years=[920])
+    assert chunks[0].transition_string == "005"   # 900, 910, 915; 920 dropped
 
 
 def test_no_end_year_no_gap_inserted():
