@@ -126,6 +126,14 @@ class TestSchema:
         _export(tmp_path, decks)
         a = _find(decks, cfg)
         assert (a['name'], a['mode'], a['deck_type'], a['poem_title']) == ('British Monarchs', 'digits', 'monarchs', None)
+        assert a['group'] == 'Monarchs'   # all monarch decks share one collapsible menu
+
+    def test_monarch_group_overridable_per_config(self, tmp_path):
+        path = _write_monarchs(tmp_path)
+        path.write_text(path.read_text() + "group: European Monarchs\n")
+        decks = tmp_path / 'decks'
+        _export(tmp_path, decks)
+        assert _find(decks, path)['group'] == 'European Monarchs'
 
     def test_collection_group_and_multi_filenames(self, tmp_path):
         _write_poetry(tmp_path, multi=True)
