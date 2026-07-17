@@ -1,0 +1,21 @@
+subject: "Abbasid Caliphs"
+positions:
+  - Q28541943   # Abbasid caliph
+accession_max_year: 1258   # cap at the Baghdad caliphate's fall; excludes the Cairo figureheads (1261–1517)
+# Manual corrections to Wikidata's one-statement-per-caliph model. Each records why Wikidata is
+# wrong and what was checked, so it can be re-verified — and so `stale_corrections` can retire it
+# once upstream catches up. Both re-confirmed by adversarial cross-check on 2026-07-16.
+corrections:
+  - year: 929
+    action: add
+    reason: "al-Muqtadir briefly deposed for al-Qahir, then restored; Wikidata records 908–932 as one unbroken reign, so the 929 transition is missing"
+    source: "List of caliphs"
+    checked: "2026-07-16"
+  - year: 865
+    action: drop
+    reason: "Wikidata ends al-Musta'in in 865, but he reigned to his Jan 866 deposition; 866 is already present as al-Mu'tazz's accession"
+    source: "List of caliphs"
+    checked: "2026-07-16"
+chunk_years: 100
+chunk_start_year: 700
+wikipedia_list: "List of caliphs"

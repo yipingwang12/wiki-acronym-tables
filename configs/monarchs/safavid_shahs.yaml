@@ -1,0 +1,28 @@
+subject: "Safavid Shahs"
+positions:
+  - Q20110796   # Safavid monarch (used as the P39 position value for Safavid shahs on Wikidata)
+# Wikidata has two plain accession-year errors here, both confirmed by adversarial cross-check
+# on 2026-07-16 (3/3 refuters failed to refute). Expressed as drop/add of transition years
+# because the pipeline has no way to correct a ruler's accession year directly — see PRD.
+corrections:
+  - year: 1502
+    action: drop
+    reason: "Ismail I's accession is 1501 (crowned 22 Dec 1501), not 1502; no article location gives 1502"
+    source: "Safavid dynasty; Ismail I"
+    checked: "2026-07-16"
+  - year: 1501
+    action: add
+    reason: "the real Ismail I accession year, and the dynasty's first transition; replaces the dropped 1502"
+    source: "Safavid dynasty; Ismail I"
+    checked: "2026-07-16"
+  - year: 1729
+    action: drop
+    reason: "Tahmasp II acceded 1722 (declared shah at Qazvin, 10 Nov 1722); 1729 is when he regained control after the Afghan occupation, not his accession. No matching add needed — 1722 is already a transition year via Soltan Hoseyn's end year"
+    source: "Safavid dynasty; Tahmasp II"
+    checked: "2026-07-16"
+chunk_years: 100
+chunk_start_year: 1500
+# NOTE: this article is prose, not a reign table, and is a weak source for a date cross-check;
+# the 2026-07-16 pass had to fall back to individual ruler articles. Both errors above were found
+# in this deck — consider re-pointing at a dedicated list article.
+wikipedia_list: "Safavid dynasty"

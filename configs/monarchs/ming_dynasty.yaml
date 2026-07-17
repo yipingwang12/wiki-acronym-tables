@@ -1,0 +1,8 @@
+subject: "Ming Dynasty Emperors"
+positions:
+  - Q268218     # Emperor of China (shared across dynasties)
+houses:
+  - Q5185064    # House of Zhu — isolates the Ming emperors
+chunk_years: 100
+chunk_start_year: 1300
+wikipedia_list: "List of emperors of the Ming dynasty"

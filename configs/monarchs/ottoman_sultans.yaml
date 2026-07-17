@@ -1,0 +1,18 @@
+subject: "Ottoman Sultans"
+positions:
+  - Q15315411   # sultan of the Ottoman Empire
+accession_max_year: 1922   # last sultan Mehmed VI (dep. 1922); excludes post-abolition pretender claims
+# Confirmed by adversarial cross-check on 2026-07-16 (3/3 refuters failed to refute).
+corrections:
+  - year: 1446
+    action: add
+    reason: "Murad II abdicated in 1444 and was restored in Sep 1446 (Mehmed II held a first reign 1444–1446); Wikidata records Murad II as one unbroken 1421–1451 statement, so the 1446 restoration is missing"
+    source: "List of sultans of the Ottoman Empire"
+    checked: "2026-07-16"
+# NOT corrected — Orhan's accession is 1326 here vs Wikipedia's "c. 1324". Left as-is deliberately:
+# 1326 is the traditional date (capture of Bursa) and Wikipedia's own "c." concedes the year is
+# uncertain, so this is a historiographic dispute rather than a data error. Revisit only with a
+# decision on which convention the deck should follow.
+chunk_years: 100
+chunk_start_year: 1200
+wikipedia_list: "List of sultans of the Ottoman Empire"

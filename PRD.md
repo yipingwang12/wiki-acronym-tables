@@ -6,6 +6,14 @@ Memorizing ordered lists (award laureates, poem lines, historical rulers) is har
 ## Goal
 Generate Excel acronym-tables and per-deck JSON artifacts from Wikipedia/Wikidata sources automatically, grouped by configurable time windows. The spaced-repetition **quiz app now lives in a separate repo** (`memory-quiz-app`, see its PRD); this repo is generator-only and emits `data/decks/*.json` consumed by the quiz via the orchestrator's Dagster `decks` asset.
 
+### Refreshing decks (`wiki-export-decks`)
+
+A bare run **clears the output directory** and rebuilds every deck — authoritative, but it renumbers `order` and re-stamps `config_path` from the running checkout. Both are *identity*, not content: `config_path` keys the quiz's sessions table (`WHERE config_path=?`) and its artifact lookup; `order` sorts the deck list. Because the deck directory accumulates across runs, a fresh numbering agrees with neither — so re-deriving them during a partial refresh strands study history and shuffles the list. (Exporting from a git worktree stamps the *worktree* path in, which strands history once the worktree is removed.)
+
+Use `--only <glob>` to refresh a subset: matching decks are rebuilt, everything else is left untouched and never fetched, and each rebuilt deck keeps the existing artifact's `order`/`config_path` while `items`/`labels`/`config_hash` update. `--reset-identity` opts out (e.g. after genuinely relocating the repo).
+
+**Deck staleness is invisible.** `config_hash` covers the config bytes only, so a change to *generator behaviour* — e.g. the end-year transition rule — leaves every hash identical while the digits change. Decks do not self-report as stale; re-export after any generator change.
+
 ## Users
 Personal / educational use. Single user driving batch runs via CLI.
 
@@ -45,7 +53,7 @@ Collection config: top-level `collection_title` + `poems` list, each with `poem_
 ### 3. Monarch Reigns (`wiki-monarchs`)
 - Source: Wikidata SPARQL (position Q-numbers)
 - Output: per-century transition-digit strings (last digit of accession year per monarch)
-- **Gap-fill**: when a monarch's recorded end year doesn't match any accession year and the gap to the next known accession is ≤ 5 years, the end year is inserted into the transition string as a fallback event (e.g. Edward the Elder died 924, Æthelstan crowned 927 → 924 inserted). The 5-year threshold distinguishes Wikidata date lag from genuine interregnums (e.g. Stephen deposed 1141→Henry II 1154, Commonwealth 1649–1660).
+- **End-year events**: any recorded end year that is not itself some ruler's accession year becomes a transition event — i.e. the throne did not pass directly to a successor that year. This covers Wikidata coronation-lag (Edward the Elder died 924, Æthelstan crowned 927 → 924 inserted), the start of a genuine interregnum (Commonwealth: Charles I ends 1649, Charles II accedes 1660 → 1649 inserted), and a dynasty's terminal year (last ruler, no successor). Continuous same-year successions add nothing. *(Superseded the original ≤5-year gap-fill threshold, which suppressed interregnum and terminal years.)*
 - **Deduplication by person Q-number**: monarchs whose title changed mid-reign (e.g. George III: King of GB 1760 → King of UK 1801) or who were deposed and restored (e.g. Stephen, Henry VI) appear once with their earliest accession year and latest end year.
 - **Fragmented Q-numbers**: Britain requires four position Q-numbers across eras (`Q18810062` England pre-1707, `Q110324075` GB 1707–1801, `Q111722535` UK 1801–1927, `Q9134365` UK 1927–present).
 
@@ -53,17 +61,50 @@ Collection config: top-level `collection_title` + `poems` list, each with `poem_
 |---|---|---|---|
 | `subject` | yes | — | Used in sheet title and output filename |
 | `positions` | yes | — | List of Wikidata position Q-numbers (P39 values) |
+| `houses` | no | — | P53 noble-family Q-numbers; restricts holders to those houses. Needed when a position spans dynasties (`Q268218` "Emperor of China" covers every dynasty; House of Zhu / Aisin-Gioro isolate Ming / Qing) |
+| `accession_min_year` / `accession_max_year` | no | — | Cap a dynasty at a historical boundary (Abbasids at the 1258 Baghdad fall, excluding the Cairo figureheads acceding to 1517) |
+| `corrections` | no | — | Sourced manual overrides of transition years — see below |
 | `chunk_years` | no | 100 | Years per chunk |
 | `chunk_start_year` | no | earliest accession year | First year of first chunk |
+| `wikipedia_list` | no | — | Article title used by `wiki-coverage-check` and date cross-checks |
 
-#### Monarch deck set (2026-06 expansion)
-Decks now ship for: **Britain, English Commonwealth** (original), **+9 European** (Scotland, Denmark, Norway, Sweden, Holy Roman Empire, Byzantium, Hungary, Portugal, Bohemia), and **France + Japan** — 13 monarch decks total. Selection was data-driven from a full Wikidata survey:
+##### `corrections:` — sourced overrides
+
+Wikidata models one P39 statement per ruler, which cannot express a reign interrupted and resumed, and it carries occasional plain date errors. Each correction records *why* and *against what*, so it can be re-verified and later retired:
+
+```yaml
+corrections:
+  - year: 1446
+    action: add          # 'add' | 'drop'
+    reason: "Murad II restored 1446; Wikidata records 1421–1451 as one unbroken statement"
+    source: "List of sultans of the Ottoman Empire"
+    checked: "2026-07-16"
+```
+
+`reason` and `source` are **required** — `parse_corrections` raises rather than skip a malformed entry, since a correction that silently fails to apply looks identical to one never written. Drop removes every occurrence of a year and is applied before add.
+
+**Add is idempotent.** A correction is a bet that Wikidata stays wrong, and Wikidata improves; appending unconditionally would double a digit the day upstream fixed the statement. `stale_corrections` reports corrections that no longer change anything (an `add` Wikidata now supplies, a `drop` it no longer emits) — neither is an error, which is exactly why they need surfacing rather than rotting silently.
+
+There is **no mechanism to correct a ruler's accession/end year directly**; corrections patch the *transition-year output*, not the underlying data. So a wrong accession year is expressed as a `drop` of the bad year plus an `add` of the right one (and sometimes only a drop — Tahmasp II's true 1722 accession is already a transition year via his predecessor's end year).
+
+##### Date precision (documentation only)
+
+`Monarch.accession_precision` carries Wikidata's `timePrecision` for P580 (9 = year, 8 = decade, 7 = century). Below year precision, the source does not actually claim that year — Assyria's Tudiya is stored as `-2450` at decade precision, meaning "the 2450s BC"; Denmark's Sigfred (770) and France's Mallobaudes (378) / Marcomer (380) are decade-precision within shipped decks. **Digit extraction deliberately ignores this**, so decks are byte-identical to before the field existed; `wiki-monarchs` merely warns. This matters for any future expansion into ancient series: pharaoh has 527 recorded holders but only 88 with any start date, and Mesopotamian absolute chronology is convention-dependent (High/Middle/Low differ by decades), so precision is the difference between a fact and an artifact.
+
+#### Monarch deck set (2026-07)
+**20 decks.** *European (13):* Britain, English Commonwealth, Scotland, Denmark, Norway, Sweden, Holy Roman Empire, Byzantium, Hungary, Portugal, Bohemia, France, Japan. *Non-European (7, 2026-07):* Umayyad, Abbasid, Fatimid caliphs; Ottoman sultans; Safavid shahs; Ming, Qing emperors. Selection was data-driven from a full Wikidata survey:
 - **Survey**: ~566 monarch positions (`wdt:P279* wd:Q116`) carry reign holders; 268 have ≥8 reigns. Median date coverage 92%. Full categorized list saved at `results/monarch_positions_wikidata.md`.
+- **Rank by conditioning, not size** (2026-07 re-survey): 325 monarch positions have ≥6 holders but only **272 have ≥6 *dated* ones** — our pipeline needs `P580`. The largest counts are generic umbrella classes, not series (`Q12097` "king" 284, `Q116` "monarch" 158, `Q181888` "khan" 117); they mix every realm and need the same `houses` treatment as Emperor of China. Best unbuilt candidate is **Pope (`Q19546`)**: 268 holders, 99% dated, 229 at day precision, one clean position, irregular reigns. Ancient series are mirages — **pharaoh has 527 holders but only 88 dated (17%)**, and Mesopotamian absolute chronology is convention-dependent (High/Middle/Low differ by decades), so those digits would encode a convention, not a fact.
 - **Quality gates** (what makes a good deck): **date coverage** ≥70% (sparse `P580` start-years → weak deck) and **per-century density** ≤~15 holders (each accession = one transition digit, so a dense century = an unlearnably long card).
 - **Multi-QID chains** (France-style, like Britain's): France = king of the Franks → king of France → King of France and Navarre → King of the French → Emperor of the French (`Q22923081, Q24851389, Q3439798, Q3439814, Q5373953`), `chunk_start_year: 480`. `fetch_monarchs` dedups by person across the chain.
 - **BCE handling**: setting `chunk_start_year` to a CE value cleanly excludes earlier (legendary/BCE) reigns — the chunk loop only buckets events ≥ start. Japan starts at 500 (drops 11 legendary BCE emperors); `e % 10` is safe for negative years but BCE labels are ugly.
-- **China deferred**: "Emperor of China" (`Q268218`) conflates all parallel claimants during fragmentation eras (Three/Sixteen Kingdoms, Five Dynasties) → century cards of 33–44 digits. Wikidata has **no** per-dynasty positions and models parallel-state rulers inconsistently, so the transition-digit format can't represent it cleanly without a different (dynasty-membership) data model.
+- **China: solved by `houses`** *(was "deferred — Wikidata has no per-dynasty positions")*. "Emperor of China" (`Q268218`) does conflate every dynasty and all parallel claimants (Three/Sixteen Kingdoms, Five Dynasties) → century cards of 33–44 digits. The dynasty-membership model that was thought missing is **P53 "noble family"**: filtering holders by House of Zhu / Aisin-Gioro isolates the Ming (16 rulers) and Qing (11) cleanly. Other fragmentation-era dynasties remain unbuilt but are now tractable the same way.
 - **Remaining opportunity**: ~111 more positions are clean/viable for batch generation now (≥70% dated, ≤15 density); ~22 marginal; 5 China-like dense; 46 too sparse; 72 excluded (consorts + ecclesiastical). Iberia (Aragon/Castile/León/Navarre) is fragmented and would need France-style chains or per-kingdom decks.
+- **Known data-quality gaps** (2026-07 cross-check, 138 rulers over the 7 non-European decks vs Wikipedia with 3-of-3 adversarial verification — report at `results/verify_monarch_dates/report.md`):
+  - **Consort contamination**: `Q18577504` "Byzantine emperor" is attached to consorts on Wikidata (Theodora *wife of Justinian I*, Zenonis, Gregoria, Anna of Moscow, Irene Gattilusio). The survey's consort exclusion filtered consort *positions*, not consorts holding the emperor position — byzantium's digits include women who never reigned.
+  - **Scope bleed**: `english_commonwealth` uses `Q512196` "Lord Protector", which also matches Edward Seymour (1547–49), Edward VI's regent — a different institution. Harmless only because `chunk_start_year: 1600` puts him out of range; wants an `accession_min_year`.
+  - **Data holes read as interregnums**: the end-year rule inserts a transition wherever no successor follows within the data, which cannot distinguish a real interregnum from missing rulers. 9 such cases exceed 50 years — france 511 (Clovis I, 118yr hole), france 869, japan 200, holy_roman_empire 814 (Charlemagne, 61yr) — all spurious.
+  - **Unresolved**: Orhan's accession (we follow the traditional 1326; Wikipedia's table says "c. 1324") is a historiographic dispute, documented in-config. Fatimid al-Mustansir (1095 vs 1094) sits on a Hijri year boundary and awaits a second source.
 
 ### 4. Shakespeare Passages (`wiki-shakespeare`)
 - Source: Folger Digital Texts API (`folgerdigitaltexts.org`)

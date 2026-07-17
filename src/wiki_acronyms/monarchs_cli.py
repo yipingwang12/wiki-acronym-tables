@@ -8,7 +8,10 @@ from pathlib import Path
 
 import yaml
 
-from .monarchs import fetch_monarchs, make_monarch_chunks
+from .monarchs import (
+    correction_years, fetch_monarchs, filter_by_accession, make_monarch_chunks,
+    parse_corrections, report_imprecise_dates, stale_corrections,
+)
 from .xlsx_writer import write_monarchs_xlsx
 
 
@@ -33,19 +36,36 @@ def main(argv=None) -> None:
     chunk_years: int = config.get("chunk_years", 100)
     chunk_start_year: int | None = config.get("chunk_start_year")
 
+    try:
+        corrections = parse_corrections(config.get("corrections"))
+    except ValueError as e:
+        print(f"Error: {args.config}: {e}", file=sys.stderr)
+        sys.exit(1)
+
     output = args.output
     if output is None:
         slug = subject.lower().replace(" ", "_")
         output = Path("results") / f"{slug}.xlsx"
     output.parent.mkdir(parents=True, exist_ok=True)
 
-    monarchs = fetch_monarchs(position_ids)
+    monarchs = fetch_monarchs(position_ids, house_ids=config.get("houses"))
+    monarchs = filter_by_accession(monarchs, config.get("accession_min_year"), config.get("accession_max_year"))
     if not monarchs:
         print(f"Error: no monarchs found for positions {position_ids}", file=sys.stderr)
         sys.exit(1)
 
     print(f"Fetched {len(monarchs)} monarchs for '{subject}'")
-    chunks = make_monarch_chunks(monarchs, chunk_years=chunk_years, chunk_start_year=chunk_start_year)
+
+    for note in report_imprecise_dates(monarchs):
+        print(f"Warning: {note}", file=sys.stderr)   # documentation only; digits unaffected
+    for note in stale_corrections(monarchs, corrections):
+        print(f"Warning: stale correction — {note}", file=sys.stderr)
+
+    add_years, drop_years = correction_years(corrections)
+    chunks = make_monarch_chunks(
+        monarchs, chunk_years=chunk_years, chunk_start_year=chunk_start_year,
+        add_transition_years=add_years, drop_transition_years=drop_years,
+    )
     print(f"Grouped into {len(chunks)} chunks of {chunk_years} years")
 
     write_monarchs_xlsx(chunks, output, subject=subject)

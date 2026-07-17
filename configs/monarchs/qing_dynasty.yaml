@@ -1,0 +1,21 @@
+subject: "Qing Dynasty Emperors"
+positions:
+  - Q268218     # Emperor of China (shared across dynasties)
+houses:
+  - Q934262     # Aisin Gioro
+  - Q10948084   # House of Aisin Gioro — together isolate the Qing emperors
+# Confirmed by adversarial cross-check on 2026-07-16 (3/3 refuters failed to refute).
+corrections:
+  - year: 1917
+    action: drop
+    reason: "Wikidata records Puyi's reign end as 1917, the 11-day Manchu Restoration; the dynasty actually ended at his 12 Feb 1912 abdication"
+    source: "List of emperors of the Qing dynasty"
+    checked: "2026-07-16"
+  - year: 1912
+    action: add
+    reason: "the abdication year and the dynasty's terminal transition; not any ruler's accession, so without this the end of the Qing is dropped from the deck entirely"
+    source: "List of emperors of the Qing dynasty"
+    checked: "2026-07-16"
+chunk_years: 100
+chunk_start_year: 1600
+wikipedia_list: "List of emperors of the Qing dynasty"
