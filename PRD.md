@@ -6,6 +6,14 @@ Memorizing ordered lists (award laureates, poem lines, historical rulers) is har
 ## Goal
 Generate Excel acronym-tables and per-deck JSON artifacts from Wikipedia/Wikidata sources automatically, grouped by configurable time windows. The spaced-repetition **quiz app now lives in a separate repo** (`memory-quiz-app`, see its PRD); this repo is generator-only and emits `data/decks/*.json` consumed by the quiz via the orchestrator's Dagster `decks` asset.
 
+### Refreshing decks (`wiki-export-decks`)
+
+A bare run **clears the output directory** and rebuilds every deck — authoritative, but it renumbers `order` and re-stamps `config_path` from the running checkout. Both are *identity*, not content: `config_path` keys the quiz's sessions table (`WHERE config_path=?`) and its artifact lookup; `order` sorts the deck list. Because the deck directory accumulates across runs, a fresh numbering agrees with neither — so re-deriving them during a partial refresh strands study history and shuffles the list. (Exporting from a git worktree stamps the *worktree* path in, which strands history once the worktree is removed.)
+
+Use `--only <glob>` to refresh a subset: matching decks are rebuilt, everything else is left untouched and never fetched, and each rebuilt deck keeps the existing artifact's `order`/`config_path` while `items`/`labels`/`config_hash` update. `--reset-identity` opts out (e.g. after genuinely relocating the repo).
+
+**Deck staleness is invisible.** `config_hash` covers the config bytes only, so a change to *generator behaviour* — e.g. the end-year transition rule — leaves every hash identical while the digits change. Decks do not self-report as stale; re-export after any generator change.
+
 ## Users
 Personal / educational use. Single user driving batch runs via CLI.
 

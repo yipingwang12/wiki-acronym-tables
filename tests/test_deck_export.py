@@ -213,3 +213,153 @@ def test_missing_artifact_raises(tmp_path):
     decks.mkdir()
     with pytest.raises(FileNotFoundError):
         _find(decks, tmp_path / 'poetry' / 'nope.yaml', 'X')
+
+
+# --- --only: surgical refresh -------------------------------------------------------
+# The export dir accumulates across runs, so a partial rebuild must not re-derive the two
+# IDENTITY fields: config_path keys the quiz's sessions table and artifact lookup, order
+# drives deck-list sort. Re-deriving either during a subset refresh strands study history
+# or shuffles the list.
+
+def _export_only(config_dir, decks_dir, only=None, reset_identity=False):
+    with patch('wiki_acronyms.deck_export.fetch_text', return_value=_POEM_TEXT), \
+         patch('wiki_acronyms.deck_export.fetch_monarchs', return_value=_MONARCHS):
+        return deck_export.export_decks(config_dir, decks_dir, only=only,
+                                        reset_identity=reset_identity)
+
+
+class TestOnly:
+    def test_only_writes_just_the_match(self, tmp_path):
+        _write_poetry(tmp_path)
+        _write_monarchs(tmp_path)
+        decks = tmp_path / 'decks'
+        _export_only(tmp_path, decks)                      # full first
+        written = _export_only(tmp_path, decks, only='monarchs_britain')
+        assert [p.name for p in written] == ['monarchs_britain.json']
+
+    def test_only_leaves_other_decks_untouched(self, tmp_path):
+        _write_poetry(tmp_path)
+        _write_monarchs(tmp_path)
+        decks = tmp_path / 'decks'
+        _export_only(tmp_path, decks)
+        poetry = decks / 'poetry_sonnet.json'
+        before = poetry.read_text()
+        _export_only(tmp_path, decks, only='monarchs_britain')
+        assert poetry.read_text() == before   # not rewritten, not deleted
+
+    def test_only_does_not_clear_the_directory(self, tmp_path):
+        # The guard that would have wiped 174 live decks: a full export unlinks *.json.
+        _write_poetry(tmp_path)
+        _write_monarchs(tmp_path)
+        decks = tmp_path / 'decks'
+        _export_only(tmp_path, decks)
+        _export_only(tmp_path, decks, only='monarchs_britain')
+        assert (decks / 'poetry_sonnet.json').exists()
+
+    def test_full_export_still_clears(self, tmp_path):
+        _write_poetry(tmp_path)
+        decks = tmp_path / 'decks'
+        decks.mkdir()
+        (decks / 'obsolete.json').write_text('{}')
+        _export_only(tmp_path, decks)
+        assert not (decks / 'obsolete.json').exists()
+
+    def test_only_preserves_order_of_the_rebuilt_deck(self, tmp_path):
+        _write_poetry(tmp_path)
+        _write_monarchs(tmp_path)
+        decks = tmp_path / 'decks'
+        _export_only(tmp_path, decks)
+        path = decks / 'monarchs_britain.json'
+        stale = json.loads(path.read_text())
+        stale['order'] = 999          # simulate an artifact numbered by an earlier run
+        path.write_text(json.dumps(stale))
+        _export_only(tmp_path, decks, only='monarchs_britain')
+        assert json.loads(path.read_text())['order'] == 999
+
+    def test_only_preserves_config_path_of_the_rebuilt_deck(self, tmp_path):
+        # Regression: exporting from a git worktree stamped the worktree path in, which
+        # would strand session history keyed on the canonical path.
+        _write_poetry(tmp_path)
+        _write_monarchs(tmp_path)
+        decks = tmp_path / 'decks'
+        _export_only(tmp_path, decks)
+        path = decks / 'monarchs_britain.json'
+        stale = json.loads(path.read_text())
+        stale['config_path'] = '/canonical/checkout/configs/monarchs/britain.yaml'
+        path.write_text(json.dumps(stale))
+        _export_only(tmp_path, decks, only='monarchs_britain')
+        assert json.loads(path.read_text())['config_path'] == \
+            '/canonical/checkout/configs/monarchs/britain.yaml'
+
+    def test_only_still_refreshes_content(self, tmp_path):
+        # Identity is preserved, but items/config_hash must still update.
+        _write_poetry(tmp_path)
+        _write_monarchs(tmp_path)
+        decks = tmp_path / 'decks'
+        _export_only(tmp_path, decks)
+        path = decks / 'monarchs_britain.json'
+        stale = json.loads(path.read_text())
+        real_items = stale['items']
+        stale['items'] = ['STALE']
+        path.write_text(json.dumps(stale))
+        _export_only(tmp_path, decks, only='monarchs_britain')
+        assert json.loads(path.read_text())['items'] == real_items
+
+    def test_reset_identity_re_derives(self, tmp_path):
+        _write_poetry(tmp_path)
+        _write_monarchs(tmp_path)
+        decks = tmp_path / 'decks'
+        _export_only(tmp_path, decks)
+        path = decks / 'monarchs_britain.json'
+        stale = json.loads(path.read_text())
+        fresh_order = stale['order']
+        stale['order'] = 999
+        path.write_text(json.dumps(stale))
+        _export_only(tmp_path, decks, only='monarchs_britain', reset_identity=True)
+        assert json.loads(path.read_text())['order'] == fresh_order
+
+    def test_only_glob_matches_many(self, tmp_path):
+        _write_poetry(tmp_path, multi=True)
+        _write_monarchs(tmp_path)
+        decks = tmp_path / 'decks'
+        _export_only(tmp_path, decks)
+        written = _export_only(tmp_path, decks, only='poetry_*')
+        assert len(written) == 2 and all('poetry_' in p.name for p in written)
+
+    def test_only_skips_fetch_for_unmatched(self, tmp_path):
+        # The point of resolving order from configs alone: an unmatched deck is never fetched.
+        _write_poetry(tmp_path)
+        _write_monarchs(tmp_path)
+        decks = tmp_path / 'decks'
+        _export_only(tmp_path, decks)
+        with patch('wiki_acronyms.deck_export.fetch_text', return_value=_POEM_TEXT) as ft, \
+             patch('wiki_acronyms.deck_export.fetch_monarchs', return_value=_MONARCHS) as fm:
+            deck_export.export_decks(tmp_path, decks, only='monarchs_britain')
+        ft.assert_not_called()      # poetry not fetched
+        fm.assert_called_once()
+
+    def test_order_is_global_not_subset_relative(self, tmp_path):
+        # monarchs sort after poetry; rebuilding only monarchs must keep its global order,
+        # not renumber it to 0 as a subset-relative counter would.
+        _write_poetry(tmp_path, multi=True)   # consumes orders 0 and 1
+        _write_monarchs(tmp_path)             # order 2
+        decks = tmp_path / 'decks'
+        _export_only(tmp_path, decks)
+        assert json.loads((decks / 'monarchs_britain.json').read_text())['order'] == 2
+        _export_only(tmp_path, decks, only='monarchs_britain', reset_identity=True)
+        assert json.loads((decks / 'monarchs_britain.json').read_text())['order'] == 2
+
+    def test_filenames_stable_under_only(self, tmp_path):
+        # Uniqueness suffixes are assigned across ALL slots; filtering must not shift them.
+        _write_poetry(tmp_path, multi=True)
+        decks = tmp_path / 'decks'
+        full = sorted(p.name for p in _export_only(tmp_path, decks))
+        sub = _export_only(tmp_path, decks, only='poetry_collection_second-half')
+        assert [p.name for p in sub] == ['poetry_collection_second-half.json']
+        assert 'poetry_collection_second-half.json' in full
+
+    def test_no_private_filename_key_leaks_into_artifact(self, tmp_path):
+        _write_monarchs(tmp_path)
+        decks = tmp_path / 'decks'
+        _export_only(tmp_path, decks)
+        assert '_filename' not in json.loads((decks / 'monarchs_britain.json').read_text())

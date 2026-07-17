@@ -39,7 +39,7 @@ See [PRD.md](PRD.md) for pipeline configs, output format, and success criteria.
 | `shakespeare_cli.py` | `wiki-shakespeare` entry point. |
 | `list_parser.py` | Wikipedia wikitext → `[(year, name)]`. Unused by CLI; kept for potential future use. |
 | `wiki_api.py` | MediaWiki API client. `fetch_article_links(title)` used by coverage checker. |
-| `deck_export.py` | `wiki-export-decks` entry point — the generator→quiz boundary. Runs the generation pipeline and writes one self-contained JSON artifact per deck to `data/decks/` (`items`, `labels`, `config_hash`, …). Item strings are byte-identical to live generation, preserving deck ids and FSRS item keys (`sha256(item)[:16]`). Consumed by the `memory-quiz-app` repo. |
+| `deck_export.py` | `wiki-export-decks` entry point — the generator→quiz boundary. Runs the generation pipeline and writes one self-contained JSON artifact per deck to `data/decks/` (`items`, `labels`, `config_hash`, …). Item strings are byte-identical to live generation, preserving deck ids and FSRS item keys (`sha256(item)[:16]`). Consumed by the `memory-quiz-app` repo. **A bare run CLEARS the output dir and rebuilds everything; use `--only <glob>` to refresh a subset** (leaves others untouched/unfetched and preserves their `order`/`config_path`). |
 
 ## Award configs (31)
 
