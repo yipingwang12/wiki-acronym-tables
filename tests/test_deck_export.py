@@ -17,6 +17,7 @@ from unittest.mock import patch
 import pytest
 
 from wiki_acronyms import deck_export
+from wiki_acronyms.artworks import Artwork
 from wiki_acronyms.monarchs import Monarch, make_monarch_chunks
 from wiki_acronyms.poetry_parser import extract_poem
 
@@ -228,6 +229,120 @@ class TestParity:
 
 
 # --- missing artifact ---
+
+_ARTWORKS = [
+    Artwork("Q12418", "Mona Lisa", "Leonardo da Vinci", "Q762", "http://img/1.jpg", 146, 1503),
+    Artwork("Q45585", "The Starry Night", "Vincent van Gogh", "QVG", "http://img/2.jpg", 76, 1889),
+    Artwork("Q208601", "The Potato Eaters", "Vincent van Gogh", "QVG", "http://img/3.jpg", 53, 1885),
+]
+
+
+def _write_artworks(config_dir):
+    (config_dir / 'artworks').mkdir(parents=True, exist_ok=True)
+    path = config_dir / 'artworks' / 'famous.yaml'
+    path.write_text(
+        "deck_name: Famous Paintings\n"
+        "source: wikidata\n"
+        "min_sitelinks: 40\n"
+        "distractors:\n"
+        "  count: 3\n"
+    )
+    return path
+
+
+def _export_artworks(config_dir, decks_dir, only=None, arts=None, fail_qids=()):
+    """Export with the network + Pillow stubbed: fake fetch, fake per-QID image bytes."""
+    def fake_fetch_raw(url, cache_dir, key, **kw):
+        if key in fail_qids:
+            raise RuntimeError("dead image")
+        return f"raw:{key}".encode()
+
+    with patch('wiki_acronyms.deck_export.fetch_artworks', return_value=arts if arts is not None else _ARTWORKS), \
+         patch('wiki_acronyms.deck_export.fetch_raw', side_effect=fake_fetch_raw), \
+         patch('wiki_acronyms.deck_export.to_webp', side_effect=lambda raw, px: b'WEBP:' + raw):
+        return deck_export.export_decks(config_dir, decks_dir, only=only)
+
+
+class TestArtworks:
+    def test_two_cards_per_artwork_keyed_on_qid_attr(self, tmp_path):
+        cfg = _write_artworks(tmp_path)
+        decks = tmp_path / 'decks'
+        _export_artworks(tmp_path, decks)
+        a = _find(decks, cfg)
+        assert a['deck_type'] == 'artworks' and a['mode'] == 'image-mc'
+        assert a['items'] == ['Q12418|title', 'Q12418|creator',
+                              'Q45585|title', 'Q45585|creator',
+                              'Q208601|title', 'Q208601|creator']
+        assert a['group'] == 'Artworks'
+
+    def test_parallel_arrays_aligned(self, tmp_path):
+        cfg = _write_artworks(tmp_path)
+        decks = tmp_path / 'decks'
+        _export_artworks(tmp_path, decks)
+        a = _find(decks, cfg)
+        n = len(a['items'])
+        assert len(a['labels']) == len(a['prompts']) == len(a['answers']) == len(a['img']) == len(a['choices']) == n
+        assert a['prompts'][:2] == ['title', 'creator']
+        assert a['answers'][:2] == ['Mona Lisa', 'Leonardo da Vinci']
+        assert a['img'][0] == a['img'][1] == 'assets/artworks_famous/Q12418.webp'  # shared per artwork
+
+    def test_choices_include_correct_answer(self, tmp_path):
+        cfg = _write_artworks(tmp_path)
+        decks = tmp_path / 'decks'
+        _export_artworks(tmp_path, decks)
+        a = _find(decks, cfg)
+        for answer, opts in zip(a['answers'], a['choices']):
+            assert answer in opts
+
+    def test_image_assets_written(self, tmp_path):
+        _write_artworks(tmp_path)
+        decks = tmp_path / 'decks'
+        _export_artworks(tmp_path, decks)
+        asset = decks / 'assets' / 'artworks_famous' / 'Q12418.webp'
+        assert asset.read_bytes() == b'WEBP:raw:Q12418'
+
+    def test_item_keys_derived_from_qid_attr(self, tmp_path):
+        cfg = _write_artworks(tmp_path)
+        decks = tmp_path / 'decks'
+        _export_artworks(tmp_path, decks)
+        a = _find(decks, cfg)
+        assert _item_key('Q12418|title') == _item_key(a['items'][0])
+
+    def test_failed_image_skips_artwork_not_deck(self, tmp_path):
+        cfg = _write_artworks(tmp_path)
+        decks = tmp_path / 'decks'
+        _export_artworks(tmp_path, decks, fail_qids={'Q45585'})
+        a = _find(decks, cfg)
+        assert 'Q45585|title' not in a['items']          # skipped
+        assert 'Q12418|title' in a['items']              # deck still built
+        assert not (decks / 'assets' / 'artworks_famous' / 'Q45585.webp').exists()
+
+    def test_no_private_keys_leak(self, tmp_path):
+        cfg = _write_artworks(tmp_path)
+        decks = tmp_path / 'decks'
+        _export_artworks(tmp_path, decks)
+        a = _find(decks, cfg)
+        assert '_assets' not in a and '_filename' not in a
+
+    def test_full_export_clears_stale_assets(self, tmp_path):
+        _write_artworks(tmp_path)
+        decks = tmp_path / 'decks'
+        stale = decks / 'assets' / 'artworks_famous' / 'ZZZ.webp'
+        stale.parent.mkdir(parents=True)
+        stale.write_bytes(b'old')
+        _export_artworks(tmp_path, decks)
+        assert not stale.exists()                          # cleared on full rebuild
+        assert (decks / 'assets' / 'artworks_famous' / 'Q12418.webp').exists()
+
+    def test_only_refresh_rebuilds_just_this_decks_assets(self, tmp_path):
+        _write_artworks(tmp_path)
+        decks = tmp_path / 'decks'
+        _export_artworks(tmp_path, decks, arts=_ARTWORKS)
+        # drop one artwork, refresh only this deck → its removed asset must not linger
+        _export_artworks(tmp_path, decks, only='artworks_famous', arts=_ARTWORKS[:1])
+        assert (decks / 'assets' / 'artworks_famous' / 'Q12418.webp').exists()
+        assert not (decks / 'assets' / 'artworks_famous' / 'Q45585.webp').exists()
+
 
 def test_missing_artifact_raises(tmp_path):
     decks = tmp_path / 'decks'

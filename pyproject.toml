@@ -10,6 +10,7 @@ dependencies = [
     "requests",
     "openpyxl",
     "pyyaml",
+    "pillow",
 ]
 
 [project.optional-dependencies]
@@ -19,6 +20,7 @@ dev = ["pytest"]
 wiki-acronym-tables = "wiki_acronyms.cli:main"
 wiki-poetry = "wiki_acronyms.poetry_cli:main"
 wiki-monarchs = "wiki_acronyms.monarchs_cli:main"
+wiki-artworks = "wiki_acronyms.artworks_cli:main"
 wiki-export-decks = "wiki_acronyms.deck_export:main"
 wiki-shakespeare = "wiki_acronyms.shakespeare_cli:main"
 wiki-monologue-archive = "wiki_acronyms.monologue_archive_cli:main"
