@@ -153,6 +153,19 @@ class TestSchema:
         _export(tmp_path, decks)
         assert not (decks / 'stale.json').exists()
 
+    def test_full_export_preserves_manual_artifacts(self, tmp_path):
+        # A hand-authored source:manual deck (e.g. the CC-CEDICT vocab deck) has no
+        # generator config to rebuild from, so the authoritative clear must not wipe it.
+        decks = tmp_path / 'decks'
+        decks.mkdir()
+        manual = decks / 'vocab_chinese_common.json'
+        manual.write_text('{"source": "manual", "items": ["你好"]}', encoding='utf-8')
+        (decks / 'stale.json').write_text('{}')
+        _write_poetry(tmp_path)
+        _export(tmp_path, decks)
+        assert manual.exists()
+        assert not (decks / 'stale.json').exists()      # generated stale still cleared
+
 
 # --- config hash continuity ---
 

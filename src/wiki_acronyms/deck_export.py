@@ -177,14 +177,28 @@ def _slot_selected(s: _Slot, only: str | None) -> bool:
     return only is None or fnmatch(s.filename.removesuffix('.json'), only)
 
 
+def _is_manual(path: Path) -> bool:
+    """True if ``path`` is a hand-authored artifact this generator does not produce
+    (``source: manual`` — e.g. the CC-CEDICT vocab deck). A full export clears the
+    output dir, but these have no generator config to rebuild from, so wiping them
+    would delete committed content. Unreadable/malformed files are treated as
+    generated (cleared for an authoritative rebuild)."""
+    try:
+        return json.loads(path.read_text(encoding='utf-8')).get('source') == 'manual'
+    except (OSError, ValueError):
+        return False
+
+
 def export_decks(config_dir: Path = DEFAULT_CONFIG_DIR,
                  decks_dir: Path = DEFAULT_DECKS_DIR,
                  only: str | None = None,
                  reset_identity: bool = False) -> list[Path]:
     """Write deck artifacts to ``decks_dir`` and return their paths.
 
-    A full export (``only=None``) clears ``decks_dir`` first — a rebuild is authoritative.
-    With ``only``, nothing is cleared and only matching decks are overwritten; their
+    A full export (``only=None``) clears ``decks_dir`` first — a rebuild is authoritative
+    — but preserves hand-authored ``source: manual`` artifacts (see ``_is_manual``), which
+    have no generator config to rebuild from. With ``only``, nothing is cleared and only
+    matching decks are overwritten; their
     ``order`` and ``config_path`` are taken from the existing artifact when one is present.
     Those two fields are IDENTITY, not content: ``config_path`` keys the quiz's sessions
     table (`WHERE config_path=?`) and its artifact lookup, and ``order`` drives deck-list
@@ -197,7 +211,8 @@ def export_decks(config_dir: Path = DEFAULT_CONFIG_DIR,
     decks_dir.mkdir(parents=True, exist_ok=True)
     if only is None:
         for stale in decks_dir.glob('*.json'):
-            stale.unlink()
+            if not _is_manual(stale):
+                stale.unlink()
 
     artifacts = build_deck_artifacts(config_dir, only=only)
     written: list[Path] = []
@@ -220,7 +235,8 @@ def main(argv=None) -> None:
     p.add_argument('--only', default=None, metavar='GLOB',
                    help="Only rebuild decks whose artifact name matches (e.g. 'monarchs_britain', "
                         "'monarchs_*'). Others are left untouched and not fetched. Without it, "
-                        "the output directory is CLEARED and every deck rebuilt.")
+                        "the output directory is CLEARED and every deck rebuilt "
+                        "(hand-authored source:manual artifacts are preserved).")
     p.add_argument('--reset-identity', action='store_true',
                    help="With --only, re-derive order/config_path instead of preserving the "
                         "existing artifact's. Strands session history keyed on config_path.")
