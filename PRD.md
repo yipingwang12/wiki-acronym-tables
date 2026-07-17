@@ -125,6 +125,12 @@ There is **no mechanism to correct a ruler's accession/end year directly**; corr
 - Filters out external `list-group-item active` links that share the same CSS class as internal entries
 - Core config (`configs/monologue_archive/core_playwrights.yaml`): Christopher Marlowe, Ben Jonson — 23 passages, 850 lines
 
+### 6. Famous Artworks (`wiki-artworks`) — *in design*
+- Source: Wikidata SPARQL — `instance of painting (Q3305213)` with creator (P170) + image (P18), ranked by `wikibase:sitelinks` (fame proxy); `min_sitelinks`/`limit` knob, plus curated-QID and collection (P195) source modes. Survey (2026-07-17): 381,330 paintings have creator+image; ~104 at ≥30 sitelinks, ~1,533 at ≥10.
+- Output: unlike the xlsx pipelines, emits **directly to the quiz artifact seam** — an expanded two-card-per-artwork deck (`data/decks/*.json`, `items` = `<QID>|title` / `<QID>|creator`) plus downsized **WebP image files** under `data/decks/assets/<deck>/`, and **baked multiple-choice distractors**. Consumed by `memory-quiz-app`'s `image-mc` mode.
+- Key stability: item strings are `<QID>|attr`, so re-fetching an image or a corrected label never strands FSRS history (contrast monarch digits). Image licensing (drop non-free) is the main open risk.
+- See [`docs/design/artworks-pipeline.md`](docs/design/artworks-pipeline.md) and the quiz's [`artwork-mc-mode.md`](../memory-quiz-app/docs/design/artwork-mc-mode.md).
+
 ## Output
 Excel `.xlsx` workbook, two sheets:
 - Detail sheet — one row per entry with initials and chunk acronym highlighted on first row of each chunk
