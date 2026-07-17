@@ -19,8 +19,13 @@ from dataclasses import dataclass
 from fnmatch import fnmatch
 from pathlib import Path
 
+import sys
+
 import yaml
 
+from .artwork_images import fetch_raw, to_webp
+from .artworks import fetch_artworks
+from .distractors import build_choices
 from .gutenberg import fetch_text
 from .monarchs import (
     correction_years, fetch_monarchs, filter_by_accession, make_monarch_chunks, parse_corrections,
@@ -30,10 +35,12 @@ from .poetry_parser import extract_poem
 _ROOT = Path(__file__).resolve().parent.parent.parent
 DEFAULT_CONFIG_DIR = _ROOT / 'configs'
 DEFAULT_DECKS_DIR = _ROOT / 'data' / 'decks'
+CACHE_DIR = _ROOT / 'cache' / 'artworks'
 
 # Monarch decks come from separate per-realm configs but share one collapsible menu
 # group in the quiz (like poetry's collection_title). Overridable per-config via `group:`.
 _MONARCH_GROUP = 'Monarchs'
+_ARTWORK_GROUP = 'Artworks'
 
 
 def config_hash(path: Path) -> str:
@@ -80,6 +87,10 @@ def _discover_slots(config_dir: Path) -> list[_Slot]:
     for yaml_path in sorted(Path(config_dir).glob('monarchs/*.yaml')):
         cfg = yaml.safe_load(yaml_path.read_text())
         slots.append(_Slot(order, 'monarchs', yaml_path, None, cfg.get('group', _MONARCH_GROUP)))
+        order += 1
+    for yaml_path in sorted(Path(config_dir).glob('artworks/*.yaml')):
+        cfg = yaml.safe_load(yaml_path.read_text())
+        slots.append(_Slot(order, 'artworks', yaml_path, None, cfg.get('group', _ARTWORK_GROUP)))
         order += 1
 
     per_config: dict[Path, int] = {}
@@ -169,8 +180,71 @@ def build_deck_artifacts(config_dir: Path, only: str | None = None) -> list[dict
             '_filename': s.filename,
         })
 
+    for s in wanted:
+        if s.deck_type != 'artworks':
+            continue
+        artifacts.append(_build_artwork_deck(s))
+
     artifacts.sort(key=lambda a: a['order'])
     return artifacts
+
+
+def _build_artwork_deck(s: _Slot) -> dict:
+    """Fetch metadata + images and expand to a two-card-per-artwork artifact.
+
+    Each artwork becomes two FSRS cards — ``<QID>|title`` and ``<QID>|creator`` — keyed on
+    the QID, not the answer text, so a corrected label or a re-fetched image never strands
+    history. Images are downsized to WebP under ``assets/<deck>/<QID>.webp`` (attached as
+    ``_assets`` for ``export_decks`` to write beside the JSON). An artwork whose image can't
+    be fetched is skipped (warned), not fatal.
+    """
+    cfg = yaml.safe_load(s.yaml_path.read_text())
+    title = cfg.get('deck_name', s.yaml_path.stem)
+    dcfg = cfg.get('distractors') or {}
+    count, bias = dcfg.get('count', 4), dcfg.get('same_creator_bias', True)
+    px = cfg.get('image_px', 480)
+    deck_stem = s.filename.removesuffix('.json')
+
+    arts = fetch_artworks(cfg)
+    choices = {'title': build_choices(arts, 'title', count, bias),
+               'creator': build_choices(arts, 'creator', count, bias)}
+
+    items, labels, prompts, answers, imgs, opts = [], [], [], [], [], []
+    assets: dict[str, bytes] = {}
+    for a in arts:
+        rel = f'assets/{deck_stem}/{a.qid}.webp'
+        try:
+            assets[rel] = to_webp(fetch_raw(a.image_url, CACHE_DIR, a.qid), px)
+        except Exception as e:  # dead/oversized image — skip this artwork, keep the deck
+            print(f'  ! {a.qid} ({a.title}): image fetch failed ({e}); skipped', file=sys.stderr)
+            continue
+        for attr in ('title', 'creator'):
+            items.append(f'{a.qid}|{attr}')
+            labels.append(f'{a.title} — {attr}')
+            prompts.append(attr)
+            answers.append(getattr(a, attr))
+            imgs.append(rel)
+            opts.append(choices[attr][a.qid])
+
+    return {
+        'order': s.order,
+        'name': title,
+        'deck_type': 'artworks',
+        'mode': 'image-mc',
+        'title': title,
+        'items': items,
+        'labels': labels,
+        'prompts': prompts,
+        'answers': answers,
+        'img': imgs,
+        'choices': opts,
+        'group': s.group,
+        'poem_title': None,
+        'config_path': str(s.yaml_path),
+        'config_hash': config_hash(s.yaml_path),
+        '_assets': assets,
+        '_filename': s.filename,
+    }
 
 
 def _slot_selected(s: _Slot, only: str | None) -> bool:
@@ -209,23 +283,46 @@ def export_decks(config_dir: Path = DEFAULT_CONFIG_DIR,
     """
     decks_dir = Path(decks_dir)
     decks_dir.mkdir(parents=True, exist_ok=True)
-    if only is None:
+    if only is None:  # full rebuild is authoritative: drop stale JSON *and* image assets
         for stale in decks_dir.glob('*.json'):
             if not _is_manual(stale):
                 stale.unlink()
+        _rmtree(decks_dir / 'assets')
 
     artifacts = build_deck_artifacts(config_dir, only=only)
     written: list[Path] = []
     for a in artifacts:
         a = dict(a)
         path = decks_dir / a.pop('_filename')
+        assets = a.pop('_assets', None)
         if only is not None and not reset_identity and path.exists():
             prev = json.loads(path.read_text(encoding='utf-8'))
             a['order'] = prev.get('order', a['order'])
             a['config_path'] = prev.get('config_path', a['config_path'])
+        if assets is not None:
+            _write_assets(decks_dir, deck_stem=path.stem, assets=assets)
         path.write_text(json.dumps(a, ensure_ascii=False, indent=2) + '\n', encoding='utf-8')
         written.append(path)
     return written
+
+
+def _rmtree(path: Path) -> None:
+    for child in sorted(path.glob('**/*'), reverse=True):
+        child.unlink() if child.is_file() else child.rmdir()
+    if path.exists():
+        path.rmdir()
+
+
+def _write_assets(decks_dir: Path, deck_stem: str, assets: dict[str, bytes]) -> None:
+    """Replace this deck's asset subfolder wholesale so dropped artworks don't linger.
+
+    Rebuilt in lockstep with the JSON on both a full run and an ``--only`` refresh — the
+    ``img`` paths in the artifact are relative to ``decks_dir``."""
+    _rmtree(decks_dir / 'assets' / deck_stem)
+    for rel, data in assets.items():
+        dest = decks_dir / rel
+        dest.parent.mkdir(parents=True, exist_ok=True)
+        dest.write_bytes(data)
 
 
 def main(argv=None) -> None:

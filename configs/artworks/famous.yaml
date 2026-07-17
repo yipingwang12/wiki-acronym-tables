@@ -1,0 +1,23 @@
+# Famous paintings → image + multiple-choice deck (quiz mode `image-mc`).
+# See docs/design/artworks-pipeline.md. Export with:  wiki-export-decks --only 'artworks_*'
+# Preview the resolved set without downloading images:  wiki-artworks --config <this>
+
+deck_name: "Famous Paintings"
+group: "Artworks"
+
+source: wikidata            # wikidata | curated | collection
+instance_of: [Q3305213]     # painting
+min_sitelinks: 40           # fame threshold (# of Wikipedias); 40 ≈ ~20 iconic, fast query
+limit: 30                   # cap the deck; raise both to grow toward the deep catalog
+
+image_px: 480               # longest side of the downsized WebP (~25 KB each)
+distractors:
+  count: 4
+  same_creator_bias: true   # title distractors prefer same-creator / same-era works
+
+# --- alternative source modes (uncomment one, drop the wikidata knobs above) ---
+# source: curated
+# works: [Q12418, Q45585]           # explicit QIDs
+#
+# source: collection
+# collection: Q19675                # every P195 work in a collection (e.g. the Louvre)
