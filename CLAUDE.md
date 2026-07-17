@@ -26,7 +26,7 @@ See [PRD.md](PRD.md) for pipeline configs, output format, and success criteria.
 | `gutenberg.py` | HTTP fetch + cache in `cache/gutenberg/`. |
 | `folger.py` | Folger Digital Texts API; caches HTML under `cache/folger/`. |
 | `poetry_parser.py` | `extract_poem(text, start_marker, end_marker)` → `list[str \| None]`. `None` = blank line. |
-| `monarchs.py` | `fetch_monarchs` (includes `wp_title` sitelink), `make_monarch_chunks`; deduplicates by person Q-number. |
+| `monarchs.py` | `fetch_monarchs` (includes `wp_title` sitelink + `accession_precision`), `make_monarch_chunks`; deduplicates by person Q-number. `parse_corrections`/`correction_years` read the config's sourced `corrections:` block; `stale_corrections` reports ones upstream has made redundant; `report_imprecise_dates` flags sub-year-precision dates (documentation only — digits unaffected). |
 | `country_registry.py` | `fetch_country_registry` via Wikidata P1906 → `CountryEntry` list; `save_registry`/`load_registry` YAML I/O. |
 | `coverage.py` | `check_coverage`: compares Wikidata monarch sitelinks against Wikipedia list article links; returns `CoverageReport`. |
 | `derive_positions.py` | `load_ruler_titles` filters xlsx/csv by occupation keywords; `fetch_positions_for_titles` batch-queries Wikidata P39 to rank position Q-IDs by holder count. |
@@ -51,7 +51,8 @@ See [PRD.md](PRD.md) for pipeline configs, output format, and success criteria.
 
 ## Key implementation notes
 
-- Wikidata gap-fill for monarchs: when a monarch's end year ≠ next accession year, end year is inserted as fallback event (corrects known Wikidata lag)
+- Monarch transition years: every accession year, plus any end year that is not itself an accession year (throne didn't pass directly to a successor) — covers Wikidata coronation-lag, interregnum starts, and dynasty terminal years
+- Monarch config corrections (`corrections:`) require `reason` + `source`; add is idempotent so an upstream Wikidata fix can't double a digit. `accession_precision` is recorded and warned on but never affects digits — see PRD
 - Monarch coverage workflow: (1) `wiki-registry-generate` → `country_registry.yaml`; (2) add `wikipedia_list` field to config; (3) `wiki-coverage-check --config <yaml>` reports gaps; (4) `wiki-derive-positions --input politicians_rulers.xlsx` suggests position Q-IDs for historical polities not covered by P1906
 - `Monarch.wp_title` is fetched via SPARQL sitelinks (`schema:isPartOf <https://en.wikipedia.org/>`); used as join key by coverage checker
 - Folger API responses cached under `cache/folger/`; segments under `cache/folger/segments/`

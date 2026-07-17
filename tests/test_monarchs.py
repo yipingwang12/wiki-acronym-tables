@@ -3,7 +3,8 @@ from unittest.mock import patch
 import pytest
 
 from wiki_acronyms.monarchs import (
-    Monarch, MonarchChunk, fetch_monarchs, filter_by_accession, make_monarch_chunks,
+    Correction, Monarch, MonarchChunk, correction_years, fetch_monarchs, filter_by_accession,
+    make_monarch_chunks, parse_corrections, report_imprecise_dates, stale_corrections,
 )
 
 _SAMPLE_BINDINGS = [
@@ -415,3 +416,146 @@ def test_monarchs_summary_sheet(tmp_path):
     assert len(rows) == 3  # header + 2 chunks
     assert rows[1][1] == "19"
     assert rows[2][1] == "6"
+
+
+# --- add idempotency: a correction must not double a year Wikidata already supplies ---
+def test_add_is_idempotent_when_year_already_present():
+    # The regression this guards: if Wikidata later fixes Puyi's end to 1912, a config still
+    # carrying add:[1912] must not emit the digit twice.
+    monarchs = _monarchs_with_ends((1908, 1912, "Puyi"))
+    chunks = make_monarch_chunks(monarchs, 100, 1900, add_transition_years=[1912])
+    assert chunks[0].transition_string == "82"   # 1908, 1912 — not "822"
+
+
+def test_add_still_inserts_when_year_absent():
+    monarchs = _monarchs_with_ends((1908, 1917, "Puyi"))
+    chunks = make_monarch_chunks(monarchs, 100, 1900,
+                                 drop_transition_years=[1917], add_transition_years=[1912])
+    assert chunks[0].transition_string == "82"
+
+
+def test_add_idempotent_against_an_accession_year():
+    monarchs = _monarchs((900, "A"), (910, "B"))
+    chunks = make_monarch_chunks(monarchs, 100, 900, add_transition_years=[910])
+    assert chunks[0].transition_string == "00"   # 910 already an accession; not tripled
+
+
+def test_same_year_accessions_still_produce_two_digits():
+    # Idempotent add must not collapse genuine duplicate transition years from the data itself.
+    monarchs = _monarchs((744, "Yazid III"), (744, "Ibrahim"))
+    assert make_monarch_chunks(monarchs, 100, 700)[0].transition_string == "44"
+
+
+# --- corrections: parsing + validation ---
+def test_parse_corrections_roundtrip():
+    cs = parse_corrections([
+        {"year": 1446, "action": "add", "reason": "restoration", "source": "List", "checked": "2026-07-16"},
+        {"year": 1917, "action": "drop", "reason": "artifact", "source": "List"},
+    ])
+    assert cs == [
+        Correction(1446, "add", "restoration", "List", "2026-07-16"),
+        Correction(1917, "drop", "artifact", "List", ""),
+    ]
+
+
+def test_parse_corrections_empty():
+    assert parse_corrections(None) == []
+    assert parse_corrections([]) == []
+
+
+@pytest.mark.parametrize("entry,missing", [
+    ({"action": "add", "reason": "r", "source": "s"}, "year"),
+    ({"year": 1, "reason": "r", "source": "s"}, "action"),
+    ({"year": 1, "action": "add", "source": "s"}, "reason"),
+    ({"year": 1, "action": "add", "reason": "r"}, "source"),
+])
+def test_parse_corrections_requires_provenance(entry, missing):
+    with pytest.raises(ValueError, match=missing):
+        parse_corrections([entry])
+
+
+def test_parse_corrections_rejects_bad_action():
+    with pytest.raises(ValueError, match="action"):
+        parse_corrections([{"year": 1, "action": "delete", "reason": "r", "source": "s"}])
+
+
+def test_correction_years_splits_by_action():
+    cs = parse_corrections([
+        {"year": 1501, "action": "add", "reason": "r", "source": "s"},
+        {"year": 1502, "action": "drop", "reason": "r", "source": "s"},
+        {"year": 1729, "action": "drop", "reason": "r", "source": "s"},
+    ])
+    assert correction_years(cs) == ([1501], [1502, 1729])
+
+
+# --- stale corrections: the point is to notice when upstream catches up ---
+def test_stale_add_reported_when_wikidata_supplies_year():
+    monarchs = _monarchs_with_ends((1908, 1912, "Puyi"))
+    cs = [Correction(1912, "add", "r", "s")]
+    assert "add 1912" in stale_corrections(monarchs, cs)[0]
+
+
+def test_stale_drop_reported_when_year_gone():
+    monarchs = _monarchs_with_ends((1908, 1912, "Puyi"))
+    cs = [Correction(1917, "drop", "r", "s")]
+    assert "drop 1917" in stale_corrections(monarchs, cs)[0]
+
+
+def test_live_corrections_not_reported_stale():
+    monarchs = _monarchs_with_ends((1908, 1917, "Puyi"))
+    cs = [Correction(1917, "drop", "r", "s"), Correction(1912, "add", "r", "s")]
+    assert stale_corrections(monarchs, cs) == []
+
+
+# --- timePrecision: recorded, reported, but must NOT touch digit extraction ---
+def test_report_imprecise_dates_flags_sub_year_precision():
+    ms = [Monarch(name="Sigfred", accession_year=770, end_year=800, father="", mother="",
+                  accession_precision=8)]
+    notes = report_imprecise_dates(ms)
+    assert len(notes) == 1 and "Sigfred" in notes[0] and "decade" in notes[0]
+
+
+def test_report_imprecise_dates_silent_on_year_precision():
+    ms = [Monarch(name="Alfred", accession_year=871, end_year=899, father="", mother="",
+                  accession_precision=9),
+          Monarch(name="Unknown", accession_year=900, end_year=None, father="", mother="",
+                  accession_precision=None)]
+    assert report_imprecise_dates(ms) == []
+
+
+def test_precision_does_not_change_digits():
+    # The explicit contract: a decade-precision accession still yields its literal last digit,
+    # so decks are byte-identical to before the field existed.
+    loose = [Monarch(name="Sigfred", accession_year=770, end_year=800, father="", mother="",
+                     accession_precision=7)]
+    exact = [Monarch(name="Sigfred", accession_year=770, end_year=800, father="", mother="",
+                     accession_precision=11)]
+    assert (make_monarch_chunks(loose, 100, 700)[0].transition_string
+            == make_monarch_chunks(exact, 100, 700)[0].transition_string == "0")
+
+
+def test_fetch_parses_precision_and_keeps_it_with_winning_year():
+    # Dedup keeps the EARLIEST accession; precision must follow that year, not the last row seen.
+    bindings = [
+        {"person": {"value": "http://www.wikidata.org/entity/Q1"}, "personLabel": {"value": "Stephen"},
+         "start": {"value": "1141-01-01T00:00:00Z"}, "startPrec": {"value": "11"}},
+        {"person": {"value": "http://www.wikidata.org/entity/Q1"}, "personLabel": {"value": "Stephen"},
+         "start": {"value": "1135-01-01T00:00:00Z"}, "startPrec": {"value": "8"}},
+    ]
+    with patch("wiki_acronyms.monarchs._sparql_session", return_value=bindings):
+        got = fetch_monarchs(["Q1"])
+    assert got[0].accession_year == 1135
+    assert got[0].accession_precision == 8   # the 1135 row's precision, not 1141's
+
+
+def test_fetch_precision_absent_is_none():
+    bindings = [{"person": {"value": "http://www.wikidata.org/entity/Q1"},
+                 "personLabel": {"value": "X"}, "start": {"value": "1000-01-01T00:00:00Z"}}]
+    with patch("wiki_acronyms.monarchs._sparql_session", return_value=bindings):
+        assert fetch_monarchs(["Q1"])[0].accession_precision is None
+
+
+def test_fetch_query_requests_precision():
+    with patch("wiki_acronyms.monarchs._sparql_session", return_value=[]) as mock:
+        fetch_monarchs(["Q1"])
+    assert "wikibase:timePrecision" in mock.call_args[0][1]
