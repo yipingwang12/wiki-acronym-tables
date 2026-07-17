@@ -31,6 +31,10 @@ _ROOT = Path(__file__).resolve().parent.parent.parent
 DEFAULT_CONFIG_DIR = _ROOT / 'configs'
 DEFAULT_DECKS_DIR = _ROOT / 'data' / 'decks'
 
+# Monarch decks come from separate per-realm configs but share one collapsible menu
+# group in the quiz (like poetry's collection_title). Overridable per-config via `group:`.
+_MONARCH_GROUP = 'Monarchs'
+
 
 def config_hash(path: Path) -> str:
     """Session ``cfg_hash`` carried into each artifact — sha256 of the config bytes.
@@ -74,7 +78,8 @@ def _discover_slots(config_dir: Path) -> list[_Slot]:
             slots.append(_Slot(order, 'poetry', yaml_path, pc, group))
             order += 1
     for yaml_path in sorted(Path(config_dir).glob('monarchs/*.yaml')):
-        slots.append(_Slot(order, 'monarchs', yaml_path, None, None))
+        cfg = yaml.safe_load(yaml_path.read_text())
+        slots.append(_Slot(order, 'monarchs', yaml_path, None, cfg.get('group', _MONARCH_GROUP)))
         order += 1
 
     per_config: dict[Path, int] = {}
@@ -157,7 +162,7 @@ def build_deck_artifacts(config_dir: Path, only: str | None = None) -> list[dict
             'title': title,
             'items': [c.transition_string for c in chunks],
             'labels': [f"{c.start_year}–{c.end_year}" for c in chunks],
-            'group': None,
+            'group': s.group,
             'poem_title': None,
             'config_path': str(s.yaml_path),
             'config_hash': config_hash(s.yaml_path),

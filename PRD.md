@@ -67,6 +67,7 @@ Collection config: top-level `collection_title` + `poems` list, each with `poem_
 | `chunk_years` | no | 100 | Years per chunk |
 | `chunk_start_year` | no | earliest accession year | First year of first chunk |
 | `wikipedia_list` | no | — | Article title used by `wiki-coverage-check` and date cross-checks |
+| `group` | no | `Monarchs` | Collapsible menu group in the quiz; all monarch decks share one "Monarchs" group by default (like poetry's `collection_title`), override to sub-group |
 
 ##### `corrections:` — sourced overrides
 
