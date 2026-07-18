@@ -219,6 +219,8 @@ def _build_artwork_deck(s: _Slot) -> dict:
             print(f'  ! {a.qid} ({a.title}): image fetch failed ({e}); skipped', file=sys.stderr)
             continue
         for attr in ('title', 'creator'):
+            if attr == 'creator' and not a.creator:
+                continue  # anonymous work → title-only card (no impossible creator card)
             items.append(f'{a.qid}|{attr}')
             labels.append(f'{a.title} — {attr}')
             prompts.append(attr)

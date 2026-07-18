@@ -86,9 +86,12 @@ def _qid(uri: str) -> str:
     return uri.rsplit("/", 1)[-1]
 
 
-def _is_unlabelled(value: str) -> bool:
-    """Wikidata falls back to the bare Q-number when no English label exists."""
-    return value.startswith("Q") and value[1:].isdigit()
+def _is_unresolved(value: str) -> bool:
+    """A label that never resolved to a real name. Wikidata falls back to the bare
+    Q-number when no English label exists, and an 'unknown value' / 'no value' P170
+    statement (an explicitly anonymous work) surfaces as a blank-node or entity URI
+    (``http://www.wikidata.org/.well-known/genid/…``)."""
+    return value.startswith("http") or (value.startswith("Q") and value[1:].isdigit())
 
 
 def _year(iso: str | None) -> int | None:
@@ -104,8 +107,9 @@ def fetch_artworks(config: dict, sparql_url: str = _SPARQL_URL) -> list[Artwork]
     """Fetch artworks for a config, deduplicated by QID (highest-fame row wins).
 
     A work with several P18 images or P170 creators yields multiple SPARQL rows; the first
-    seen (already sorted by descending sitelinks) is kept. Rows whose title or creator is an
-    unlabelled Q-number are dropped — an unusable card.
+    seen (already sorted by descending sitelinks) is kept. A row without a usable title or
+    image is dropped; a row whose *creator* is unresolved (an anonymous work) is kept with an
+    empty creator, so the export emits it as a title-only card (no impossible creator card).
     """
     bindings = _sparql_session(sparql_url, build_query(config))
     seen: set[str] = set()
@@ -117,14 +121,17 @@ def fetch_artworks(config: dict, sparql_url: str = _SPARQL_URL) -> list[Artwork]
         title = b.get("workLabel", {}).get("value", "")
         creator = b.get("creatorLabel", {}).get("value", "")
         img = b.get("img", {}).get("value", "")
-        if not title or not creator or not img or _is_unlabelled(title) or _is_unlabelled(creator):
-            continue
+        if not title or not img or _is_unresolved(title):
+            continue  # a card needs a real title and an image
+        creator_qid = _qid(b["creator"]["value"]) if b.get("creator") else ""
+        if not creator or _is_unresolved(creator):
+            creator = creator_qid = ""  # anonymous → title-only downstream
         seen.add(qid)
         out.append(Artwork(
             qid=qid,
             title=title,
             creator=creator,
-            creator_qid=_qid(b["creator"]["value"]),
+            creator_qid=creator_qid,
             image_url=img,
             sitelinks=int(b.get("sitelinks", {}).get("value", 0)),
             inception=_year(b.get("inception", {}).get("value")),

@@ -42,7 +42,7 @@ def _options_for(art: Artwork, others: list[Artwork], attr: str, count: int,
     distractors: list[str] = []
     for o in ranked:
         value = getattr(o, attr)
-        if value == correct or value in distractors:  # dedup by displayed value
+        if not value or value == correct or value in distractors:  # skip empty (anon) + dedup
             continue
         distractors.append(value)
         if len(distractors) == count - 1:
@@ -56,12 +56,13 @@ def build_choices(artworks: list[Artwork], attr: str, count: int = 4,
                   same_creator_bias: bool = True) -> dict[str, list[str]]:
     """Map each artwork's QID → its shuffled option list (correct answer included).
 
-    ``attr`` is ``"title"`` or ``"creator"``. When the deck is too small to supply
-    ``count - 1`` distinct distractors, the option list is shorter (never padded with
-    duplicates). The correct answer is always present exactly once.
+    ``attr`` is ``"title"`` or ``"creator"``. Artworks with an empty ``attr`` (an anonymous
+    work has no ``creator``) get no option list and are never offered as a distractor. When
+    the deck is too small to supply ``count - 1`` distinct distractors, the option list is
+    shorter (never padded with duplicates). The correct answer is always present exactly once.
     """
     return {
         art.qid: _options_for(art, [o for o in artworks if o.qid != art.qid],
                               attr, count, same_creator_bias)
-        for art in artworks
+        for art in artworks if getattr(art, attr)
     }

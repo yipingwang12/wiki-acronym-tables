@@ -52,3 +52,13 @@ class TestBuildChoices:
         # Q4's correct title is "Mona Lisa"; Q5 shares it → must not appear as a distractor
         opts = build_choices(deck, "title", count=4)["Q4"]
         assert opts.count("Mona Lisa") == 1
+
+    def test_anonymous_work_excluded_from_creator_choices(self):
+        # An anonymous work (empty creator) gets no creator option list and is never a
+        # creator distractor for others — no blank/URL option leaks in.
+        deck = _DECK + [_art("Q9", "Theotokos of Vladimir", "", "")]
+        creator_choices = build_choices(deck, "creator", count=4)
+        assert "Q9" not in creator_choices                       # no impossible creator card
+        assert all("" not in opts for opts in creator_choices.values())
+        # …but its title card is unaffected.
+        assert "Q9" in build_choices(deck, "title", count=4)

@@ -50,13 +50,29 @@ class TestFetch:
         ])
         assert len(arts) == 1 and arts[0].image_url == "http://img/a.jpg"
 
-    def test_skips_unlabelled_title_or_creator(self):
+    def test_drops_unlabelled_title_keeps_unlabelled_creator_as_anon(self):
         arts = _fetch([
-            _binding("Q1", "Q999999", "Q762", "Leonardo"),      # title fell back to Q-number
-            _binding("Q2", "Real Title", "Q5", "Q888888"),      # creator fell back to Q-number
+            _binding("Q1", "Q999999", "Q762", "Leonardo"),      # title = Q-number → drop the work
+            _binding("Q2", "Real Title", "Q5", "Q888888"),      # creator = Q-number → keep, anon
             _binding("Q3", "Good", "Q7", "Real Painter"),
         ])
-        assert [a.qid for a in arts] == ["Q3"]
+        assert [a.qid for a in arts] == ["Q2", "Q3"]
+        anon = next(a for a in arts if a.qid == "Q2")
+        assert anon.creator == "" and anon.creator_qid == ""
+
+    def test_unknown_value_creator_kept_as_anonymous(self):
+        # Wikidata 'unknown value' P170 → a blank-node genid URI in both creator + creatorLabel.
+        b = _binding("Q546241", "Theotokos of Vladimir", "x", "x")
+        genid = "http://www.wikidata.org/.well-known/genid/8ae9eff5d369995d380e8b3a3c59c98e"
+        b["creator"]["value"] = genid
+        b["creatorLabel"]["value"] = genid
+        arts = _fetch([b])
+        assert len(arts) == 1
+        assert arts[0].title == "Theotokos of Vladimir" and arts[0].creator == ""
+
+    def test_drops_work_whose_title_is_a_uri(self):
+        b = _binding("Q1", "http://www.wikidata.org/.well-known/genid/deadbeef", "Q2", "C")
+        assert _fetch([b]) == []
 
     def test_skips_missing_image(self):
         b = _binding("Q1", "T", "Q2", "C")

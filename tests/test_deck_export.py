@@ -294,6 +294,20 @@ class TestArtworks:
         for answer, opts in zip(a['answers'], a['choices']):
             assert answer in opts
 
+    def test_anonymous_work_emits_title_only_and_never_pollutes_choices(self, tmp_path):
+        # An anonymous work (empty creator, as fetch_artworks now yields for 'unknown value')
+        # gets a title card but NO creator card, and its blank creator never leaks as an option.
+        arts = list(_ARTWORKS) + [
+            Artwork("Q546241", "Theotokos of Vladimir", "", "", "http://img/ic.jpg", 40, 1130)]
+        cfg = _write_artworks(tmp_path)
+        decks = tmp_path / 'decks'
+        _export_artworks(tmp_path, decks, arts=arts)
+        a = _find(decks, cfg)
+        assert "Q546241|title" in a['items']
+        assert "Q546241|creator" not in a['items']          # title-only
+        assert "" not in a['answers']                        # no blank answer
+        assert all("" not in opts for opts in a['choices'])  # no blank distractor anywhere
+
     def test_image_assets_written(self, tmp_path):
         _write_artworks(tmp_path)
         decks = tmp_path / 'decks'
