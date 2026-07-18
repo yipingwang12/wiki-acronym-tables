@@ -13,6 +13,7 @@ See [PRD.md](PRD.md) for pipeline configs, output format, and success criteria.
 | `wiki-acronym-tables` | Wikidata SPARQL | Year-chunked laureate initials |
 | `wiki-poetry` | Project Gutenberg | Per-line acronyms |
 | `wiki-monarchs` | Wikidata SPARQL | Per-century transition-digit strings |
+| `wiki-artworks` | Wikidata SPARQL + Wikimedia Commons | Artwork title/creator/image → quiz `image-mc` deck (JSON + WebP assets) |
 | `wiki-shakespeare` | Folger Digital Texts API | YAML catalogue of monologue passages |
 
 ## Modules
@@ -27,6 +28,9 @@ See [PRD.md](PRD.md) for pipeline configs, output format, and success criteria.
 | `folger.py` | Folger Digital Texts API; caches HTML under `cache/folger/`. |
 | `poetry_parser.py` | `extract_poem(text, start_marker, end_marker)` → `list[str \| None]`. `None` = blank line. |
 | `monarchs.py` | `fetch_monarchs` (includes `wp_title` sitelink + `accession_precision`), `make_monarch_chunks`; deduplicates by person Q-number. `parse_corrections`/`correction_years` read the config's sourced `corrections:` block; `stale_corrections` reports ones upstream has made redundant; `report_imprecise_dates` flags sub-year-precision dates (documentation only — digits unaffected). |
+| `artworks.py` | `fetch_artworks(config)` — Wikidata paintings by fame (`min_sitelinks`) / curated QIDs / collection (P195); dedup by QID; `build_query`. `Artwork(qid, title, creator, image_url, sitelinks, inception)`. |
+| `distractors.py` | `build_choices(artworks, attr, n, same_creator_bias)` — deterministic (QID-seeded) MC options; same-creator/era bias; no duplicate values. |
+| `artwork_images.py` | `fetch_raw` (Commons download, cached under `cache/artworks/`, UA-compliant — the CDN 403s placeholder UAs) + `to_webp` (Pillow downsize). |
 | `country_registry.py` | `fetch_country_registry` via Wikidata P1906 → `CountryEntry` list; `save_registry`/`load_registry` YAML I/O. |
 | `coverage.py` | `check_coverage`: compares Wikidata monarch sitelinks against Wikipedia list article links; returns `CoverageReport`. |
 | `derive_positions.py` | `load_ruler_titles` filters xlsx/csv by occupation keywords; `fetch_positions_for_titles` batch-queries Wikidata P39 to rank position Q-IDs by holder count. |
@@ -37,9 +41,10 @@ See [PRD.md](PRD.md) for pipeline configs, output format, and success criteria.
 | `coverage_cli.py` | `wiki-coverage-check` — takes `--config` or `--country`/`--registry`; reports rulers in Wikipedia list missing from Wikidata fetch. |
 | `derive_positions_cli.py` | `wiki-derive-positions` — takes `--input` xlsx/csv + optional `--nationality`; prints ranked position Q-IDs for adding to YAML configs. |
 | `shakespeare_cli.py` | `wiki-shakespeare` entry point. |
+| `artworks_cli.py` | `wiki-artworks` entry point — previews a config (fetch + print, no image download) by default; `--export` writes the deck artifact + WebP assets via the export seam. |
 | `list_parser.py` | Wikipedia wikitext → `[(year, name)]`. Unused by CLI; kept for potential future use. |
 | `wiki_api.py` | MediaWiki API client. `fetch_article_links(title)` used by coverage checker. |
-| `deck_export.py` | `wiki-export-decks` entry point — the generator→quiz boundary. Runs the generation pipeline and writes one self-contained JSON artifact per deck to `data/decks/` (`items`, `labels`, `config_hash`, …). Item strings are byte-identical to live generation, preserving deck ids and FSRS item keys (`sha256(item)[:16]`). Consumed by the `memory-quiz-app` repo. **A bare run CLEARS the output dir and rebuilds everything; use `--only <glob>` to refresh a subset** (leaves others untouched/unfetched and preserves their `order`/`config_path`). Hand-authored `source: manual` artifacts (e.g. the quiz's Chinese vocab deck) are **preserved through the clear** (`_is_manual`) — the generator has no config to rebuild them from. |
+| `deck_export.py` | `wiki-export-decks` entry point — the generator→quiz boundary. Runs the generation pipeline and writes one self-contained JSON artifact per deck to `data/decks/` (`items`, `labels`, `config_hash`, …). Item strings are byte-identical to live generation, preserving deck ids and FSRS item keys (`sha256(item)[:16]`). Consumed by the `memory-quiz-app` repo. **A bare run CLEARS the output dir and rebuilds everything; use `--only <glob>` to refresh a subset** (leaves others untouched/unfetched and preserves their `order`/`config_path`). Artwork decks additionally emit WebP image files under `data/decks/assets/<deck>/` (cleared/rebuilt in lockstep). Hand-authored `source: manual` artifacts (e.g. the quiz's Chinese vocab deck) are **preserved through the clear** (`_is_manual`) — the generator has no config to rebuild them from. |
 
 ## Award configs (31)
 
