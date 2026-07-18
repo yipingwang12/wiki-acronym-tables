@@ -214,7 +214,7 @@ def _build_artwork_deck(s: _Slot) -> dict:
     for a in arts:
         rel = f'assets/{deck_stem}/{a.qid}.webp'
         try:
-            assets[rel] = to_webp(fetch_raw(a.image_url, CACHE_DIR, a.qid), px)
+            assets[rel] = to_webp(fetch_raw(a.image_url, CACHE_DIR, a.qid, throttle=1.0), px)
         except Exception as e:  # dead/oversized image — skip this artwork, keep the deck
             print(f'  ! {a.qid} ({a.title}): image fetch failed ({e}); skipped', file=sys.stderr)
             continue

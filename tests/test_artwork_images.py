@@ -5,9 +5,10 @@ from __future__ import annotations
 import io
 from unittest.mock import MagicMock, Mock
 
+import requests
 from PIL import Image
 
-from wiki_acronyms.artwork_images import fetch_raw, to_webp
+from wiki_acronyms.artwork_images import _retry_wait, fetch_raw, to_webp
 
 
 def _png_bytes(w, h):
@@ -65,3 +66,34 @@ class TestFetchRaw:
         session = self._session(b"IMG")
         fetch_raw("http://x/a.jpg", tmp_path, "Q1", hint_width=800, session=session)
         assert "width=800" in session.get.call_args[0][0]
+
+    def _http_error(self, status, retry_after=None):
+        resp = Mock()
+        resp.status_code = status
+        resp.headers = {"Retry-After": retry_after} if retry_after else {}
+        return requests.HTTPError(response=resp)
+
+    def test_retries_on_429_then_succeeds(self, tmp_path, monkeypatch):
+        monkeypatch.setattr("wiki_acronyms.artwork_images.time.sleep", lambda *_: None)
+        ok = Mock(content=b"IMG", raise_for_status=Mock(return_value=None))
+        boom = Mock(raise_for_status=Mock(side_effect=self._http_error(429)))
+        session = MagicMock(headers={})
+        session.get.side_effect = [boom, boom, ok]  # two 429s, then success
+        got = fetch_raw("http://x/a.jpg", tmp_path, "Q1", session=session)
+        assert got == b"IMG" and session.get.call_count == 3
+
+    def test_raises_after_exhausting_retries(self, tmp_path, monkeypatch):
+        monkeypatch.setattr("wiki_acronyms.artwork_images.time.sleep", lambda *_: None)
+        boom = Mock(raise_for_status=Mock(side_effect=self._http_error(429)))
+        session = MagicMock(headers={})
+        session.get.return_value = boom
+        try:
+            fetch_raw("http://x/a.jpg", tmp_path, "Q1", retries=3, session=session)
+            assert False, "expected HTTPError"
+        except requests.HTTPError:
+            assert session.get.call_count == 3  # caller then skips + warns
+
+    def test_retry_after_header_honoured(self):
+        assert _retry_wait(self._http_error(429, retry_after="30"), delay=2.0) == 30.0
+        assert _retry_wait(self._http_error(429), delay=2.0) == 2.0        # no header → backoff
+        assert _retry_wait(self._http_error(503), delay=2.0) == 2.0        # non-429 → backoff

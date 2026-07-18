@@ -26,12 +26,28 @@ def _hinted(url: str, width: int) -> str:
     return f"{url}{sep}width={width}"
 
 
+def _retry_wait(exc: Exception, delay: float) -> float:
+    """Seconds to wait before the next attempt; honour a 429 ``Retry-After`` when present.
+
+    Commons rate-limits bot traffic with 429s (``reduce your request rate``); its Retry-After
+    tells us how long to wait, so respect it rather than dropping the artwork on backoff."""
+    resp = getattr(exc, "response", None)
+    if resp is not None and getattr(resp, "status_code", None) == 429:
+        ra = resp.headers.get("Retry-After", "")
+        if ra.isdigit():
+            return max(delay, float(ra))
+    return delay
+
+
 def fetch_raw(url: str, cache_dir: Path, key: str, *, hint_width: int = 1024,
-              session: requests.Session | None = None, retries: int = 3) -> bytes:
+              session: requests.Session | None = None, retries: int = 5,
+              throttle: float = 0.0) -> bytes:
     """Download (and cache under ``cache_dir/<key>.orig``) the source image bytes.
 
-    Exponential backoff on transient failures; the caller decides how to handle a raise
-    (skip + warn on a dead image rather than aborting a whole deck)."""
+    Sleeps ``throttle`` seconds before each network request to stay under Commons' bot rate
+    limit, and retries with exponential backoff (honouring a 429 ``Retry-After``) so a
+    transient rate-limit doesn't silently drop the artwork. Cache hits skip both. The caller
+    decides how to handle a final raise (skip + warn on a dead image, not abort the deck)."""
     cache_dir = Path(cache_dir)
     cache_dir.mkdir(parents=True, exist_ok=True)
     cached = cache_dir / f"{key}.orig"
@@ -40,17 +56,19 @@ def fetch_raw(url: str, cache_dir: Path, key: str, *, hint_width: int = 1024,
 
     session = session or requests.Session()
     session.headers["User-Agent"] = _UA
-    delay = 1.0
+    delay = 2.0
     for attempt in range(retries):
+        if throttle:
+            time.sleep(throttle)
         try:
             resp = session.get(_hinted(url, hint_width), timeout=30)
             resp.raise_for_status()
             cached.write_bytes(resp.content)
             return resp.content
-        except requests.RequestException:
+        except requests.RequestException as e:
             if attempt == retries - 1:
                 raise
-            time.sleep(delay)
+            time.sleep(_retry_wait(e, delay))
             delay *= 2
     raise RuntimeError("unreachable")
 
