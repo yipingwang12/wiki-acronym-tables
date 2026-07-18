@@ -7,8 +7,8 @@ group: "Artworks"
 
 source: wikidata            # wikidata | curated | collection
 instance_of: [Q3305213]     # painting
-min_sitelinks: 40           # fame threshold (# of Wikipedias); 40 ≈ ~20 iconic, fast query
-limit: 30                   # cap the deck; raise both to grow toward the deep catalog
+min_sitelinks: 20           # fame threshold (# of Wikipedias); 20 ≈ ~320 works (live count 2026-07)
+limit: 320                  # cap the deck; raise both to grow toward the deep catalog
 
 image_px: 480               # longest side of the downsized WebP (~25 KB each)
 distractors:
