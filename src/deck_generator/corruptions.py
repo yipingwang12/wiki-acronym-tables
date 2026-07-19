@@ -30,6 +30,9 @@ from .normalise import in_opaque, normalise, opaque_spans
 # Their presence means the parse is not faithful, so no verdict can be trusted.
 _MISPARSE_MARKERS = frozenset({'mathbf', 'hat', 'operatorname', 'pm', 'nabla', 'vec', 'mathrm'})
 
+# Macros whose braced argument names a function or is styled text, not variables.
+_NAME_MACROS = frozenset({'operatorname', 'mathrm', 'text', 'textbf', 'mathbf', 'mathit'})
+
 _SUP_BRACED = re.compile(r'\^\{(\d+)\}')
 _SUP_BARE = re.compile(r'\^(\d)')
 
@@ -102,8 +105,23 @@ def _variable_positions(latex: str) -> list[int]:
     while i < len(latex):
         if latex[i] == '\\':
             i += 1
+            start = i
             while i < len(latex) and latex[i].isalpha():  # consume the macro name
                 i += 1
+            # A name-carrying macro's argument is an *identifier*, not variables:
+            # corrupting the 'a' in \operatorname{Var} yields "VVr", nonsense that gives
+            # itself away. Skip the braced argument too.
+            if latex[start:i] in _NAME_MACROS and i < len(latex) and latex[i] == '{':
+                depth = 0
+                while i < len(latex):
+                    if latex[i] == '{':
+                        depth += 1
+                    elif latex[i] == '}':
+                        depth -= 1
+                        if depth == 0:
+                            i += 1
+                            break
+                    i += 1
             continue
         if latex[i].isalpha():
             out.append(i)

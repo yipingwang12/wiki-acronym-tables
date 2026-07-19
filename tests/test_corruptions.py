@@ -154,3 +154,14 @@ def test_pool_warnings_silent_on_healthy_pool():
 def test_valid_pairs_excludes_blocked():
     pool = [{'id': 'a'}, {'id': 'b'}, {'id': 'c'}]
     assert valid_pairs(pool, [['a', 'b']]) == 2
+
+
+def test_variable_swap_never_touches_an_operator_name():
+    """Corrupting the 'a' in \\operatorname{Var} yields "VVr" — nonsense that gives itself
+    away without knowing the formula. Found by driving the real deck, not by unit tests."""
+    spans = _variable_swap_spans(r'\operatorname{Var}(X) = Y')
+    assert {s.text for s in spans} == {'X', 'Y'}
+
+
+def test_variable_swap_still_works_around_name_macros():
+    assert {s.text for s in _variable_swap_spans(r'\operatorname{Var}(X) = n p')} == {'X', 'n', 'p'}
