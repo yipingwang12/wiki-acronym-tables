@@ -18,11 +18,11 @@ corruption:
 
 equations:
   - label: "Variance — definition"
-    latex: "V = E_2 - E_1^2"
+    latex: "\\operatorname{Var}(X) = E[X^2] - (E[X])^2"
     source: "Casella & Berger, 2.3"
 
   - label: "Standard error of the mean"
-    latex: "S = \\frac{s}{\\sqrt{n}}"
+    latex: "\\operatorname{SE} = \\frac{s}{\\sqrt{n}}"
     source: "Casella & Berger, 5.2"
 
   - label: "Normal pdf — normalising constant"
@@ -30,19 +30,19 @@ equations:
     source: "Casella & Berger, 3.3"
 
   - label: "Bayes' theorem"
-    latex: "P = \\frac{L Q}{M}"
+    latex: "P(A\\mid B) = \\frac{P(B\\mid A)P(A)}{P(B)}"
     source: "Casella & Berger, 1.3"
 
   - label: "Binomial mean"
-    latex: "M = np"
+    latex: "E[X] = np"
     source: "Casella & Berger, 3.2"
 
   - label: "Binomial variance"
-    latex: "V = np(1-p)"
+    latex: "\\operatorname{Var}(X) = np(1-p)"
     source: "Casella & Berger, 3.2"
 
   - label: "Poisson variance equals mean"
-    latex: "V = L"
+    latex: "\\operatorname{Var}(X) = \\lambda"
     source: "Casella & Berger, 3.2"
 
   - label: "Geometric series sum"
@@ -50,9 +50,9 @@ equations:
     source: "Rudin, 3.26"
 
   - label: "Z-score"
-    latex: "Z = \\frac{x-M}{S}"
+    latex: "Z = \\frac{x-\\mu}{\\sigma}"
     source: "Casella & Berger, 1.6"
 
   - label: "Exponential mean"
-    latex: "M = \\frac{1}{L}"
+    latex: "E[X] = \\frac{1}{\\lambda}"
     source: "Casella & Berger, 3.3"

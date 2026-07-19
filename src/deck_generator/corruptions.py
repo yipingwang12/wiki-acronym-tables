@@ -24,6 +24,7 @@ import warnings
 from dataclasses import dataclass
 
 from .equations import Equation, eligible_indices, to_mathml, token_texts
+from .normalise import in_opaque, normalise, opaque_spans
 
 # Macro names sympy invents as free symbols when it cannot parse the real notation.
 # Their presence means the parse is not faithful, so no verdict can be trusted.
@@ -127,12 +128,17 @@ def apply_spans(latex: str, spans: list[_Span]) -> str:
 
 
 def _diff_expr(latex: str):
-    """Parse to ``lhs - rhs`` (or the bare expression), or None if unparseable/mis-parsed."""
+    """Parse to ``lhs - rhs`` (or the bare expression), or None if unparseable/mis-parsed.
+
+    Parses the **normalised** form: the notation worth studying (``P(A\\mid B)``,
+    ``\\operatorname{Var}(X)``, ``E[X^2]``) is not what sympy accepts. Only verification
+    sees this rewrite — the displayed MathML is always built from the original LaTeX.
+    """
     from sympy.parsing.latex import parse_latex
     try:
         with warnings.catch_warnings():
             warnings.simplefilter('ignore')
-            e = parse_latex(latex)
+            e = parse_latex(normalise(latex))
     except Exception:
         return None
     expr = e.lhs - e.rhs if hasattr(e, 'lhs') else e
@@ -196,12 +202,15 @@ def build_pool(eq: Equation, types: list[str], pool_size: int = 12) -> tuple[lis
     eligible = eligible_indices(mathml)
     pinned = {eligible[p - 1] for p in eq.pin if 1 <= p <= len(eligible)}
 
+    opaque = opaque_spans(eq.latex)
     pool: list[dict] = []
     spans_by_id: dict[str, _Span] = {}
     for t in types:
         for span in _GENERATORS[t](eq.latex):
             if len(pool) >= pool_size:
                 break
+            if in_opaque(opaque, span.start, span.end):
+                continue  # verification can't see inside an argument list — see normalise
             corrupted = apply_spans(eq.latex, [span])
             change = _single_token_change(clean_tokens, corrupted)
             if change is None:

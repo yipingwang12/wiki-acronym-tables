@@ -70,6 +70,23 @@ Verified against the traps (all correctly judged equivalent, i.e. rejected):
 commutative reorder `ma`→`am`, operand reorder, bound-variable rename, algebraic
 restatement `a/b`→`ab⁻¹`, negation of both sides.
 
+## Notation normalisation (`normalise.py`)
+
+Verification parses a **rewritten** form; the displayed MathML always comes from the
+original LaTeX, so the rewrite never reaches the user and can be as ugly as needed.
+
+| Rewrite | Why |
+|---|---|
+| `\mathbf{E}`, `\mathrm`, `\boldsymbol` → `E` | Formatting, no mathematical content. |
+| `\hat{H}` → `Hhat`, `\bar{x}` → `xbar` | An operator or estimate is *not* the plain symbol — fold the accent into the name to keep them distinct. |
+| `\operatorname{Var}(X)` → `Var(X)` | sympy then reads a function application, and correctly sees `Var(X+Y) == Var(Y+X)`. |
+| `E[X^2]` → `E(X^2)` | Square brackets parse as a list; parentheses keep `E[X^2]` and `E[X]^2` distinct. |
+| `P(A\mid B)` → `P(A, B)` | A bare `\|` parses as absolute value. An ordered argument list loses the "given" reading but preserves the only thing verification needs: `P(A\|B) ≠ P(B\|A)`. |
+
+**Opaque regions.** Argument lists are reported by `opaque_spans` and corruption is barred
+inside them. `Var(X+Y)` → `Var(Y+X)` is a true equivalence; barring edits there makes that
+whole class of false-corruption unreachable rather than relying on the CAS to catch each one.
+
 ## Taxonomy (v1)
 
 | Type | Applies to | Note |
@@ -131,14 +148,12 @@ Never padded: an equation with fewer survivors ships with fewer, mirroring `buil
 
 ## Open questions / risks
 
-1. **Verifiable notation vs. real notation — the central tension.** sympy cannot parse the
-   notation the good formulas are written in: `P(A|B)`, `\operatorname{Var}(X)`,
-   `E[X^2]`, vector calculus. The v1 `statistics.yaml` works around this with single-letter
-   stand-ins (`P = \frac{L Q}{M}` for Bayes), which **verify cleanly but are not the
-   formulas worth memorising**. Options: accept stand-ins, pin notation-heavy equations and
-   hand-author their corruptions, or add a notation-normalising layer that maps real
-   notation to a sympy-parsable form for verification only. **Unresolved, and it gates
-   whether physics is viable at all** (`\nabla \times \mathbf{E}` yields pool=0).
+1. ~~**Verifiable notation vs. real notation.**~~ **Resolved** by `normalise.py` — a
+   verification-only rewrite layer (see below). `statistics.yaml` now carries real notation
+   (`\operatorname{Var}(X) = E[X^2] - (E[X])^2`, `P(A\mid B) = …`) and **10/10 equations are
+   usable**, including `\operatorname{Var}(X) = \lambda`, which had pool=0 as a stand-in.
+   Vector calculus (`\nabla \times`) still fails closed — textual rewriting cannot give
+   sympy vector algebra — so physics remains gated on pinning or hand-authoring.
 2. **Always exactly two** lets you hunt until you find two and stop. Varying 0–3 would force
    genuine evaluation; the `LineDisplay` contract already supports a zero-error case. Decide
    from practice.
