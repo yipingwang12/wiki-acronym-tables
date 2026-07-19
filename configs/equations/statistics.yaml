@@ -1,0 +1,58 @@
+# Statistics core formulas → error-spotting deck (quiz mode `error-spot`).
+# See docs/design/equations-pipeline.md. Export with:  deck-export --only 'equations_*'
+#
+# Equations are curated by hand (corruptions are generated, content is not). Each carries a
+# `source` for the same reason monarch `corrections:` do — a formula drilled for years
+# should be checkable against something.
+
+deck_name: "Statistics — Core Formulas"
+group: "Equations"
+
+corruption:
+  pool_size: 12
+  types:
+    - sign_flip
+    - exponent_off_by_one
+    - constant_perturb
+    - variable_swap
+
+equations:
+  - label: "Variance — definition"
+    latex: "V = E_2 - E_1^2"
+    source: "Casella & Berger, 2.3"
+
+  - label: "Standard error of the mean"
+    latex: "S = \\frac{s}{\\sqrt{n}}"
+    source: "Casella & Berger, 5.2"
+
+  - label: "Normal pdf — normalising constant"
+    latex: "f = \\frac{1}{\\sigma\\sqrt{2\\pi}}"
+    source: "Casella & Berger, 3.3"
+
+  - label: "Bayes' theorem"
+    latex: "P = \\frac{L Q}{M}"
+    source: "Casella & Berger, 1.3"
+
+  - label: "Binomial mean"
+    latex: "M = np"
+    source: "Casella & Berger, 3.2"
+
+  - label: "Binomial variance"
+    latex: "V = np(1-p)"
+    source: "Casella & Berger, 3.2"
+
+  - label: "Poisson variance equals mean"
+    latex: "V = L"
+    source: "Casella & Berger, 3.2"
+
+  - label: "Geometric series sum"
+    latex: "S = \\frac{a}{1-r}"
+    source: "Rudin, 3.26"
+
+  - label: "Z-score"
+    latex: "Z = \\frac{x-M}{S}"
+    source: "Casella & Berger, 1.6"
+
+  - label: "Exponential mean"
+    latex: "M = \\frac{1}{L}"
+    source: "Casella & Berger, 3.3"

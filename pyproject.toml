@@ -11,6 +11,11 @@ dependencies = [
     "openpyxl",
     "pyyaml",
     "pillow",
+    "latex2mathml",
+    # sympy proves a generated corruption really differs from the original; its LaTeX
+    # parser needs the antlr runtime, pinned to the grammar sympy ships against.
+    "sympy",
+    "antlr4-python3-runtime==4.11",
 ]
 
 [project.optional-dependencies]
@@ -26,6 +31,7 @@ deck-shakespeare = "deck_generator.shakespeare_cli:main"
 deck-monologue-archive = "deck_generator.monologue_archive_cli:main"
 deck-registry-generate = "deck_generator.registry_cli:main"
 deck-coverage-check = "deck_generator.coverage_cli:main"
+deck-equations = "deck_generator.equations_cli:main"
 deck-derive-positions = "deck_generator.derive_positions_cli:main"
 
 # Deprecated aliases (pre-rename names) — drop once the orchestrator is updated.

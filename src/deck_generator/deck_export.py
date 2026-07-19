@@ -25,7 +25,9 @@ import yaml
 
 from .artwork_images import fetch_raw, to_webp
 from .artworks import fetch_artworks
+from .corruptions import build_pool, pool_warnings
 from .distractors import build_choices
+from .equations import annotate, eligible_indices, load_equations, to_mathml
 from .gutenberg import fetch_text
 from .monarchs import (
     correction_years, fetch_monarchs, filter_by_accession, make_monarch_chunks, parse_corrections,
@@ -40,6 +42,8 @@ CACHE_DIR = _ROOT / 'cache' / 'artworks'
 # Monarch decks come from separate per-realm configs but share one collapsible menu
 # group in the quiz (like poetry's collection_title). Overridable per-config via `group:`.
 _MONARCH_GROUP = 'Monarchs'
+_DEFAULT_CORRUPTION_TYPES = ('sign_flip', 'exponent_off_by_one', 'constant_perturb', 'variable_swap')
+_EQUATION_GROUP = 'Equations'
 _ARTWORK_GROUP = 'Artworks'
 
 
@@ -91,6 +95,10 @@ def _discover_slots(config_dir: Path) -> list[_Slot]:
     for yaml_path in sorted(Path(config_dir).glob('artworks/*.yaml')):
         cfg = yaml.safe_load(yaml_path.read_text())
         slots.append(_Slot(order, 'artworks', yaml_path, None, cfg.get('group', _ARTWORK_GROUP)))
+        order += 1
+    for yaml_path in sorted(Path(config_dir).glob('equations/*.yaml')):
+        cfg = yaml.safe_load(yaml_path.read_text())
+        slots.append(_Slot(order, 'equations', yaml_path, None, cfg.get('group', _EQUATION_GROUP)))
         order += 1
 
     per_config: dict[Path, int] = {}
@@ -184,6 +192,11 @@ def build_deck_artifacts(config_dir: Path, only: str | None = None) -> list[dict
         if s.deck_type != 'artworks':
             continue
         artifacts.append(_build_artwork_deck(s))
+
+    for s in wanted:
+        if s.deck_type != 'equations':
+            continue
+        artifacts.append(_build_equation_deck(s))
 
     artifacts.sort(key=lambda a: a['order'])
     return artifacts
@@ -348,3 +361,51 @@ def main(argv=None) -> None:
 
 if __name__ == "__main__":
     main()
+
+
+def _build_equation_deck(s: _Slot) -> dict:
+    """Curated equations → MathML + a verified corruption pool per equation.
+
+    The ``item`` is the canonical LaTeX, so ``item_key`` depends only on the equation
+    itself: the corruption engine can be retuned, or a type retired, and every FSRS card
+    survives a re-export. That is deliberately unlike the monarch decks, where a generator
+    behaviour change rewrote items and stranded review history.
+
+    An equation whose pool can't sustain a two-error display is kept but warned about —
+    thinness is visible, never silent.
+    """
+    cfg = yaml.safe_load(s.yaml_path.read_text())
+    title = cfg.get('deck_name', s.yaml_path.stem)
+    ccfg = cfg.get('corruption') or {}
+    types = ccfg.get('types', list(_DEFAULT_CORRUPTION_TYPES))
+    pool_size = ccfg.get('pool_size', 12)
+
+    items, labels, mathml, pools, bad_pairs = [], [], [], [], []
+    for eq in load_equations(cfg):
+        clean = to_mathml(eq.latex)
+        pool, bad = build_pool(eq, types, pool_size)
+        for w in pool_warnings(eq, pool, bad):
+            print(f'  ! {w}', file=sys.stderr)
+        items.append(eq.latex)
+        labels.append(eq.label)
+        mathml.append(annotate(clean, eligible_indices(clean)))
+        pools.append(pool)
+        bad_pairs.append(bad)
+
+    return {
+        'order': s.order,
+        'name': title,
+        'deck_type': 'equations',
+        'mode': 'error-spot',
+        'title': title,
+        'items': items,
+        'labels': labels,
+        'mathml': mathml,
+        'pool': pools,
+        'bad_pairs': bad_pairs,
+        'group': s.group,
+        'poem_title': None,
+        'config_path': str(s.yaml_path),
+        'config_hash': config_hash(s.yaml_path),
+        '_filename': s.filename,
+    }
