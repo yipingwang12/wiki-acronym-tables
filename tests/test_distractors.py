@@ -2,8 +2,8 @@
 
 from __future__ import annotations
 
-from wiki_acronyms.artworks import Artwork
-from wiki_acronyms.distractors import build_choices
+from deck_generator.artworks import Artwork
+from deck_generator.distractors import build_choices
 
 
 def _art(qid, title, creator_qid, creator, inception=None):

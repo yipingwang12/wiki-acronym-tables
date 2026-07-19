@@ -19,7 +19,7 @@ class WikiApiClient:
         self.rate_limit_s = rate_limit_s
         self.session = requests.Session()
         self.session.headers["User-Agent"] = (
-            "WikiAcronymTables/0.1 (educational; contact: wiki-acronym-tables@example.com)"
+            "DeckGenerator/0.1 (educational; contact: memory-deck-generator@example.com)"
         )
 
     def fetch_wikitext_batch(self, titles: list[str]) -> dict[str, str]:

@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from wiki_acronyms.monologue_archive import (
+from deck_generator.monologue_archive import (
     MonologueRef,
     parse_author_page,
     parse_passage_page,

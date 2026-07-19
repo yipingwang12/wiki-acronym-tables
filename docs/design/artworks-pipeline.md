@@ -1,8 +1,8 @@
-# Design — Famous Artworks pipeline (`wiki-artworks`)
+# Design — Famous Artworks pipeline (`deck-artworks`)
 
 *Status: scoping, 2026-07-17. A new generator pipeline: Wikidata → famous paintings →
 downsized WebP image assets + an expanded two-card artifact with baked multiple-choice
-distractors, emitted across the `wiki-export-decks` seam. Quiz side (display, MC scoring,
+distractors, emitted across the `deck-export` seam. Quiz side (display, MC scoring,
 PWA image caching): [`memory-quiz-app/docs/design/artwork-mc-mode.md`](../../../memory-quiz-app/docs/design/artwork-mc-mode.md).
 Two coordinated branches (`artwork-cards`).*
 
@@ -55,16 +55,16 @@ distractors:
 ```
 All three source modes emit the identical artifact shape — only how the QID set is chosen differs.
 
-## Pipeline modules (new, under `src/wiki_acronyms/`)
+## Pipeline modules (new, under `src/deck_generator/`)
 | Module | Role |
 |---|---|
 | `artworks.py` | `fetch_artworks(config)` — SPARQL for QID set (fame / curated / collection); returns `Artwork(qid, title, creator, creator_qid, image_url, sitelinks, movement, inception, license)`. **Dedups by QID**; license filter. |
 | `artwork_images.py` | `fetch_image(url)` → cache raw under `cache/artworks/`; `downsize(raw, px) -> webp_bytes`. Exponential-backoff Commons fetch. |
 | `distractors.py` | `build_choices(artworks, attr, n, bias, seed=qid)` → per-artwork option list incl. the correct answer; **deterministic** (seeded by QID, no RNG state), so re-export is byte-stable and testable. Guards against duplicate options (shared titles / dominant creators). |
-| `artworks_cli.py` | `wiki-artworks` entry point. |
+| `artworks_cli.py` | `deck-artworks` entry point. |
 
 ## Export seam (`deck_export.py` extension)
-`wiki-export-decks` gains artwork handling: for each artwork deck it writes the expanded
+`deck-export` gains artwork handling: for each artwork deck it writes the expanded
 two-card JSON **and** copies the downsized WebP assets into `data/decks/assets/<deck>/`.
 - **`items` are `<QID>|<attr>` strings**, byte-identical across runs given the same QID set →
   the quiz's FSRS `item_key = sha256(item)[:16]` is preserved. Re-ranking that *adds* works
@@ -72,7 +72,7 @@ two-card JSON **and** copies the downsized WebP assets into `data/decks/assets/<
 - **Answer-text and distractor changes do NOT strand history** — the key is `QID|attr`, not the
   answer. This is the key contrast with monarch digits (keyed on the digit string), and means
   the artwork mode needs **no `recovery.py` path** on the quiz side.
-- **Clear/rebuild:** a bare `wiki-export-decks` run clears `data/decks` — the **assets dir must
+- **Clear/rebuild:** a bare `deck-export` run clears `data/decks` — the **assets dir must
   be cleared and rebuilt in lockstep** with the JSON (and the orchestrator's Dagster `decks`
   sync must carry `assets/` alongside the JSON). `--only <glob>` refreshes an artwork deck +
   its own asset subfolder, leaving others untouched. `config_hash` still covers config bytes

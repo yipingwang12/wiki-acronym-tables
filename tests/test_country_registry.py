@@ -1,6 +1,6 @@
 from unittest.mock import patch
 
-from wiki_acronyms.country_registry import (
+from deck_generator.country_registry import (
     CountryEntry, fetch_country_registry, load_registry, save_registry,
 )
 
@@ -27,7 +27,7 @@ _SAMPLE_BINDINGS = [
 
 
 def test_fetch_returns_entries():
-    with patch("wiki_acronyms.country_registry._sparql_session", return_value=_SAMPLE_BINDINGS):
+    with patch("deck_generator.country_registry._sparql_session", return_value=_SAMPLE_BINDINGS):
         entries = fetch_country_registry()
     assert len(entries) == 2
     names = {e.name for e in entries}
@@ -36,7 +36,7 @@ def test_fetch_returns_entries():
 
 
 def test_fetch_groups_multiple_positions():
-    with patch("wiki_acronyms.country_registry._sparql_session", return_value=_SAMPLE_BINDINGS):
+    with patch("deck_generator.country_registry._sparql_session", return_value=_SAMPLE_BINDINGS):
         entries = fetch_country_registry()
     france = next(e for e in entries if e.name == "France")
     assert len(france.position_qids) == 2
@@ -48,14 +48,14 @@ def test_fetch_no_duplicate_positions():
     # Same position appearing twice should only be stored once
     duplicate = _SAMPLE_BINDINGS[0].copy()
     bindings = [_SAMPLE_BINDINGS[0], duplicate]
-    with patch("wiki_acronyms.country_registry._sparql_session", return_value=bindings):
+    with patch("deck_generator.country_registry._sparql_session", return_value=bindings):
         entries = fetch_country_registry()
     uk = entries[0]
     assert uk.position_qids.count("Q9134365") == 1
 
 
 def test_fetch_sorted_by_name():
-    with patch("wiki_acronyms.country_registry._sparql_session", return_value=_SAMPLE_BINDINGS):
+    with patch("deck_generator.country_registry._sparql_session", return_value=_SAMPLE_BINDINGS):
         entries = fetch_country_registry()
     names = [e.name for e in entries]
     assert names == sorted(names)
@@ -68,12 +68,12 @@ def test_fetch_skips_unlabelled_q_ids():
         "position": {"value": "http://www.wikidata.org/entity/Q1"},
         "positionLabel": {"value": "some position"},
     }]
-    with patch("wiki_acronyms.country_registry._sparql_session", return_value=bindings):
+    with patch("deck_generator.country_registry._sparql_session", return_value=bindings):
         assert fetch_country_registry() == []
 
 
 def test_fetch_skips_missing_fields():
-    with patch("wiki_acronyms.country_registry._sparql_session", return_value=[{}]):
+    with patch("deck_generator.country_registry._sparql_session", return_value=[{}]):
         assert fetch_country_registry() == []
 
 

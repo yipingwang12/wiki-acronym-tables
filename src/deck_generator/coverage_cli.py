@@ -38,7 +38,7 @@ def main(argv=None) -> None:
     else:
         if not args.registry.exists():
             print(
-                f"Error: registry not found at {args.registry} — run wiki-registry-generate first",
+                f"Error: registry not found at {args.registry} — run deck-registry-generate first",
                 file=sys.stderr,
             )
             sys.exit(1)

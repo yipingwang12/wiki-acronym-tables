@@ -32,7 +32,7 @@ ORDER BY ?year ?personLabel
 def _sparql_session(sparql_url: str, query: str):
     session = requests.Session()
     session.headers["User-Agent"] = (
-        "WikiAcronymTables/0.1 (educational; contact: wiki-acronym-tables@example.com)"
+        "DeckGenerator/0.1 (educational; contact: memory-deck-generator@example.com)"
     )
     resp = session.get(sparql_url, params={"query": query, "format": "json"}, timeout=30)
     resp.raise_for_status()

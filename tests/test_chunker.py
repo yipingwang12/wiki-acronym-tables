@@ -1,5 +1,5 @@
-from wiki_acronyms.chunker import make_chunks
-from wiki_acronyms.list_parser import Entry
+from deck_generator.chunker import make_chunks
+from deck_generator.list_parser import Entry
 
 
 def _e(*pairs):

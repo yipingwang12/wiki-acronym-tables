@@ -1,6 +1,6 @@
 # Famous paintings → image + multiple-choice deck (quiz mode `image-mc`).
-# See docs/design/artworks-pipeline.md. Export with:  wiki-export-decks --only 'artworks_*'
-# Preview the resolved set without downloading images:  wiki-artworks --config <this>
+# See docs/design/artworks-pipeline.md. Export with:  deck-export --only 'artworks_*'
+# Preview the resolved set without downloading images:  deck-artworks --config <this>
 
 deck_name: "Famous Paintings"
 group: "Artworks"

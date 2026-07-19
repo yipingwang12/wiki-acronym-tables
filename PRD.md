@@ -1,4 +1,4 @@
-# PRD — wiki-acronym-tables
+# PRD — memory-deck-generator
 
 ## Problem
 Memorizing ordered lists (award laureates, poem lines, historical rulers) is hard. Acronym mnemonics help, but generating them from authoritative sources is tedious.
@@ -6,7 +6,7 @@ Memorizing ordered lists (award laureates, poem lines, historical rulers) is har
 ## Goal
 Generate Excel acronym-tables and per-deck JSON artifacts from Wikipedia/Wikidata sources automatically, grouped by configurable time windows. The spaced-repetition **quiz app now lives in a separate repo** (`memory-quiz-app`, see its PRD); this repo is generator-only and emits `data/decks/*.json` consumed by the quiz via the orchestrator's Dagster `decks` asset.
 
-### Refreshing decks (`wiki-export-decks`)
+### Refreshing decks (`deck-export`)
 
 A bare run **clears the output directory** and rebuilds every deck — authoritative, but it renumbers `order` and re-stamps `config_path` from the running checkout. Both are *identity*, not content: `config_path` keys the quiz's sessions table (`WHERE config_path=?`) and its artifact lookup; `order` sorts the deck list. Because the deck directory accumulates across runs, a fresh numbering agrees with neither — so re-deriving them during a partial refresh strands study history and shuffles the list. (Exporting from a git worktree stamps the *worktree* path in, which strands history once the worktree is removed.)
 
@@ -21,7 +21,7 @@ Personal / educational use. Single user driving batch runs via CLI.
 
 ## Pipelines
 
-### 1. Award Laureates (`wiki-acronym-tables`)
+### 1. Award Laureates (`deck-acronyms`)
 - Source: Wikidata SPARQL (award Q-number)
 - Output: year-chunked acronyms from laureate name initials
 - Gap warning: emitted to stderr when `count_laureates()` (all P166 statements) differs from fetched count (those with P585 date qualifier). Computed before manual entry merging so it reflects Wikidata quality only.
@@ -37,7 +37,7 @@ Personal / educational use. Single user driving batch runs via CLI.
 | `manual_entries` | no | [] | `[{year, name}]` — merged after SPARQL fetch; deduped by (year, name); for Wikidata coverage gaps |
 | `exclude_entries` | no | [] | List of names — subtracted from `count_laureates` total to suppress gap warnings for known Wikidata errors |
 
-### 2. Poetry Lines (`wiki-poetry`)
+### 2. Poetry Lines (`deck-poetry`)
 - Source: Project Gutenberg (plain text, cached locally)
 - Output: per-line acronyms (first letter of every word, particles included)
 - `line_initials` includes all words (unlike `name_initials` which skips particles)
@@ -52,7 +52,7 @@ end_marker: "So long lives this, and this gives life to thee."
 ```
 Collection config: top-level `collection_title` + `poems` list, each with `poem_title`/`start_marker`/`end_marker`. Single sheet output with bold yellow title row per poem and blank row separators.
 
-### 3. Monarch Reigns (`wiki-monarchs`)
+### 3. Monarch Reigns (`deck-monarchs`)
 - Source: Wikidata SPARQL (position Q-numbers)
 - Output: per-century transition-digit strings (last digit of accession year per monarch)
 - **End-year events**: any recorded end year that is not itself some ruler's accession year becomes a transition event — i.e. the throne did not pass directly to a successor that year. This covers Wikidata coronation-lag (Edward the Elder died 924, Æthelstan crowned 927 → 924 inserted), the start of a genuine interregnum (Commonwealth: Charles I ends 1649, Charles II accedes 1660 → 1649 inserted), and a dynasty's terminal year (last ruler, no successor). Continuous same-year successions add nothing. *(Superseded the original ≤5-year gap-fill threshold, which suppressed interregnum and terminal years.)*
@@ -68,7 +68,7 @@ Collection config: top-level `collection_title` + `poems` list, each with `poem_
 | `corrections` | no | — | Sourced manual overrides of transition years — see below |
 | `chunk_years` | no | 100 | Years per chunk |
 | `chunk_start_year` | no | earliest accession year | First year of first chunk |
-| `wikipedia_list` | no | — | Article title used by `wiki-coverage-check` and date cross-checks |
+| `wikipedia_list` | no | — | Article title used by `deck-coverage-check` and date cross-checks |
 | `group` | no | `Monarchs` | Collapsible menu group in the quiz; all monarch decks share one "Monarchs" group by default (like poetry's `collection_title`), override to sub-group |
 
 ##### `corrections:` — sourced overrides
@@ -92,7 +92,7 @@ There is **no mechanism to correct a ruler's accession/end year directly**; corr
 
 ##### Date precision (documentation only)
 
-`Monarch.accession_precision` carries Wikidata's `timePrecision` for P580 (9 = year, 8 = decade, 7 = century). Below year precision, the source does not actually claim that year — Assyria's Tudiya is stored as `-2450` at decade precision, meaning "the 2450s BC"; Denmark's Sigfred (770) and France's Mallobaudes (378) / Marcomer (380) are decade-precision within shipped decks. **Digit extraction deliberately ignores this**, so decks are byte-identical to before the field existed; `wiki-monarchs` merely warns. This matters for any future expansion into ancient series: pharaoh has 527 recorded holders but only 88 with any start date, and Mesopotamian absolute chronology is convention-dependent (High/Middle/Low differ by decades), so precision is the difference between a fact and an artifact.
+`Monarch.accession_precision` carries Wikidata's `timePrecision` for P580 (9 = year, 8 = decade, 7 = century). Below year precision, the source does not actually claim that year — Assyria's Tudiya is stored as `-2450` at decade precision, meaning "the 2450s BC"; Denmark's Sigfred (770) and France's Mallobaudes (378) / Marcomer (380) are decade-precision within shipped decks. **Digit extraction deliberately ignores this**, so decks are byte-identical to before the field existed; `deck-monarchs` merely warns. This matters for any future expansion into ancient series: pharaoh has 527 recorded holders but only 88 with any start date, and Mesopotamian absolute chronology is convention-dependent (High/Middle/Low differ by decades), so precision is the difference between a fact and an artifact.
 
 #### Monarch deck set (2026-07)
 **20 decks.** *European (13):* Britain, English Commonwealth, Scotland, Denmark, Norway, Sweden, Holy Roman Empire, Byzantium, Hungary, Portugal, Bohemia, France, Japan. *Non-European (7, 2026-07):* Umayyad, Abbasid, Fatimid caliphs; Ottoman sultans; Safavid shahs; Ming, Qing emperors. Selection was data-driven from a full Wikidata survey:
@@ -109,7 +109,7 @@ There is **no mechanism to correct a ruler's accession/end year directly**; corr
   - **Data holes read as interregnums**: the end-year rule inserts a transition wherever no successor follows within the data, which cannot distinguish a real interregnum from missing rulers. 9 such cases exceed 50 years — france 511 (Clovis I, 118yr hole), france 869, japan 200, holy_roman_empire 814 (Charlemagne, 61yr) — all spurious.
   - **Unresolved**: Orhan's accession (we follow the traditional 1326; Wikipedia's table says "c. 1324") is a historiographic dispute, documented in-config. Fatimid al-Mustansir (1095 vs 1094) sits on a Hijri year boundary and awaits a second source.
 
-### 4. Shakespeare Passages (`wiki-shakespeare`)
+### 4. Shakespeare Passages (`deck-shakespeare`)
 - Source: Folger Digital Texts API (`folgerdigitaltexts.org`)
 - Output: YAML catalogue + xlsx of monologue passages (character, play, line count, full text)
 - Config: list of play codes (e.g. `Ham`, `Mac`) and `min_lines` threshold
@@ -117,7 +117,7 @@ There is **no mechanism to correct a ruler's accession/end year directly**; corr
 - Catalogue includes `meta` block with `total_passages` and `total_lines`
 - Core 10-play config (`configs/shakespeare/core_plays.yaml`): Hamlet, Macbeth, King Lear, Othello, The Tempest, Romeo and Juliet, A Midsummer Night's Dream, The Merchant of Venice, Julius Caesar, Richard III — 163 passages, 4,673 lines
 
-### 5. Monologue Archive Passages (`wiki-monologue-archive`)
+### 5. Monologue Archive Passages (`deck-monologue-archive`)
 - Source: monologuearchive.com (static HTML, scraped with `requests`)
 - Output: YAML catalogue + xlsx of monologue passages (playwright, play, character, type, lines)
 - Config: list of `{slug, name}` entries — slug matches URL pattern `/{letter}/{slug}.html`
@@ -125,7 +125,7 @@ There is **no mechanism to correct a ruler's accession/end year directly**; corr
 - Filters out external `list-group-item active` links that share the same CSS class as internal entries
 - Core config (`configs/monologue_archive/core_playwrights.yaml`): Christopher Marlowe, Ben Jonson — 23 passages, 850 lines
 
-### 6. Famous Artworks (`wiki-artworks`) — *in design*
+### 6. Famous Artworks (`deck-artworks`) — *in design*
 - Source: Wikidata SPARQL — `instance of painting (Q3305213)` with creator (P170) + image (P18), ranked by `wikibase:sitelinks` (fame proxy); `min_sitelinks`/`limit` knob, plus curated-QID and collection (P195) source modes. Survey (2026-07-17): 381,330 paintings have creator+image; ~104 at ≥30 sitelinks, ~1,533 at ≥10.
 - Output: unlike the xlsx pipelines, emits **directly to the quiz artifact seam** — an expanded two-card-per-artwork deck (`data/decks/*.json`, `items` = `<QID>|title` / `<QID>|creator`) plus downsized **WebP image files** under `data/decks/assets/<deck>/`, and **baked multiple-choice distractors**. Consumed by `memory-quiz-app`'s `image-mc` mode.
 - Key stability: item strings are `<QID>|attr`, so re-fetching an image or a corrected label never strands FSRS history (contrast monarch digits). Image licensing (drop non-free) is the main open risk.
@@ -180,7 +180,7 @@ The quiz is served as a localhost Flask app. Features:
 - Flash messages for correct/wrong/restart outcomes
 
 ### Desktop app (`wiki-quiz-app`)
-A PyWebView-wrapped desktop app with an Anki-style deck picker home screen. Flask runs in a background thread; PyWebView opens a native macOS window (no browser required). Entry point: `wiki_acronyms.desktop_app:main`.
+A PyWebView-wrapped desktop app with an Anki-style deck picker home screen. Flask runs in a background thread; PyWebView opens a native macOS window (no browser required). Entry point: `deck_generator.desktop_app:main`.
 
 - **Home screen**: lists all configs from `configs/poetry/` and `configs/monarchs/`. Single-poem configs appear as individual deck rows; multi-poem collections are collapsible groups. Shows last-studied date per deck from `sessions` table.
 - **Deck loading**: async (background thread) with a polling spinner — handles slow Wikidata SPARQL calls without blocking the UI. Errors shown inline with a back link.

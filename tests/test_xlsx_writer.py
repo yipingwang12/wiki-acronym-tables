@@ -1,8 +1,8 @@
 import openpyxl
 
-from wiki_acronyms.chunker import make_chunks
-from wiki_acronyms.list_parser import Entry
-from wiki_acronyms.xlsx_writer import write_poetry_xlsx, write_xlsx
+from deck_generator.chunker import make_chunks
+from deck_generator.list_parser import Entry
+from deck_generator.xlsx_writer import write_poetry_xlsx, write_xlsx
 
 
 def _chunks():

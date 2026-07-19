@@ -1,4 +1,4 @@
-from wiki_acronyms.list_parser import Entry, parse_entries
+from deck_generator.list_parser import Entry, parse_entries
 
 SIMPLE = """\
 {| class="wikitable"
@@ -96,11 +96,11 @@ def test_header_rows_excluded():
 
 def test_strip_cell_attrs_plain_pipe_preserved():
     """Plain cells with a bare pipe (no '=') must not lose the prefix."""
-    from wiki_acronyms.list_parser import _strip_cell_attrs
+    from deck_generator.list_parser import _strip_cell_attrs
     assert _strip_cell_attrs('Smith | Jones') == 'Smith | Jones'
 
 
 def test_strip_cell_attrs_style_prefix_stripped():
     """Attribute-spec prefixes (containing '=') should still be stripped."""
-    from wiki_acronyms.list_parser import _strip_cell_attrs
+    from deck_generator.list_parser import _strip_cell_attrs
     assert _strip_cell_attrs('style="text-align:center;" | 1901') == '1901'

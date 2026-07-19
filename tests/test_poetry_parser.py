@@ -1,6 +1,6 @@
 import pytest
 
-from wiki_acronyms.poetry_parser import extract_poem
+from deck_generator.poetry_parser import extract_poem
 
 _SONNET = """\
 Some preamble text.

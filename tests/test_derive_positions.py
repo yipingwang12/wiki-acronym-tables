@@ -4,7 +4,7 @@ from unittest.mock import patch
 import openpyxl
 import pytest
 
-from wiki_acronyms.derive_positions import (
+from deck_generator.derive_positions import (
     DerivedPosition, _escape_sparql_string, fetch_positions_for_titles,
     load_ruler_titles,
 )
@@ -128,20 +128,20 @@ def test_escape_plain():
 # --- fetch_positions_for_titles ---
 
 def test_fetch_returns_derived_positions():
-    with patch("wiki_acronyms.derive_positions._sparql_session", return_value=_SPARQL_BINDINGS):
+    with patch("deck_generator.derive_positions._sparql_session", return_value=_SPARQL_BINDINGS):
         result = fetch_positions_for_titles(["William I of England", "Henry VIII"])
     assert any(p.position_qid == "Q18810062" for p in result)
 
 
 def test_fetch_counts_distinct_holders():
-    with patch("wiki_acronyms.derive_positions._sparql_session", return_value=_SPARQL_BINDINGS):
+    with patch("deck_generator.derive_positions._sparql_session", return_value=_SPARQL_BINDINGS):
         result = fetch_positions_for_titles(["William I of England", "Henry VIII"])
     england = next(p for p in result if p.position_qid == "Q18810062")
     assert england.holder_count == 2
 
 
 def test_fetch_sorted_by_count_descending():
-    with patch("wiki_acronyms.derive_positions._sparql_session", return_value=_SPARQL_BINDINGS):
+    with patch("deck_generator.derive_positions._sparql_session", return_value=_SPARQL_BINDINGS):
         result = fetch_positions_for_titles(["William I of England", "Henry VIII"])
     counts = [p.holder_count for p in result]
     assert counts == sorted(counts, reverse=True)
@@ -153,7 +153,7 @@ def test_fetch_skips_bare_q_label():
         "position": {"value": "http://www.wikidata.org/entity/Q99999"},
         "positionLabel": {"value": "Q99999"},
     }]
-    with patch("wiki_acronyms.derive_positions._sparql_session", return_value=bindings):
+    with patch("deck_generator.derive_positions._sparql_session", return_value=bindings):
         result = fetch_positions_for_titles(["Some Person"])
     assert result == []
 
@@ -161,20 +161,20 @@ def test_fetch_skips_bare_q_label():
 def test_fetch_batches_large_input():
     """Titles exceeding batch_size should trigger multiple SPARQL calls."""
     titles = [f"Person {i}" for i in range(120)]
-    with patch("wiki_acronyms.derive_positions._sparql_session", return_value=[]) as mock:
+    with patch("deck_generator.derive_positions._sparql_session", return_value=[]) as mock:
         fetch_positions_for_titles(titles, batch_size=50)
     assert mock.call_count == 3  # 50 + 50 + 20
 
 
 def test_fetch_empty_titles():
-    with patch("wiki_acronyms.derive_positions._sparql_session", return_value=[]):
+    with patch("deck_generator.derive_positions._sparql_session", return_value=[]):
         assert fetch_positions_for_titles([]) == []
 
 
 def test_fetch_deduplicates_same_person_same_position():
     # Same person appearing twice should count as one holder
     bindings = [_SPARQL_BINDINGS[0], _SPARQL_BINDINGS[0]]
-    with patch("wiki_acronyms.derive_positions._sparql_session", return_value=bindings):
+    with patch("deck_generator.derive_positions._sparql_session", return_value=bindings):
         result = fetch_positions_for_titles(["William I of England"])
     england = next(p for p in result if p.position_qid == "Q18810062")
     assert england.holder_count == 1

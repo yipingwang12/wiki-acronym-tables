@@ -1,9 +1,9 @@
-"""``wiki-artworks`` — preview or export a famous-artworks deck config.
+"""``deck-artworks`` — preview or export a famous-artworks deck config.
 
 By default it *previews*: fetches the resolved artwork set from Wikidata and prints it
 (title / creator / fame), downloading no images — the fast loop for tuning ``min_sitelinks``
 before committing to an image download. ``--export`` runs the full export (metadata + WebP
-assets) for just this deck, via the same ``wiki-export-decks`` seam.
+assets) for just this deck, via the same ``deck-export`` seam.
 """
 
 from __future__ import annotations

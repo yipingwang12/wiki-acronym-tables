@@ -6,8 +6,8 @@ from unittest.mock import patch
 import pytest
 import yaml
 
-from wiki_acronyms.cli import main
-from wiki_acronyms.list_parser import Entry
+from deck_generator.cli import main
+from deck_generator.list_parser import Entry
 
 _SPARQL_ENTRIES = [Entry(year=2000, name="Alice Foo"), Entry(year=2005, name="Bob Bar")]
 
@@ -42,7 +42,7 @@ def _write_config(tmp_path, extra=None):
 
 def test_manual_entries_added(tmp_path, capsys):
     cfg_path = _write_config(tmp_path, {"manual_entries": [{"year": 2003, "name": "Carol Baz"}]})
-    with patch("wiki_acronyms.wikidata.requests.Session") as mock_cls:
+    with patch("deck_generator.wikidata.requests.Session") as mock_cls:
         mock_cls.return_value = _mock_session(_SPARQL_RESPONSE)
         mock_cls.return_value.get.return_value.json.side_effect = [
             _SPARQL_RESPONSE, _COUNT_RESPONSE
@@ -54,7 +54,7 @@ def test_manual_entries_added(tmp_path, capsys):
 
 def test_manual_entries_deduped(tmp_path, capsys):
     cfg_path = _write_config(tmp_path, {"manual_entries": [{"year": 2000, "name": "Alice Foo"}]})
-    with patch("wiki_acronyms.wikidata.requests.Session") as mock_cls:
+    with patch("deck_generator.wikidata.requests.Session") as mock_cls:
         mock_cls.return_value = _mock_session(_SPARQL_RESPONSE)
         mock_cls.return_value.get.return_value.json.side_effect = [
             _SPARQL_RESPONSE, _COUNT_RESPONSE
@@ -66,7 +66,7 @@ def test_manual_entries_deduped(tmp_path, capsys):
 
 def test_no_manual_entries_no_message(tmp_path, capsys):
     cfg_path = _write_config(tmp_path)
-    with patch("wiki_acronyms.wikidata.requests.Session") as mock_cls:
+    with patch("deck_generator.wikidata.requests.Session") as mock_cls:
         mock_cls.return_value.get.return_value.json.side_effect = [
             _SPARQL_RESPONSE, _COUNT_RESPONSE
         ]
@@ -78,7 +78,7 @@ def test_no_manual_entries_no_message(tmp_path, capsys):
 def test_exclude_entries_suppresses_gap_warning(tmp_path, capsys):
     # count=3, fetched=2, exclude=1 → adjusted total=2, no warning
     cfg_path = _write_config(tmp_path, {"exclude_entries": ["Carol Baz"]})
-    with patch("wiki_acronyms.wikidata.requests.Session") as mock_cls:
+    with patch("deck_generator.wikidata.requests.Session") as mock_cls:
         mock_cls.return_value.get.return_value.json.side_effect = [
             _SPARQL_RESPONSE, _COUNT_RESPONSE
         ]
@@ -91,7 +91,7 @@ def test_exclude_entries_partial_suppression(tmp_path, capsys):
     # count=4, fetched=2, exclude=1 → adjusted total=3, warning still fires
     count4 = {"results": {"bindings": [{"count": {"value": "4"}}]}}
     cfg_path = _write_config(tmp_path, {"exclude_entries": ["Carol Baz"]})
-    with patch("wiki_acronyms.wikidata.requests.Session") as mock_cls:
+    with patch("deck_generator.wikidata.requests.Session") as mock_cls:
         mock_cls.return_value.get.return_value.json.side_effect = [
             _SPARQL_RESPONSE, count4
         ]

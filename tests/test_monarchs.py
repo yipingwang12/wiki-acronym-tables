@@ -2,7 +2,7 @@ from unittest.mock import patch
 
 import pytest
 
-from wiki_acronyms.monarchs import (
+from deck_generator.monarchs import (
     Correction, Monarch, MonarchChunk, correction_years, fetch_monarchs, filter_by_accession,
     make_monarch_chunks, parse_corrections, report_imprecise_dates, stale_corrections,
 )
@@ -36,13 +36,13 @@ _SAMPLE_BINDINGS = [
 
 
 def _mock_sparql(bindings):
-    with patch("wiki_acronyms.monarchs._sparql_session", return_value=bindings) as m:
+    with patch("deck_generator.monarchs._sparql_session", return_value=bindings) as m:
         yield m
 
 
 # fetch_monarchs
 def test_fetch_basic():
-    with patch("wiki_acronyms.monarchs._sparql_session", return_value=_SAMPLE_BINDINGS):
+    with patch("deck_generator.monarchs._sparql_session", return_value=_SAMPLE_BINDINGS):
         monarchs = fetch_monarchs(["Q18810062"])
     assert len(monarchs) == 3
     assert monarchs[0].name == "Alfred the Great"
@@ -53,7 +53,7 @@ def test_fetch_basic():
 
 
 def test_fetch_ordered_by_accession():
-    with patch("wiki_acronyms.monarchs._sparql_session", return_value=_SAMPLE_BINDINGS):
+    with patch("deck_generator.monarchs._sparql_session", return_value=_SAMPLE_BINDINGS):
         monarchs = fetch_monarchs(["Q18810062"])
     years = [m.accession_year for m in monarchs]
     assert years == sorted(years)
@@ -67,7 +67,7 @@ def test_fetch_missing_end_year():
         "fatherLabel": {"value": "Charles, Prince of Wales"},
         "motherLabel": {"value": "Elizabeth II"},
     }]
-    with patch("wiki_acronyms.monarchs._sparql_session", return_value=bindings):
+    with patch("deck_generator.monarchs._sparql_session", return_value=bindings):
         monarchs = fetch_monarchs(["Q192444"])
     assert monarchs[0].end_year is None
 
@@ -77,14 +77,14 @@ def test_fetch_skips_unlabelled_q_ids():
         {"person": {"value": "http://www.wikidata.org/entity/Q99"}, "personLabel": {"value": "Q99"}, "start": {"value": "0871-01-01T00:00:00Z"}},
         _SAMPLE_BINDINGS[0],
     ]
-    with patch("wiki_acronyms.monarchs._sparql_session", return_value=bindings):
+    with patch("deck_generator.monarchs._sparql_session", return_value=bindings):
         monarchs = fetch_monarchs(["Q18810062"])
     assert len(monarchs) == 1
 
 
 def test_fetch_deduplicates_same_person_same_year():
     duplicate = dict(_SAMPLE_BINDINGS[0])
-    with patch("wiki_acronyms.monarchs._sparql_session", return_value=[_SAMPLE_BINDINGS[0], duplicate]):
+    with patch("deck_generator.monarchs._sparql_session", return_value=[_SAMPLE_BINDINGS[0], duplicate]):
         monarchs = fetch_monarchs(["Q18810062"])
     assert len(monarchs) == 1
 
@@ -101,7 +101,7 @@ def test_fetch_deduplicates_same_person_different_title():
         "personLabel": {"value": "George III"},
         "start": {"value": "1801-01-01T00:00:00Z"},
     }
-    with patch("wiki_acronyms.monarchs._sparql_session", return_value=[row_early, row_late]):
+    with patch("deck_generator.monarchs._sparql_session", return_value=[row_early, row_late]):
         monarchs = fetch_monarchs(["Q110324075", "Q111722535"])
     assert len(monarchs) == 1
     assert monarchs[0].accession_year == 1760  # earliest wins
@@ -110,14 +110,14 @@ def test_fetch_deduplicates_same_person_different_title():
 def test_fetch_merges_parent_info():
     row1 = {"person": {"value": "http://www.wikidata.org/entity/Q12345"}, "personLabel": {"value": "Alfred the Great"}, "start": {"value": "0871-01-01T00:00:00Z"}}
     row2 = {**row1, "fatherLabel": {"value": "Æthelwulf"}, "motherLabel": {"value": "Osburh"}}
-    with patch("wiki_acronyms.monarchs._sparql_session", return_value=[row1, row2]):
+    with patch("deck_generator.monarchs._sparql_session", return_value=[row1, row2]):
         monarchs = fetch_monarchs(["Q18810062"])
     assert monarchs[0].father == "Æthelwulf"
     assert monarchs[0].mother == "Osburh"
 
 
 def test_fetch_query_contains_position_ids():
-    with patch("wiki_acronyms.monarchs._sparql_session", return_value=[]) as mock_session:
+    with patch("deck_generator.monarchs._sparql_session", return_value=[]) as mock_session:
         fetch_monarchs(["Q18810062", "Q192444"])
     query = mock_session.call_args[0][1]
     assert "wd:Q18810062" in query
@@ -125,19 +125,19 @@ def test_fetch_query_contains_position_ids():
 
 
 def test_fetch_empty():
-    with patch("wiki_acronyms.monarchs._sparql_session", return_value=[]):
+    with patch("deck_generator.monarchs._sparql_session", return_value=[]):
         assert fetch_monarchs(["Q18810062"]) == []
 
 
 def test_fetch_no_house_clause_by_default():
-    with patch("wiki_acronyms.monarchs._sparql_session", return_value=[]) as mock_session:
+    with patch("deck_generator.monarchs._sparql_session", return_value=[]) as mock_session:
         fetch_monarchs(["Q18810062"])
     query = mock_session.call_args[0][1]
     assert "wdt:P53" not in query   # unfiltered position query unchanged
 
 
 def test_fetch_adds_house_clause_when_given():
-    with patch("wiki_acronyms.monarchs._sparql_session", return_value=[]) as mock_session:
+    with patch("deck_generator.monarchs._sparql_session", return_value=[]) as mock_session:
         fetch_monarchs(["Q268218"], house_ids=["Q5185064", "Q934262"])
     query = mock_session.call_args[0][1]
     assert "wdt:P53" in query
@@ -150,13 +150,13 @@ def test_fetch_populates_wp_title():
         **_SAMPLE_BINDINGS[2],
         "wpTitle": {"value": "William I of England"},
     }]
-    with patch("wiki_acronyms.monarchs._sparql_session", return_value=bindings):
+    with patch("deck_generator.monarchs._sparql_session", return_value=bindings):
         monarchs = fetch_monarchs(["Q18810062"])
     assert monarchs[0].wp_title == "William I of England"
 
 
 def test_fetch_wp_title_none_when_absent():
-    with patch("wiki_acronyms.monarchs._sparql_session", return_value=[_SAMPLE_BINDINGS[0]]):
+    with patch("deck_generator.monarchs._sparql_session", return_value=[_SAMPLE_BINDINGS[0]]):
         monarchs = fetch_monarchs(["Q18810062"])
     assert monarchs[0].wp_title is None
 
@@ -165,7 +165,7 @@ def test_fetch_merges_wp_title():
     # First row has no sitelink; second (same person) has one — should be saved
     row1 = {**_SAMPLE_BINDINGS[0]}
     row2 = {**_SAMPLE_BINDINGS[0], "wpTitle": {"value": "Alfred the Great"}}
-    with patch("wiki_acronyms.monarchs._sparql_session", return_value=[row1, row2]):
+    with patch("deck_generator.monarchs._sparql_session", return_value=[row1, row2]):
         monarchs = fetch_monarchs(["Q18810062"])
     assert monarchs[0].wp_title == "Alfred the Great"
 
@@ -355,7 +355,7 @@ def test_last_digit_extraction():
 
 # write_monarchs_xlsx
 import openpyxl
-from wiki_acronyms.xlsx_writer import write_monarchs_xlsx
+from deck_generator.xlsx_writer import write_monarchs_xlsx
 
 
 def _sample_chunks():
@@ -542,7 +542,7 @@ def test_fetch_parses_precision_and_keeps_it_with_winning_year():
         {"person": {"value": "http://www.wikidata.org/entity/Q1"}, "personLabel": {"value": "Stephen"},
          "start": {"value": "1135-01-01T00:00:00Z"}, "startPrec": {"value": "8"}},
     ]
-    with patch("wiki_acronyms.monarchs._sparql_session", return_value=bindings):
+    with patch("deck_generator.monarchs._sparql_session", return_value=bindings):
         got = fetch_monarchs(["Q1"])
     assert got[0].accession_year == 1135
     assert got[0].accession_precision == 8   # the 1135 row's precision, not 1141's
@@ -551,11 +551,11 @@ def test_fetch_parses_precision_and_keeps_it_with_winning_year():
 def test_fetch_precision_absent_is_none():
     bindings = [{"person": {"value": "http://www.wikidata.org/entity/Q1"},
                  "personLabel": {"value": "X"}, "start": {"value": "1000-01-01T00:00:00Z"}}]
-    with patch("wiki_acronyms.monarchs._sparql_session", return_value=bindings):
+    with patch("deck_generator.monarchs._sparql_session", return_value=bindings):
         assert fetch_monarchs(["Q1"])[0].accession_precision is None
 
 
 def test_fetch_query_requests_precision():
-    with patch("wiki_acronyms.monarchs._sparql_session", return_value=[]) as mock:
+    with patch("deck_generator.monarchs._sparql_session", return_value=[]) as mock:
         fetch_monarchs(["Q1"])
     assert "wikibase:timePrecision" in mock.call_args[0][1]

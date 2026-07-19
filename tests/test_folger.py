@@ -5,7 +5,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from wiki_acronyms.folger import (
+from deck_generator.folger import (
     MonologueRef,
     Passage,
     fetch_monologue_refs,
@@ -137,8 +137,8 @@ def test_fetch_monologue_refs_uses_cache(tmp_path):
 def test_fetch_monologue_refs_fetches_when_no_cache(tmp_path):
     mock_resp = MagicMock()
     mock_resp.text = _MONOLOGUE_HTML
-    with patch('wiki_acronyms.folger.requests.get', return_value=mock_resp) as mock_get:
-        with patch('wiki_acronyms.folger.time.sleep'):
+    with patch('deck_generator.folger.requests.get', return_value=mock_resp) as mock_get:
+        with patch('deck_generator.folger.time.sleep'):
             refs = fetch_monologue_refs('Ham', min_lines=20, cache_dir=tmp_path)
     mock_get.assert_called_once()
     assert len(refs) == 3
@@ -147,8 +147,8 @@ def test_fetch_monologue_refs_fetches_when_no_cache(tmp_path):
 def test_fetch_monologue_refs_writes_cache(tmp_path):
     mock_resp = MagicMock()
     mock_resp.text = _MONOLOGUE_HTML
-    with patch('wiki_acronyms.folger.requests.get', return_value=mock_resp):
-        with patch('wiki_acronyms.folger.time.sleep'):
+    with patch('deck_generator.folger.requests.get', return_value=mock_resp):
+        with patch('deck_generator.folger.time.sleep'):
             fetch_monologue_refs('Ham', min_lines=20, cache_dir=tmp_path)
     assert (tmp_path / 'Ham_monologues_20.html').exists()
 
@@ -166,8 +166,8 @@ def test_fetch_passage_lines_uses_cache(tmp_path):
 def test_fetch_passage_lines_fetches_when_no_cache(tmp_path):
     mock_resp = MagicMock()
     mock_resp.text = _SEGMENT_HTML
-    with patch('wiki_acronyms.folger.requests.get', return_value=mock_resp):
-        with patch('wiki_acronyms.folger.time.sleep'):
+    with patch('deck_generator.folger.requests.get', return_value=mock_resp):
+        with patch('deck_generator.folger.time.sleep'):
             lines = fetch_passage_lines('Ham', 'sp-1762', cache_dir=tmp_path)
     assert len(lines) == 3
 

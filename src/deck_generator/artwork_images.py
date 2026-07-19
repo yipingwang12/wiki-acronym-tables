@@ -17,7 +17,7 @@ from PIL import Image
 
 # Wikimedia's image CDN (upload.wikimedia.org) enforces its User-Agent policy and 403s
 # placeholder/example.com UAs — it needs a real identifying URL. (The SPARQL endpoint is laxer.)
-_UA = "memory-quiz-artworks/0.1 (https://github.com/yipingwang12/wiki-acronym-tables; educational personal project)"
+_UA = "memory-quiz-artworks/0.1 (https://github.com/yipingwang12/memory-deck-generator; educational personal project)"
 
 
 def _hinted(url: str, width: int) -> str:

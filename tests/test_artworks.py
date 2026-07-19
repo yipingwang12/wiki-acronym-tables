@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from unittest.mock import MagicMock, Mock, patch
 
-from wiki_acronyms.artworks import Artwork, build_query, fetch_artworks
+from deck_generator.artworks import Artwork, build_query, fetch_artworks
 
 
 def _binding(qid, title, creator_qid, creator, img="http://img/x.jpg", sitelinks=50, inception=None):
@@ -31,7 +31,7 @@ def _mock_session(bindings):
 
 
 def _fetch(bindings, config=None):
-    with patch("wiki_acronyms.wikidata.requests.Session", return_value=_mock_session(bindings)):
+    with patch("deck_generator.wikidata.requests.Session", return_value=_mock_session(bindings)):
         return fetch_artworks(config or {"source": "wikidata"})
 
 

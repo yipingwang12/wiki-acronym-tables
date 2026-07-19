@@ -1,4 +1,4 @@
-from wiki_acronyms.acronym import chunk_acronym, name_initials
+from deck_generator.acronym import chunk_acronym, name_initials
 
 
 def test_two_word_name():
@@ -92,7 +92,7 @@ def test_first_only_ignores_particles():
 
 
 # line_initials — poetry lines, no particle skipping
-from wiki_acronyms.acronym import line_initials
+from deck_generator.acronym import line_initials
 
 
 def test_line_initials_basic():

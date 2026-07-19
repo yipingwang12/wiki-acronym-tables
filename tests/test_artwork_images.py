@@ -8,7 +8,7 @@ from unittest.mock import MagicMock, Mock
 import requests
 from PIL import Image
 
-from wiki_acronyms.artwork_images import _retry_wait, fetch_raw, to_webp
+from deck_generator.artwork_images import _retry_wait, fetch_raw, to_webp
 
 
 def _png_bytes(w, h):
@@ -74,7 +74,7 @@ class TestFetchRaw:
         return requests.HTTPError(response=resp)
 
     def test_retries_on_429_then_succeeds(self, tmp_path, monkeypatch):
-        monkeypatch.setattr("wiki_acronyms.artwork_images.time.sleep", lambda *_: None)
+        monkeypatch.setattr("deck_generator.artwork_images.time.sleep", lambda *_: None)
         ok = Mock(content=b"IMG", raise_for_status=Mock(return_value=None))
         boom = Mock(raise_for_status=Mock(side_effect=self._http_error(429)))
         session = MagicMock(headers={})
@@ -83,7 +83,7 @@ class TestFetchRaw:
         assert got == b"IMG" and session.get.call_count == 3
 
     def test_raises_after_exhausting_retries(self, tmp_path, monkeypatch):
-        monkeypatch.setattr("wiki_acronyms.artwork_images.time.sleep", lambda *_: None)
+        monkeypatch.setattr("deck_generator.artwork_images.time.sleep", lambda *_: None)
         boom = Mock(raise_for_status=Mock(side_effect=self._http_error(429)))
         session = MagicMock(headers={})
         session.get.return_value = boom

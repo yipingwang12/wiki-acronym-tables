@@ -1,9 +1,9 @@
 from unittest.mock import MagicMock, patch
 
-from wiki_acronyms.coverage import (
+from deck_generator.coverage import (
     CoverageReport, _is_likely_person_link, check_coverage, fetch_wikipedia_list_links,
 )
-from wiki_acronyms.monarchs import Monarch
+from deck_generator.monarchs import Monarch
 
 
 # _is_likely_person_link
@@ -86,8 +86,8 @@ def _monarch(name, wp_title=None, accession_year=1000):
 
 def test_check_coverage_all_matched():
     monarchs = [_monarch("William I", "William I of England")]
-    with patch("wiki_acronyms.coverage.fetch_monarchs", return_value=monarchs), \
-         patch("wiki_acronyms.coverage.fetch_wikipedia_list_links", return_value={"William I of England"}):
+    with patch("deck_generator.coverage.fetch_monarchs", return_value=monarchs), \
+         patch("deck_generator.coverage.fetch_wikipedia_list_links", return_value={"William I of England"}):
         report = check_coverage(["Q18810062"], "List of English monarchs", subject="Test")
     assert report.wikidata_count == 1
     assert report.matched_count == 1
@@ -99,8 +99,8 @@ def test_check_coverage_all_matched():
 def test_check_coverage_missing_from_wikidata():
     monarchs = [_monarch("William I", "William I of England")]
     wp_links = {"William I of England", "Harold II"}
-    with patch("wiki_acronyms.coverage.fetch_monarchs", return_value=monarchs), \
-         patch("wiki_acronyms.coverage.fetch_wikipedia_list_links", return_value=wp_links):
+    with patch("deck_generator.coverage.fetch_monarchs", return_value=monarchs), \
+         patch("deck_generator.coverage.fetch_wikipedia_list_links", return_value=wp_links):
         report = check_coverage(["Q18810062"], "List of English monarchs")
     assert "Harold II" in report.in_wikipedia_not_wikidata
     assert report.matched_count == 1
@@ -111,8 +111,8 @@ def test_check_coverage_missing_from_wikipedia():
         _monarch("William I", "William I of England"),
         _monarch("Harold II", "Harold II"),
     ]
-    with patch("wiki_acronyms.coverage.fetch_monarchs", return_value=monarchs), \
-         patch("wiki_acronyms.coverage.fetch_wikipedia_list_links", return_value={"William I of England"}):
+    with patch("deck_generator.coverage.fetch_monarchs", return_value=monarchs), \
+         patch("deck_generator.coverage.fetch_wikipedia_list_links", return_value={"William I of England"}):
         report = check_coverage(["Q18810062"], "List of English monarchs")
     assert "Harold II" in report.in_wikidata_not_wikipedia
     assert report.matched_count == 1
@@ -120,16 +120,16 @@ def test_check_coverage_missing_from_wikipedia():
 
 def test_check_coverage_no_sitelink_reported_separately():
     monarchs = [_monarch("Æthelred the Unready", wp_title=None)]
-    with patch("wiki_acronyms.coverage.fetch_monarchs", return_value=monarchs), \
-         patch("wiki_acronyms.coverage.fetch_wikipedia_list_links", return_value={"Æthelred the Unready"}):
+    with patch("deck_generator.coverage.fetch_monarchs", return_value=monarchs), \
+         patch("deck_generator.coverage.fetch_wikipedia_list_links", return_value={"Æthelred the Unready"}):
         report = check_coverage(["Q18810062"], "List of English monarchs")
     assert "Æthelred the Unready" in report.no_wp_sitelink
     assert report.matched_count == 0
 
 
 def test_check_coverage_empty_wikidata():
-    with patch("wiki_acronyms.coverage.fetch_monarchs", return_value=[]), \
-         patch("wiki_acronyms.coverage.fetch_wikipedia_list_links", return_value={"William I of England"}):
+    with patch("deck_generator.coverage.fetch_monarchs", return_value=[]), \
+         patch("deck_generator.coverage.fetch_wikipedia_list_links", return_value={"William I of England"}):
         report = check_coverage(["Q18810062"], "List of English monarchs")
     assert report.wikidata_count == 0
     assert report.matched_count == 0
@@ -137,8 +137,8 @@ def test_check_coverage_empty_wikidata():
 
 
 def test_check_coverage_subject_propagated():
-    with patch("wiki_acronyms.coverage.fetch_monarchs", return_value=[]), \
-         patch("wiki_acronyms.coverage.fetch_wikipedia_list_links", return_value=set()):
+    with patch("deck_generator.coverage.fetch_monarchs", return_value=[]), \
+         patch("deck_generator.coverage.fetch_wikipedia_list_links", return_value=set()):
         report = check_coverage(["Q1"], "Some List", subject="English Monarchs")
     assert report.subject == "English Monarchs"
     assert report.wikipedia_list == "Some List"
@@ -146,7 +146,7 @@ def test_check_coverage_subject_propagated():
 
 def test_check_coverage_results_sorted():
     monarchs = [_monarch("Zara", "Zara"), _monarch("Anna", "Anna")]
-    with patch("wiki_acronyms.coverage.fetch_monarchs", return_value=monarchs), \
-         patch("wiki_acronyms.coverage.fetch_wikipedia_list_links", return_value=set()):
+    with patch("deck_generator.coverage.fetch_monarchs", return_value=monarchs), \
+         patch("deck_generator.coverage.fetch_wikipedia_list_links", return_value=set()):
         report = check_coverage(["Q1"], "Some List")
     assert report.in_wikidata_not_wikipedia == sorted(report.in_wikidata_not_wikipedia)

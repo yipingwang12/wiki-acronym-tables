@@ -16,10 +16,10 @@ from unittest.mock import patch
 
 import pytest
 
-from wiki_acronyms import deck_export
-from wiki_acronyms.artworks import Artwork
-from wiki_acronyms.monarchs import Monarch, make_monarch_chunks
-from wiki_acronyms.poetry_parser import extract_poem
+from deck_generator import deck_export
+from deck_generator.artworks import Artwork
+from deck_generator.monarchs import Monarch, make_monarch_chunks
+from deck_generator.poetry_parser import extract_poem
 
 _POEM_TEXT = "\n".join([
     "PROLOGUE",
@@ -103,8 +103,8 @@ def _write_monarchs(config_dir):
 
 
 def _export(config_dir, decks_dir):
-    with patch('wiki_acronyms.deck_export.fetch_text', return_value=_POEM_TEXT), \
-         patch('wiki_acronyms.deck_export.fetch_monarchs', return_value=_MONARCHS):
+    with patch('deck_generator.deck_export.fetch_text', return_value=_POEM_TEXT), \
+         patch('deck_generator.deck_export.fetch_monarchs', return_value=_MONARCHS):
         return deck_export.export_decks(config_dir, decks_dir)
 
 
@@ -257,9 +257,9 @@ def _export_artworks(config_dir, decks_dir, only=None, arts=None, fail_qids=()):
             raise RuntimeError("dead image")
         return f"raw:{key}".encode()
 
-    with patch('wiki_acronyms.deck_export.fetch_artworks', return_value=arts if arts is not None else _ARTWORKS), \
-         patch('wiki_acronyms.deck_export.fetch_raw', side_effect=fake_fetch_raw), \
-         patch('wiki_acronyms.deck_export.to_webp', side_effect=lambda raw, px: b'WEBP:' + raw):
+    with patch('deck_generator.deck_export.fetch_artworks', return_value=arts if arts is not None else _ARTWORKS), \
+         patch('deck_generator.deck_export.fetch_raw', side_effect=fake_fetch_raw), \
+         patch('deck_generator.deck_export.to_webp', side_effect=lambda raw, px: b'WEBP:' + raw):
         return deck_export.export_decks(config_dir, decks_dir, only=only)
 
 
@@ -372,8 +372,8 @@ def test_missing_artifact_raises(tmp_path):
 # or shuffles the list.
 
 def _export_only(config_dir, decks_dir, only=None, reset_identity=False):
-    with patch('wiki_acronyms.deck_export.fetch_text', return_value=_POEM_TEXT), \
-         patch('wiki_acronyms.deck_export.fetch_monarchs', return_value=_MONARCHS):
+    with patch('deck_generator.deck_export.fetch_text', return_value=_POEM_TEXT), \
+         patch('deck_generator.deck_export.fetch_monarchs', return_value=_MONARCHS):
         return deck_export.export_decks(config_dir, decks_dir, only=only,
                                         reset_identity=reset_identity)
 
@@ -482,8 +482,8 @@ class TestOnly:
         _write_monarchs(tmp_path)
         decks = tmp_path / 'decks'
         _export_only(tmp_path, decks)
-        with patch('wiki_acronyms.deck_export.fetch_text', return_value=_POEM_TEXT) as ft, \
-             patch('wiki_acronyms.deck_export.fetch_monarchs', return_value=_MONARCHS) as fm:
+        with patch('deck_generator.deck_export.fetch_text', return_value=_POEM_TEXT) as ft, \
+             patch('deck_generator.deck_export.fetch_monarchs', return_value=_MONARCHS) as fm:
             deck_export.export_decks(tmp_path, decks, only='monarchs_britain')
         ft.assert_not_called()      # poetry not fetched
         fm.assert_called_once()
