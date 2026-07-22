@@ -1,0 +1,21 @@
+# Mathematics core identities → error-spot deck (quiz mode `error-spot`).
+deck_name: "Mathematics — Core Identities"
+group: "Equations"
+
+corruption:
+  pool_size: 12
+  types: [sign_flip, exponent_off_by_one, constant_perturb, variable_swap]
+
+equations:
+  - label: "Pythagorean theorem"
+    latex: "c^2 = a^2 + b^2"
+    source: "Euclid I.47"
+  - label: "Area of a circle"
+    latex: "A = \\pi r^2"
+    source: "Archimedes"
+  - label: "Sum of first n integers"
+    latex: "S = \\frac{n(n+1)}{2}"
+    source: "Gauss"
+  - label: "Difference of squares"
+    latex: "a^2 - b^2 = (a-b)(a+b)"
+    source: "standard"

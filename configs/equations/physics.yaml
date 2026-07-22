@@ -1,0 +1,27 @@
+# Physics core equations → error-spot deck (quiz mode `error-spot`).
+deck_name: "Physics — Core Equations"
+group: "Equations"
+
+corruption:
+  pool_size: 12
+  types: [sign_flip, exponent_off_by_one, constant_perturb, variable_swap]
+
+equations:
+  - label: "Kinetic energy"
+    latex: "E = \\frac{1}{2}mv^2"
+    source: "Kleppner & Kolenkow, 5.2"
+  - label: "Mass–energy equivalence"
+    latex: "E = mc^2"
+    source: "Einstein 1905"
+  - label: "Newton's second law"
+    latex: "F = ma"
+    source: "Kleppner & Kolenkow, 2.2"
+  - label: "Kinematic displacement"
+    latex: "x = v t + \\frac{1}{2}a t^2"
+    source: "Kleppner & Kolenkow, 1.8"
+  - label: "Pendulum period"
+    latex: "T = 2\\pi\\sqrt{\\frac{L}{g}}"
+    source: "French, Vibrations 3"
+  - label: "Ohm's law"
+    latex: "V = IR"
+    source: "Griffiths, EM 7.1"
