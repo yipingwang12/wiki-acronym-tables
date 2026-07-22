@@ -33,6 +33,16 @@ _MISPARSE_MARKERS = frozenset({'mathbf', 'hat', 'operatorname', 'pm', 'nabla', '
 # Macros whose braced argument names a function or is styled text, not variables.
 _NAME_MACROS = frozenset({'operatorname', 'mathrm', 'text', 'textbf', 'mathbf', 'mathit'})
 
+# Single-symbol Greek letters used as variables/parameters, so variable_swap can confuse
+# them like ASCII letters. Deliberately excludes \pi/\Pi (usually the constant / a product)
+# and every operator macro (\sum, \int, \partial, \nabla), which are not variables.
+_GREEK_VARS = frozenset({
+    'alpha', 'beta', 'gamma', 'delta', 'epsilon', 'varepsilon', 'zeta', 'eta', 'theta',
+    'vartheta', 'iota', 'kappa', 'lambda', 'mu', 'nu', 'xi', 'rho', 'varrho', 'sigma',
+    'varsigma', 'tau', 'upsilon', 'phi', 'varphi', 'chi', 'psi', 'omega',
+    'Gamma', 'Delta', 'Theta', 'Lambda', 'Xi', 'Sigma', 'Upsilon', 'Phi', 'Psi', 'Omega',
+})
+
 _SUP_BRACED = re.compile(r'\^\{(\d+)\}')
 _SUP_BARE = re.compile(r'\^(\d)')
 
@@ -85,35 +95,43 @@ def _constant_spans(latex: str) -> list[_Span]:
 
 def _variable_swap_spans(latex: str) -> list[_Span]:
     """Substitute one variable for another already in the equation. Confusing ``m`` for
-    ``v`` is a real recall failure, and reusing an in-equation symbol keeps the result
-    plausible rather than obviously foreign."""
-    positions = _variable_positions(latex)
-    distinct = sorted({latex[i] for i in positions})
+    ``v`` — or a random variable ``X`` for a parameter ``\\lambda`` — is a real recall
+    failure, and reusing an in-equation symbol keeps the result plausible."""
+    toks = _variable_tokens(latex)
+    distinct = sorted({raw for _, _, raw in toks})
     if len(distinct) < 2:
         return []
-    return [_Span(i, i + 1, other, 'variable_swap')
-            for i in positions for other in distinct if other != latex[i]]
+    return [_Span(start, end, other, 'variable_swap')
+            for start, end, raw in toks for other in distinct if other != raw]
 
 
-def _variable_positions(latex: str) -> list[int]:
-    """Offsets of single-letter variables, skipping macro names.
+def _variable_tokens(latex: str) -> list[tuple[int, int, str]]:
+    """``(start, end, raw)`` for each single-symbol variable — an ASCII letter or a
+    whitelisted Greek macro (``\\lambda``, ``\\mu``, …).
 
-    Adjacent letters are *separate* variables in LaTeX (``mc`` is m·c), so neighbours can't
-    be used to delimit a name — macros have to be consumed explicitly instead.
+    Greek letters *are* variables (a rate ``\\lambda``, a mean ``\\mu``); collecting only
+    ASCII silently thinned pools and dropped equations whose only symbols were Greek (e.g.
+    Poisson ``Var(X)=\\lambda``). Operators (``\\sum``, ``\\int``, ``\\partial``) stay out
+    because they aren't in the whitelist. Adjacent ASCII letters are *separate* variables
+    (``mc`` is m·c), so macros must be consumed explicitly rather than by letter runs.
     """
-    out, i = [], 0
-    while i < len(latex):
+    out, i, n = [], 0, len(latex)
+    while i < n:
         if latex[i] == '\\':
-            i += 1
             start = i
-            while i < len(latex) and latex[i].isalpha():  # consume the macro name
+            i += 1
+            name_start = i
+            while i < n and latex[i].isalpha():  # consume the macro name
                 i += 1
-            # A name-carrying macro's argument is an *identifier*, not variables:
-            # corrupting the 'a' in \operatorname{Var} yields "VVr", nonsense that gives
-            # itself away. Skip the braced argument too.
-            if latex[start:i] in _NAME_MACROS and i < len(latex) and latex[i] == '{':
+            name = latex[name_start:i]
+            if name in _GREEK_VARS:
+                out.append((start, i, latex[start:i]))
+                continue
+            # A name-carrying macro's argument is an *identifier*, not variables: corrupting
+            # the 'a' in \operatorname{Var} yields "VVr", nonsense that gives itself away.
+            if name in _NAME_MACROS and i < n and latex[i] == '{':
                 depth = 0
-                while i < len(latex):
+                while i < n:
                     if latex[i] == '{':
                         depth += 1
                     elif latex[i] == '}':
@@ -124,7 +142,7 @@ def _variable_positions(latex: str) -> list[int]:
                     i += 1
             continue
         if latex[i].isalpha():
-            out.append(i)
+            out.append((i, i + 1, latex[i]))
         i += 1
     return out
 

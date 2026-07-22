@@ -123,8 +123,11 @@ def test_variable_swap_treats_adjacent_letters_as_separate_variables():
     assert {s.text for s in _variable_swap_spans(r'E = mc^2')} == {'E', 'm', 'c'}
 
 
-def test_variable_swap_skips_macro_names():
-    assert 's' not in {s.text for s in _variable_swap_spans(r'f = \sigma x')}
+def test_variable_swap_treats_greek_as_whole_variable_not_letters():
+    """\sigma is one variable (swappable as a whole), never its internal letters s,i,g,m,a."""
+    texts = {s.text for s in _variable_swap_spans(r'f = \sigma x')}
+    assert 's' not in texts and 'i' not in texts   # no macro-internal corruption
+    assert '\\sigma' in texts                       # but sigma itself is a candidate
 
 
 def test_variable_swap_needs_two_distinct_variables():
@@ -184,3 +187,25 @@ def test_classify_one_for_thin_pool():
     pool = [{'id': 'a', 'i': 1, 'to': 'x', 'type': 't'},
             {'id': 'b', 'i': 2, 'to': 'y', 'type': 't'}]
     assert classify(pool, []) == 'one'
+
+
+# --- Greek-letter variables ------------------------------------------------
+
+def test_variable_swap_recognizes_greek_letters():
+    """Greek letters are variables/parameters; confusing X for lambda is a real error."""
+    texts = {s.text for s in _variable_swap_spans(r'\operatorname{Var}(X) = \lambda')}
+    assert texts == {'X', r'\lambda'}
+
+
+def test_variable_swap_excludes_pi_as_a_constant():
+    """\\pi is the constant, not a free variable — never a swap candidate."""
+    texts = {s.text for s in _variable_swap_spans(r'f = \frac{1}{\sigma\sqrt{2\pi}}')}
+    assert r'\pi' not in texts
+
+
+def test_poisson_is_usable_after_greek_support():
+    """Var(X)=lambda was dropped (pool=0) when Greek letters were invisible; now it has a
+    verified corruption (the RHS lambda->X; the LHS X is inside Var(...) and stays opaque)."""
+    eq = Equation(label='Poisson', latex=r'\operatorname{Var}(X) = \lambda')
+    pool, bad = build_pool(eq, ALL)
+    assert pool and classify(pool, bad) == 'one'
