@@ -2,7 +2,7 @@ import pytest
 
 from deck_generator.corruptions import (
     _constant_spans, _variable_swap_spans, pool_warnings, valid_pairs,
-    _Span, _exponent_spans, _sign_flip_spans, apply_spans, build_pool, differs,
+    _Span, _exponent_spans, _sign_flip_spans, apply_spans, build_pool, classify, differs,
 )
 from deck_generator.equations import Equation
 
@@ -165,3 +165,22 @@ def test_variable_swap_never_touches_an_operator_name():
 
 def test_variable_swap_still_works_around_name_macros():
     assert {s.text for s in _variable_swap_spans(r'\operatorname{Var}(X) = n p')} == {'X', 'n', 'p'}
+
+
+# --- deck classification (2-error vs 1-error split) ------------------------
+
+def test_classify_drops_empty_pool():
+    assert classify([], []) == 'drop'
+
+
+def test_classify_two_needs_enough_pairs():
+    eq = Equation(label='Lorentz', latex=r'\gamma = \frac{1}{\sqrt{1-\frac{v^2}{c^2}}}')
+    pool, bad = build_pool(eq, ALL)
+    assert classify(pool, bad) == 'two'   # many valid pairs
+
+
+def test_classify_one_for_thin_pool():
+    # exactly one valid pair (< the 3-pair threshold) → the one-error deck
+    pool = [{'id': 'a', 'i': 1, 'to': 'x', 'type': 't'},
+            {'id': 'b', 'i': 2, 'to': 'y', 'type': 't'}]
+    assert classify(pool, []) == 'one'

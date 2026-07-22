@@ -278,3 +278,24 @@ def pool_warnings(eq: Equation, pool: list[dict], bad_pairs: list[list[str]]) ->
     if pool and len({e['type'] for e in pool}) == 1:
         out.append(f'{eq.label!r}: every corruption is {pool[0]["type"]} — one trick to learn')
     return out
+
+
+_TWO_ERROR_MIN_PAIRS = 3
+
+
+def classify(pool: list[dict], bad_pairs: list[list[str]]) -> str:
+    """Which fixed-count deck an equation belongs in.
+
+    Splitting by supportable count (rather than varying the count per showing) keeps each
+    deck's difficulty honest: a "2 errors" card the pool can't vary would repeat the same
+    two positions, teaching positions instead of the formula.
+
+    - ``'two'``  — enough distinct valid pairs to vary a two-error display
+    - ``'one'``  — a usable pool but too few pairs; show a single error
+    - ``'drop'`` — no verified corruption at all; the equation is unusable
+    """
+    if not pool:
+        return 'drop'
+    if valid_pairs(pool, bad_pairs) >= _TWO_ERROR_MIN_PAIRS:
+        return 'two'
+    return 'one'

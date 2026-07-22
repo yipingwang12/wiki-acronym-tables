@@ -25,7 +25,7 @@ import yaml
 
 from .artwork_images import fetch_raw, to_webp
 from .artworks import fetch_artworks
-from .corruptions import build_pool, pool_warnings
+from .corruptions import build_pool, classify, pool_warnings
 from .distractors import build_choices
 from .equations import annotate, eligible_indices, load_equations, to_mathml
 from .gutenberg import fetch_text
@@ -98,8 +98,14 @@ def _discover_slots(config_dir: Path) -> list[_Slot]:
         order += 1
     for yaml_path in sorted(Path(config_dir).glob('equations/*.yaml')):
         cfg = yaml.safe_load(yaml_path.read_text())
-        slots.append(_Slot(order, 'equations', yaml_path, None, cfg.get('group', _EQUATION_GROUP)))
-        order += 1
+        group = cfg.get('group', _EQUATION_GROUP)
+        # One config → two decks, split by how many errors each equation can support (a card
+        # whose pool can't vary two positions would just repeat them). poem_cfg carries the
+        # variant, disambiguated by poem_title exactly like a poetry collection's poems.
+        for variant, ptitle in (('two', '2 errors'), ('one', '1 error')):
+            slots.append(_Slot(order, 'equations', yaml_path,
+                               {'variant': variant, 'poem_title': ptitle}, group))
+            order += 1
 
     per_config: dict[Path, int] = {}
     for s in slots:
@@ -193,10 +199,13 @@ def build_deck_artifacts(config_dir: Path, only: str | None = None) -> list[dict
             continue
         artifacts.append(_build_artwork_deck(s))
 
+    _EQ_POOL_CACHE.clear()   # per-run; the two variant slots of a config share it
     for s in wanted:
         if s.deck_type != 'equations':
             continue
-        artifacts.append(_build_equation_deck(s))
+        deck = _build_equation_deck(s)
+        if deck is not None:          # a variant with no qualifying equations is omitted
+            artifacts.append(deck)
 
     artifacts.sort(key=lambda a: a['order'])
     return artifacts
@@ -363,48 +372,74 @@ if __name__ == "__main__":
     main()
 
 
-def _build_equation_deck(s: _Slot) -> dict:
-    """Curated equations → MathML + a verified corruption pool per equation.
+_EQ_POOL_CACHE: dict[str, list[dict]] = {}
 
-    The ``item`` is the canonical LaTeX, so ``item_key`` depends only on the equation
-    itself: the corruption engine can be retuned, or a type retired, and every FSRS card
-    survives a re-export. That is deliberately unlike the monarch decks, where a generator
-    behaviour change rewrote items and stranded review history.
 
-    An equation whose pool can't sustain a two-error display is kept but warned about —
-    thinness is visible, never silent.
-    """
-    cfg = yaml.safe_load(s.yaml_path.read_text())
-    title = cfg.get('deck_name', s.yaml_path.stem)
+def _equation_rows(yaml_path: Path) -> list[dict]:
+    """Build every equation's MathML + verified pool once per config, cached so a config's
+    two variant slots don't each re-run the (sympy-heavy) verification."""
+    key = str(yaml_path)
+    if key in _EQ_POOL_CACHE:
+        return _EQ_POOL_CACHE[key]
+    cfg = yaml.safe_load(yaml_path.read_text())
     ccfg = cfg.get('corruption') or {}
     types = ccfg.get('types', list(_DEFAULT_CORRUPTION_TYPES))
     pool_size = ccfg.get('pool_size', 12)
-
-    items, labels, mathml, pools, bad_pairs = [], [], [], [], []
+    rows = []
     for eq in load_equations(cfg):
         clean = to_mathml(eq.latex)
         pool, bad = build_pool(eq, types, pool_size)
-        for w in pool_warnings(eq, pool, bad):
+        rows.append({
+            'eq': eq, 'pool': pool, 'bad': bad, 'kind': classify(pool, bad),
+            'mathml': annotate(clean, eligible_indices(clean)),
+        })
+    _EQ_POOL_CACHE[key] = rows
+    return rows
+
+
+def _build_equation_deck(s: _Slot) -> dict | None:
+    """One variant ('two' or 'one' errors) of a curated equation config.
+
+    Equations are partitioned by ``classify``: an equation supporting several distinct
+    two-error pairs goes to the 2-error deck, one with a usable but thin pool to the 1-error
+    deck, and one with no verified corruption is dropped (warned). A variant with no
+    qualifying equations yields no deck (``None``).
+
+    The ``item`` is the canonical LaTeX, so ``item_key`` depends only on the equation — an
+    equation that later moves between the two decks keeps its FSRS history.
+    """
+    variant = s.poem_cfg['variant']
+    ptitle = s.poem_cfg['poem_title']
+    cfg = yaml.safe_load(s.yaml_path.read_text())
+    base = cfg.get('deck_name', s.yaml_path.stem)
+
+    rows = _equation_rows(s.yaml_path)
+    if variant == 'two':
+        for r in rows:
+            if r['kind'] == 'drop':
+                print(f"  ! {r['eq'].label!r}: no verified corruption — dropped", file=sys.stderr)
+        for w in (w for r in rows if r['kind'] == 'two'
+                  for w in pool_warnings(r['eq'], r['pool'], r['bad'])):
             print(f'  ! {w}', file=sys.stderr)
-        items.append(eq.latex)
-        labels.append(eq.label)
-        mathml.append(annotate(clean, eligible_indices(clean)))
-        pools.append(pool)
-        bad_pairs.append(bad)
+
+    chosen = [r for r in rows if r['kind'] == variant]
+    if not chosen:
+        return None
 
     return {
         'order': s.order,
-        'name': title,
+        'name': f'{base} ({ptitle})',
         'deck_type': 'equations',
         'mode': 'error-spot',
-        'title': title,
-        'items': items,
-        'labels': labels,
-        'mathml': mathml,
-        'pool': pools,
-        'bad_pairs': bad_pairs,
+        'title': f'{base} ({ptitle})',
+        'n_wrong': 2 if variant == 'two' else 1,
+        'items': [r['eq'].latex for r in chosen],
+        'labels': [r['eq'].label for r in chosen],
+        'mathml': [r['mathml'] for r in chosen],
+        'pool': [r['pool'] for r in chosen],
+        'bad_pairs': [r['bad'] for r in chosen],
         'group': s.group,
-        'poem_title': None,
+        'poem_title': ptitle,
         'config_path': str(s.yaml_path),
         'config_hash': config_hash(s.yaml_path),
         '_filename': s.filename,
