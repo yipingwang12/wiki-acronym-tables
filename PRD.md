@@ -131,6 +131,12 @@ There is **no mechanism to correct a ruler's accession/end year directly**; corr
 - Key stability: item strings are `<QID>|attr`, so re-fetching an image or a corrected label never strands FSRS history (contrast monarch digits). Image licensing (drop non-free) is the main open risk.
 - See [`docs/design/artworks-pipeline.md`](docs/design/artworks-pipeline.md) and the quiz's [`artwork-mc-mode.md`](../memory-quiz-app/docs/design/artwork-mc-mode.md).
 
+### 7. Equations (`deck-equations`) — *built*
+- Source: **hand-curated** LaTeX in `configs/equations/{statistics,physics,mathematics}.yaml` (an article's wikitext holds every `<math>` on the page with nothing marking *the* formula — that choice stays human). Corruptions, by contrast, are **generated**.
+- Output: emits **directly to the quiz artifact seam** — a `deck_type: equations` / `mode: error-spot` deck with baked MathML and, per equation, a pool of **verified single-token corruptions** (`{id, i, to, type}`) plus `bad_pairs`. sympy *proves* each corruption non-equivalent (fails closed); `normalise.py` rewrites real notation (`P(A\mid B)`, `\operatorname{Var}`) into a sympy-parsable form **for verification only**. Consumed by `memory-quiz-app`'s `error-spot` mode.
+- Split: one config → **two decks** (2-error / 1-error) by supportable error count (`classify`), disambiguated by `poem_title`. Key stability: item = canonical LaTeX, so retuning the engine, retiring a type, or an equation moving between decks never strands FSRS history.
+- See [`docs/design/equations-pipeline.md`](docs/design/equations-pipeline.md).
+
 ## Output
 Excel `.xlsx` workbook, two sheets:
 - Detail sheet — one row per entry with initials and chunk acronym highlighted on first row of each chunk

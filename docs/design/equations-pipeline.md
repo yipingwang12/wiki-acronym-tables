@@ -1,11 +1,13 @@
 # Design — Equations error-spot pipeline (`deck-equations`)
 
-Status: **vertical slice built** (generator side only). Quiz-side display/scoring not started.
+Status: **built and in use** — generator + desktop/web quiz surfaces. Live decks: Statistics
+(10 equations), Physics (6), Mathematics (4) — 20 cards across the Equations group. **The PWA
+surface and `study.json` gate opt-in are not yet built.**
 
 ## Goal
 
-Study equations the way the poetry decks study verse: render the equation with exactly two
-tokens silently corrupted and ask which ones are wrong. Error detection gives recall-grade
+Study equations the way the poetry decks study verse: render the equation with a fixed number
+of tokens silently corrupted and ask which ones are wrong. Error detection gives recall-grade
 difficulty with no typing — you cannot type LaTeX fast enough for a daily drill, and
 "recall the Cauchy–Schwarz inequality" has no short typeable answer. It is also close to a
 real skill: spotting a wrong exponent or a flipped sign is what sanity-checking is.
@@ -40,9 +42,12 @@ Target fields: mathematics, statistics, physics, computer science.
 | Module | Role |
 |---|---|
 | `equations.py` | `Equation` dataclass, `load_equations`, `to_mathml`, `token_texts`, `eligible_indices`, `annotate` (adds `id="tok-N"`). |
-| `corruptions.py` | Taxonomy span generators, `apply_spans`, `differs` (the equivalence predicate), `build_pool` (pool + `bad_pairs`), `pool_warnings`/`valid_pairs` (health). |
-| `equations_cli.py` | `deck-equations` — preview pool health per config, `--sample` renders one two-error display as text, `--export` writes the artifact. |
-| `deck_export.py` | `_build_equation_deck` — the export seam. |
+| `corruptions.py` | Taxonomy span generators (incl. Greek-aware `_variable_tokens`), `apply_spans`, `differs` (the equivalence predicate), `build_pool` (pool + `bad_pairs`), `classify` (2/1/drop split), `pool_warnings`/`valid_pairs` (health). |
+| `normalise.py` | Verification-only LaTeX rewrites (real notation → sympy-parsable) + `opaque_spans`. Never displayed. |
+| `equations_cli.py` | `deck-equations` — preview pool health per config, `--sample` renders a two-error display as text, `--export` writes the artifact(s). |
+| `deck_export.py` | `_build_equation_deck` (per-variant) + `_equation_rows` (cached pools) — the export seam; one config → 2-error/1-error decks. |
+
+Configs: `configs/equations/{statistics,physics,mathematics}.yaml`.
 
 ### Why the token index is *derived*, not assumed
 
@@ -94,11 +99,16 @@ whole class of false-corruption unreachable rather than relying on the CAS to ca
 | `sign_flip` | binary `+`/`−` | Not catchable by dimensional analysis — stays useful longest. |
 | `exponent_off_by_one` | integer exponents | Dimensionally detectable; retirement candidate. |
 | `constant_perturb` | standalone integer coefficients | Broad applicability. |
-| `variable_swap` | single-letter variables | Reuses an in-equation symbol so the result stays plausible. Macro-aware: `mc` is m·c, two variables, while `\sigma` is one macro. |
+| `variable_swap` | single-letter variables **and whitelisted Greek macros** | Reuses an in-equation symbol so the result stays plausible. Macro-aware: `mc` is m·c (two variables); `\sigma`/`\lambda`/`\mu` are single Greek variables; `\pi` and operator macros (`\sum`, `\int`) are excluded. |
 
 Two types were not enough: with only `sign_flip` + `exponent_off_by_one`, **1 of 6** sample
 equations could produce a two-error display (`E = mc^2` yielded two corruptions on the *same*
-token, so its only pair was self-blocked). Adding the latter two took it to 5/6.
+token, so its only pair was self-blocked). Adding `constant_perturb` + `variable_swap` took it
+to 5/6; adding **Greek-letter support** to `variable_swap` reached 10/10 on `statistics.yaml`
+and revived `Var(X)=\lambda` (Greek-plus-one-variable was all it had, so it was previously
+dropped). `_variable_tokens` is the scanner — it emits ASCII letters and whitelisted single
+Greek macros as swap candidates, skipping operator-name arguments (`\operatorname{Var}` →
+never corrupt the `a` in "Var").
 
 ## Artifact schema
 
@@ -106,7 +116,9 @@ Parallel arrays, positionally aligned with `items`, matching the artworks `choic
 
 ```json
 { "deck_type": "equations", "mode": "error-spot",
-  "items":  ["Z = \\frac{x-M}{S}"],
+  "title": "Statistics — Core Formulas (2 errors)",
+  "poem_title": "2 errors", "n_wrong": 2,
+  "items":  ["Z = \\frac{x-\\mu}{\\sigma}"],
   "labels": ["Z-score"],
   "mathml": ["<math …><mi id=\"tok-1\">Z</mi>…</math>"],
   "pool":   [[{"id": "581f51", "i": 4, "to": "+", "type": "sign_flip"}]],
@@ -122,18 +134,53 @@ Parallel arrays, positionally aligned with `items`, matching the artworks `choic
   two corruptions cancel back into a true equation. **The pairwise check is load-bearing** —
   the quiz shows exactly two, and each would pass a solo check.
 - No `assets/` — MathML is inline, so unlike artworks there is no second sync path.
+- `n_wrong` is the deck's fixed error count (see the deck split below); `poem_title`
+  (`"2 errors"`/`"1 error"`) disambiguates a config's two decks, like a collection's poems.
 
 Sampling is unseeded and per-showing (like poetry), so these never need to be byte-stable;
 unlike artwork `choices`, they don't participate in the key.
 
-## Quiz-side contract (not yet built)
+## Fixed-count deck split (2-error / 1-error)
 
-`score_response` in the quiz is **content-agnostic** — pure set arithmetic over 1-based
-indices, with missed vs. false-alarm feedback. An equation display returning `LineDisplay`
-with `wrong_tokens` reuses it verbatim. What must be new is the *display encoding*: poetry
-emits `"{i+1}:{text}"` strings, which can't work for rendered math. Retirement lives in the
-quiz repo (`retired_types` + per-id `retired_ids`), not the artifact, so a bare re-export
-can't wipe it.
+Rather than varying the error count per showing, each **equation** is classified by how many
+distinct two-error displays its pool supports, and a config emits **two decks**:
+
+- `classify(pool, bad_pairs)` → `'two'` (≥3 valid pairs), `'one'` (usable pool, fewer pairs),
+  or `'drop'` (no verified corruption — warned, e.g. a two-token identity).
+- The `'two'` equations form a **2-error deck** (`n_wrong: 2`), the `'one'` a **1-error deck**
+  (`n_wrong: 1`); a variant with no qualifying equations yields no deck.
+- Splitting by *supportable* count keeps difficulty honest: a 2-error card whose pool can't
+  vary would repeat the same two positions, teaching positions rather than the formula. The
+  ≥3-pair threshold is the same number `pool_warnings` uses for "positions will repeat".
+- One config → two decks disambiguated by `poem_title`, exactly like a poetry collection's
+  poems. Pools are computed **once per config** (cached) across the two variant slots.
+
+Because `item_key` is the canonical LaTeX, an equation that later moves between the two decks
+(its pool grew or shrank) **keeps its FSRS history** — the move changes only which deck lists it.
+
+## Quiz-side (built — in `memory-quiz-app`)
+
+- **Display** (`equations.py`): `make_equation_display(mathml, pool, bad_pairs, n_wrong)`
+  samples `n_wrong` corruptions on distinct tokens (respecting `bad_pairs` for pairs) and
+  swaps their *text* in the baked MathML — never re-rendering, never wrapping, so clean and
+  corrupted markup are structurally identical. Degrades downward if retirement thins a pool.
+- **Scoring**: `score_response` is reused **verbatim** — it is pure set arithmetic over 1-based
+  indices with missed/false-alarm feedback; only a `noun='token'` parameter was added so
+  feedback reads "token" not "word". The display encoding differs from poetry's `"{i+1}:{text}"`
+  strings (rendered math needs per-token DOM ids), but the *scoring contract* is unchanged.
+- **Rating** (`srs.py`): `error-spot` rates on **correctness only** — a slow correct answer is
+  a good answer; rating on latency would train skimming.
+- **Retirement** (`retirement.py` + `config/retired_corruptions.json`): `retired_types` (global)
+  + per-`item_key` `retired_ids`, filtered out of the pool before display. Lives in the quiz
+  repo, **not the artifact**, so a bare `deck-export` (which clears the output dir) can't wipe it.
+- **Review on miss** (`equation_routes.py`): a wrong answer holds on the card and renders the
+  **correct** equation with the missed tokens highlighted (via `highlight_tokens` on the clean
+  MathML) until the user clicks Continue. The SRS review is recorded at submit time regardless —
+  only the UI pauses. Server-side gate (`session['e_review']` + `action=continue`), so it
+  behaves identically across desktop / web / PWA without client-side modal state.
+- **Instrumentation**: each attempt records the shown corruptions' `id:type` in the existing
+  `display_text` column — the only trace of what was asked, and what makes "which types are too
+  obvious" answerable later.
 
 ## Health guards
 
@@ -154,15 +201,23 @@ Never padded: an equation with fewer survivors ships with fewer, mirroring `buil
    usable**, including `\operatorname{Var}(X) = \lambda`, which had pool=0 as a stand-in.
    Vector calculus (`\nabla \times`) still fails closed — textual rewriting cannot give
    sympy vector algebra — so physics remains gated on pinning or hand-authoring.
-2. **Always exactly two** lets you hunt until you find two and stop. Varying 0–3 would force
-   genuine evaluation; the `LineDisplay` contract already supports a zero-error case. Decide
-   from practice.
+2. ~~**Always exactly two.**~~ **Resolved** by the fixed-count deck split (above): equations are
+   partitioned into 2-error and 1-error decks by supportable count, and the "No errors" button
+   was removed (a plain Submit with nothing selected still scores a clean card correct). A deck
+   with a fixed count still allows hunt-for-N, but each card is guaranteed enough pool variety
+   not to repeat positions — the honest-difficulty tradeoff we chose over per-showing variance.
 3. **Touch targets** — superscripts are tiny tap targets on a phone; generous padding risks
-   overlapping hit areas in dense expressions. Untested; prototype before building the PWA.
-4. **`variable_swap` can produce visually repeated tokens** (`M = np` → `M = M M`), which is
-   spottable without knowing the formula. Consider blocking pairs that introduce duplicates.
+   overlapping hit areas in dense expressions. Untested; prototype before building the PWA
+   (the desktop/web surfaces are built; **the PWA surface is not**).
+4. **`variable_swap` can produce visually repeated tokens** (`M = np` → `M = M M`, Ohm's law
+   `V = IR` → `V = V·V`), spottable without knowing the formula — inherent to thin
+   variable-only pools. Not yet mitigated; could block pairs that introduce duplicate tokens.
 5. **Which types are too obvious** is deliberately an empirical question — hence per-type and
-   per-id retirement, and the `attempts` type tag the quiz side must record.
+   per-id retirement, and the `id:type` record now written to `attempts.display_text`.
+6. **Opaque regions are conservative.** An edit inside an argument list is barred even when
+   `differs` would catch any equivalence (so `Var(X)=\lambda` yields only the RHS swap → the
+   1-error deck). Loosening this per-corruption-type is possible but risks the false-corruption
+   class the bar prevents; deferred.
 
 ## Non-goals (v1)
 
