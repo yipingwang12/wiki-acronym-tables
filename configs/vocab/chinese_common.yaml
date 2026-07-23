@@ -1,0 +1,13 @@
+# Chinese — Common Words (hanzi↔meaning matching deck)
+# A curated, frequency-ranked expansion of the hand-authored matching deck.
+# The deck stays `source: manual` (protected from the full-export clear + orchestrator
+# sync); `deck-vocab build` assembles it deterministically from the committed curated rows.
+# See docs/design/vocab-pipeline.md.
+deck_name: "Chinese — Common Words"
+title: "Chinese — Common Words"
+group: "Vocabulary"
+order: 300
+target_n: 5000              # new words beyond the frozen 267-word seed
+seed_count: 267
+curated: chinese_common.curated.jsonl   # source of truth for `build` (relative to this file)
+audit: chinese_common.audit.jsonl       # per-word adjudication provenance
