@@ -374,10 +374,65 @@ if __name__ == "__main__":
 
 _EQ_POOL_CACHE: dict[str, list[dict]] = {}
 
+# Persistent, deterministic pool cache — building an equation's verified corruption pool is
+# sympy-heavy (seconds each), so with ~300 equations/deck a full re-export is minutes. The pool
+# depends only on (latex, corruption config), so it is cached to disk keyed by their hash.
+# ``_POOL_ENGINE_VERSION`` MUST be bumped whenever ``corruptions.py`` / ``normalise.py`` change
+# — otherwise a verifier fix would silently keep serving stale pools.
+_POOL_ENGINE_VERSION = 'v2-numeric-residue-2026-07-23'
+_POOL_CACHE_PATH = _ROOT / 'cache' / 'equation_pools.json'
+_PERSIST_POOL_CACHE: dict[str, dict] | None = None
+
+
+def _pool_cache_key(latex: str, types, pool_size: int) -> str:
+    payload = json.dumps([latex, sorted(types), pool_size, _POOL_ENGINE_VERSION], ensure_ascii=False)
+    return hashlib.sha256(payload.encode()).hexdigest()
+
+
+# Committed sidecar of LLM-generated + adversarially-verified corruption pools for equations
+# sympy cannot verify (boolean/set/info-theory/matrix notation). Authoritative over build_pool
+# and independent of the engine version — these were never sympy-derived. Always 1-error
+# (`kind='one'`): a single adversarially-verified corruption has no pairwise-cancellation risk.
+_LLM_POOLS_PATH = _ROOT / 'configs' / 'equations' / 'llm_pools.json'
+_LLM_POOLS: dict[str, dict] | None = None
+
+
+def _norm_latex(s: str) -> str:
+    return re.sub(r'\s+', '', s or '')
+
+
+def _load_llm_pools() -> dict[str, dict]:
+    global _LLM_POOLS
+    if _LLM_POOLS is None:
+        try:
+            _LLM_POOLS = json.loads(_LLM_POOLS_PATH.read_text())
+        except (OSError, ValueError):
+            _LLM_POOLS = {}
+    return _LLM_POOLS
+
+
+def _load_persist_pool_cache() -> dict[str, dict]:
+    global _PERSIST_POOL_CACHE
+    if _PERSIST_POOL_CACHE is None:
+        try:
+            _PERSIST_POOL_CACHE = json.loads(_POOL_CACHE_PATH.read_text())
+        except (OSError, ValueError):
+            _PERSIST_POOL_CACHE = {}
+    return _PERSIST_POOL_CACHE
+
+
+def _save_persist_pool_cache() -> None:
+    if _PERSIST_POOL_CACHE is None:
+        return
+    _POOL_CACHE_PATH.parent.mkdir(parents=True, exist_ok=True)
+    _POOL_CACHE_PATH.write_text(json.dumps(_PERSIST_POOL_CACHE, ensure_ascii=False))
+
 
 def _equation_rows(yaml_path: Path) -> list[dict]:
     """Build every equation's MathML + verified pool once per config, cached so a config's
-    two variant slots don't each re-run the (sympy-heavy) verification."""
+    two variant slots don't each re-run the (sympy-heavy) verification. Pools also persist to
+    a disk cache (``cache/equation_pools.json``) so unchanged equations skip sympy entirely on
+    re-export."""
     key = str(yaml_path)
     if key in _EQ_POOL_CACHE:
         return _EQ_POOL_CACHE[key]
@@ -385,14 +440,30 @@ def _equation_rows(yaml_path: Path) -> list[dict]:
     ccfg = cfg.get('corruption') or {}
     types = ccfg.get('types', list(_DEFAULT_CORRUPTION_TYPES))
     pool_size = ccfg.get('pool_size', 12)
-    rows = []
+    persist = _load_persist_pool_cache()
+    llm = _load_llm_pools()
+    rows, dirty = [], False
     for eq in load_equations(cfg):
         clean = to_mathml(eq.latex)
-        pool, bad = build_pool(eq, types, pool_size)
+        recovered = llm.get(_norm_latex(eq.latex))
+        if recovered is not None:                      # LLM-verified pool, forced 1-error
+            pool, bad, kind = recovered['pool'], [], 'one'
+        else:
+            ckey = _pool_cache_key(eq.latex, types, pool_size)
+            hit = persist.get(ckey)
+            if hit is not None:
+                pool, bad = hit['pool'], hit['bad']
+            else:
+                pool, bad = build_pool(eq, types, pool_size)
+                persist[ckey] = {'pool': pool, 'bad': bad}
+                dirty = True
+            kind = classify(pool, bad)
         rows.append({
-            'eq': eq, 'pool': pool, 'bad': bad, 'kind': classify(pool, bad),
+            'eq': eq, 'pool': pool, 'bad': bad, 'kind': kind,
             'mathml': annotate(clean, eligible_indices(clean)),
         })
+    if dirty:
+        _save_persist_pool_cache()
     _EQ_POOL_CACHE[key] = rows
     return rows
 

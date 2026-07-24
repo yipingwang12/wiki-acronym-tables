@@ -68,6 +68,52 @@ def test_differs_fails_closed_on_garbage():
     assert differs(r'\zzz{', r'\zzz{{') is False
 
 
+def test_differs_accepts_expanded_form_equivalence_via_numeric_sampling():
+    """A structural ``a - b != 0`` that is nonetheless mathematically zero (expanded vs
+    factored) must be rejected — numeric sampling catches what structural equality misses."""
+    assert differs(r'y = (x+1)^2', r'y = x^2 + 2x + 1') is False
+
+
+class _Timer:
+    def __enter__(self):
+        import time
+        self._t = time.time()
+        return self
+
+    def __exit__(self, *a):
+        pass
+
+    @property
+    def elapsed(self):
+        import time
+        return time.time() - self._t
+
+
+@pytest.mark.parametrize('clean, corrupted, want', [
+    # corruption OUTSIDE the integral: the ∫ cancels in a-b, residue is algebraic → verifiable
+    (r'\int_{-\infty}^{\infty} e^{-x^2}\, dx = \sqrt{\pi}',
+     r'\int_{-\infty}^{\infty} e^{-x^2}\, dx = \sqrt{2\pi}', True),
+    # corruption INSIDE the integral: residue keeps the ∫ → fail closed, no evaluation
+    (r'\int_{-\infty}^{\infty} e^{-x^2}\, dx = \sqrt{\pi}',
+     r'\int_{-\infty}^{\infty} e^{-x^3}\, dx = \sqrt{\pi}', False),
+])
+def test_differs_never_evaluates_infinite_integral(clean, corrupted, want):
+    """The Gaussian integral hangs sympy's ``simplify``; the residue approach must return
+    quickly for both an outside-corruption (verifiable) and an inside one (fail closed)."""
+    with _Timer() as t:
+        assert differs(clean, corrupted) is want
+    assert t.elapsed < 10, f'took {t.elapsed:.1f}s — integral was evaluated'
+
+
+def test_differs_verifies_finite_derivative():
+    """A single-token corruption inside a FINITE heavy op (here d/dx) must still verify via
+    the finite-doit hybrid, not be dropped like the infinite integral."""
+    with _Timer() as t:
+        assert differs(r'\frac{d}{dx} x^n = n x^{n-1}',
+                       r'\frac{d}{dx} x^n = n x^{n-2}') is True
+    assert t.elapsed < 10
+
+
 # --- pool construction -----------------------------------------------------
 
 def test_pool_entries_have_stable_content_derived_ids():

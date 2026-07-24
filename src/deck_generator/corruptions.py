@@ -183,25 +183,102 @@ def _diff_expr(latex: str):
     return expr
 
 
-def differs(clean: str, corrupted: str) -> bool:
-    """True only when sympy *proves* the two equations differ.
+# Unevaluated operators whose *value* we must never force. If a single-token corruption
+# lands outside one of these, the operator subtree is identical on both sides and cancels in
+# ``a - b`` before it is ever evaluated; if the residue still contains one, the corruption
+# landed *inside* it and we cannot verify cheaply — reject (fail closed), exactly as
+# ``opaque_spans`` bars corruption inside argument lists.
+_HEAVY_OPS = ('Integral', 'Sum', 'Product', 'Limit', 'Derivative', 'Order')
+_SAMPLE_VALUES = (
+    (2, 3, 5, 7, 11, 13, 17, 19),
+    (23, 4, 9, 6, 15, 8, 21, 10),
+    (3, 7, 2, 13, 5, 11, 19, 17),
+    (5, 2, 7, 3, 11, 4, 6, 8),
+    (7, 11, 13, 2, 3, 5, 23, 9),
+)
 
-    Compares ``lhs - rhs`` up to a nonzero constant factor, so negating both sides reads as
-    equivalent (as it must — it is the same equation). Anything unparseable, mis-parsed, or
-    inconclusive returns False, discarding a possibly-good corruption rather than risking a
+
+def _heavy_ops():
+    import sympy
+    return tuple(getattr(sympy, n) for n in _HEAVY_OPS if hasattr(sympy, n))
+
+
+def _numeric_verdict(a, b, d) -> bool:
+    """Decide differ-vs-equivalent for a residue ``d = a - b`` by numeric sampling — never
+    symbolic ``simplify`` (which would evaluate an integral and hang).
+
+    Returns True only when the two are proven different: ``d`` is non-zero at some sample
+    *and* ``a``/``b`` are not a constant multiple of each other (which would be the same
+    equation, e.g. negated both sides). Inconclusive → False (fail closed).
+    """
+    from sympy.core.function import AppliedUndef
+    from sympy import Derivative, Limit
+    # Atoms sympy can't ``evalf`` to a number — undefined function applications (Var(X),
+    # E[X^2]→E(X^2), P(A,B)) and unevaluated Derivative/Limit of an undefined function. Treat
+    # each as opaque and give it a numeric value, substituted *before* inner symbols. (Definite
+    # integrals/sums DO evalf to a value via quadrature, so they are left for evalf.)
+    opaque = a.atoms(AppliedUndef, Derivative, Limit) | b.atoms(AppliedUndef, Derivative, Limit)
+    funcs = sorted(opaque, key=str)
+    syms = sorted(a.free_symbols | b.free_symbols, key=str)
+    atoms = funcs + syms
+    d_vals, ratios, valid = [], [], 0
+    for row in _SAMPLE_VALUES:
+        assign = {atom: row[i % len(row)] + i for i, atom in enumerate(atoms)}
+        fmap = {f: assign[f] for f in funcs}
+        smap = {s: assign[s] for s in syms}
+        try:
+            dv = complex(d.subs(fmap).subs(smap).evalf())
+            av = complex(a.subs(fmap).subs(smap).evalf())
+            bv = complex(b.subs(fmap).subs(smap).evalf())
+        except (TypeError, ValueError, ZeroDivisionError):
+            continue
+        if any(x != x or abs(x) == float('inf') for x in (dv.real, dv.imag)):
+            continue
+        valid += 1
+        d_vals.append(dv)
+        if abs(bv) > 1e-9:
+            ratios.append(av / bv)
+    if valid < 2:
+        return False                                   # inconclusive → fail closed
+    if all(abs(v) < 1e-9 for v in d_vals):
+        return False                                   # numerically equivalent
+    if (len(ratios) >= 2 and abs(ratios[0]) > 1e-9
+            and all(abs(r - ratios[0]) < 1e-6 for r in ratios)):
+        return False                                   # same equation up to a nonzero constant
+    return True
+
+
+def differs(clean: str, corrupted: str) -> bool:
+    """True only when the two equations are *proven* to differ.
+
+    Works on the residue ``a - b`` (``lhs - rhs`` of each). Identical subtrees cancel, so a
+    corruption outside an ``\\int``/``\\sum``/``\\lim`` never forces that operator's value;
+    a residue that still holds one is rejected (the corruption was inside it). The remaining
+    algebraic residue is judged by numeric sampling, up to a nonzero constant factor so
+    negating both sides reads as equivalent. Anything unparseable, mis-parsed, operator-bound,
+    or inconclusive returns False — discarding a possibly-good corruption rather than risking a
     "mistake" the user is right not to find.
     """
-    from sympy import simplify
+    from sympy import S
     a, b = _diff_expr(clean), _diff_expr(corrupted)
     if a is None or b is None:
         return False
     try:
-        if simplify(a - b) == 0:
+        inf = (S.Infinity, S.NegativeInfinity, S.ComplexInfinity)
+        # Symbolically evaluate only when there is no infinite bound: ``.doit()`` on
+        # ``\int_{-\infty}^{\infty}`` is the sole real hang; finite integrals, definite sums
+        # and derivatives evaluate fast, recovering e.g. ``d/dx x^n = n x^{n-1}``.
+        if not (a.has(*inf) or b.has(*inf)):
+            a, b = a.doit(), b.doit()
+        d = a - b
+        if d == 0:
             return False
-        ratio = simplify(a / b)
-        if ratio.is_number and ratio != 0:
+        # A residue still holding a heavy op is unprovable here: either an infinite-bound
+        # operator (never evaluated) or a corruption *inside* an unevaluable one — reject.
+        # (Numerically-valued definite integrals/sums cancel out or fall to evalf.)
+        if d.has(*_heavy_ops()):
             return False
-        return True
+        return _numeric_verdict(a, b, d)
     except Exception:
         return False
 

@@ -1,8 +1,38 @@
 # Design — Equations error-spot pipeline (`deck-equations`)
 
-Status: **built and in use** — generator + desktop/web quiz surfaces. Live decks: Statistics
-(10 equations), Physics (6), Mathematics (4) — 20 cards across the Equations group. **The PWA
-surface and `study.json` gate opt-in are not yet built.**
+Status: **built and in use** — generator + desktop/web quiz surfaces. **Expanded 2026-07-23 to
+~300 equations/field** (LLM-drafted → sympy-verified → correctness-audited): Mathematics 300,
+Physics 300, Statistics 285, Computer Science 293 — **1,178 equations** across 7 decks
+(2-error + 1-error per field). Computer Science is a new field, scoped to the equality-shaped
+subset (big-O/recurrence *bounds* are inequalities and were audited out). **The PWA surface and
+`study.json` gate opt-in are still not built.**
+
+### LLM-recovered pools for sympy-unverifiable equations (2026-07-23)
+124 of the 134 equations sympy **couldn't verify** (boolean/bitwise logic, set/cardinality,
+info-theory `H`/`I`, matrix notation) were recovered via LLM-generated corruptions: Sonnet
+proposes single-token corruptions on the *clickable* tokens only (in the pool's `{i,to,type}`
+space, so no latex re-parse), then **two independent Opus skeptics adversarially try to refute
+each** — a corruption ships only if BOTH confirm it makes the equation genuinely false, and
+both accept the base equation (fail-closed). 602 corruptions across 123 equations passed;
+every `{i,to}` was validated against the real eligible tokens. These are **1-error only**
+(a single verified corruption has no pairwise-cancellation risk) and live in a committed
+sidecar `configs/equations/llm_pools.json` (normalised-latex → pool) that `deck_export`'s
+`_equation_rows` reads *before* `build_pool`, forcing `kind='one'`. The sidecar is
+**engine-version-independent** (these were never sympy-derived) and authoritative — provenance
+`llm`, distinct from sympy-proven pools. Residual risk (a rare false corruption) is bounded by
+the existing `config/retired_corruptions.json` backstop; acceptable for a personal deck.
+Final deck sizes: Math 332, Physics 310, Statistics 329, CS 330 (**1301 cards**).
+
+### Expansion pipeline (2026-07-23)
+Steered-LLM drafting (closed-form equalities only; no `\pm`/`\int_{-\infty}`/`\sum^{\infty}`/
+`\lim`/`\nabla`) → `build_pool`/`classify` machine verification (keep two/one, drop the rest) →
+independent LLM **correctness audit** (flagged inequalities-as-equalities, approximations-as-
+equalities, mislabels, missing-`\pm` — 66/1393). Verification is fork-isolated with a per-equation
+hard timeout: one Weibull-pdf equation hung sympy at the C level indefinitely (`.doit` on a heavy
+operator), which a signal timeout could not interrupt. A persistent **pool cache**
+(`cache/equation_pools.json`, keyed by `sha256(latex+types+pool_size+engine_version)`) makes
+re-export near-instant (a full field went 5 min → 1 s); bump `_POOL_ENGINE_VERSION` in
+`deck_export.py` whenever the corruption engine changes or it serves stale pools.
 
 ## Goal
 
@@ -65,6 +95,27 @@ wrong and would ship a false corruption.
 
 Returns False (reject) on anything unparseable, mis-parsed, or inconclusive — discarding a
 possibly-good corruption rather than risking a "mistake" the user is correct not to find.
+
+**Verdict by numeric sampling on the residue, not `simplify` (2026-07-23).** The predicate no
+longer calls `simplify(a - b)` / `simplify(a / b)`: on an equation with an unevaluated operator
+(`\int_{-\infty}^{\infty} e^{-x^2}\,dx`), `simplify` tries to *evaluate* it (Meijer-G) and hangs
+for minutes. Instead it works on the residue `d = a - b`:
+1. **Finite operators are evaluated, infinite ones are not.** With no infinite bound, `a.doit()`
+   evaluates derivatives / definite sums / finite integrals — recovering `d/dx x^n = n x^{n-1}`
+   and `\binom{n}{k}=\frac{n!}{k!(n-k)!}` (both dropped by the pure-residue first cut). An
+   infinite bound is left alone: `.doit()` is the only thing that hangs; numeric `.evalf()`
+   (quadrature) never does.
+2. **A residue still holding a heavy op** (`Integral`/`Sum`/`Product`/`Limit`/`Derivative`, i.e.
+   an infinite-bound operator or a corruption *inside* an unevaluable one) is **rejected** —
+   the same fail-closed spirit as `opaque_spans`.
+3. **The algebraic residue is judged by sampling** `d`, `a`, `b` at several fixed rational
+   points (undefined-function applications `Var(X)`/`E(X^2)`/`P(A,B)` and unevaluated
+   `Derivative`/`Limit` atoms are substituted as opaque numeric values; definite integrals fall
+   to `evalf`). `d ≡ 0` at all points → equivalent; a constant nonzero `a/b` ratio → negation-
+   style equivalence; otherwise → proven different. Sampling is **fail-closed**: coincidental
+   agreement only ever *drops* a good corruption, never ships a false one (a truly-different
+   pair cannot agree at a sampled point). No hang is possible — worst case is a slow reject on
+   an infinite `\sum`.
 
 **sympy's LaTeX parser does not raise on unknown notation.** `\mathbf`, `\hat`,
 `\operatorname`, `\pm`, `\nabla` become ordinary free symbols and the parse "succeeds" with

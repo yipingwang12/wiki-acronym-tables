@@ -1,0 +1,4475 @@
+{
+ "\\sim(a\\,\\&\\,b)=(\\sima)\\,|\\,(\\simb)": {
+  "latex": "\\sim(a \\,\\&\\, b) = (\\sim a) \\,|\\, (\\sim b)",
+  "pool": [
+   {
+    "id": "7f3162",
+    "i": 2,
+    "to": "|",
+    "type": "operator_swap"
+   },
+   {
+    "id": "0a992e",
+    "i": 4,
+    "to": "≠",
+    "type": "logic_swap"
+   },
+   {
+    "id": "96bd1c",
+    "i": 1,
+    "to": "b",
+    "type": "variable_swap"
+   },
+   {
+    "id": "620c9b",
+    "i": 3,
+    "to": "a",
+    "type": "variable_swap"
+   },
+   {
+    "id": "30330a",
+    "i": 5,
+    "to": "b",
+    "type": "variable_swap"
+   },
+   {
+    "id": "28abc9",
+    "i": 6,
+    "to": "a",
+    "type": "variable_swap"
+   }
+  ],
+  "provenance": "llm",
+  "n_wrong": 1
+ },
+ "\\sim(a\\,|\\,b)=(\\sima)\\,\\&\\,(\\simb)": {
+  "latex": "\\sim(a \\,|\\, b) = (\\sim a) \\,\\&\\, (\\sim b)",
+  "pool": [
+   {
+    "id": "aa2eaa",
+    "i": 5,
+    "to": "|",
+    "type": "operator_swap"
+   },
+   {
+    "id": "4c37a8",
+    "i": 3,
+    "to": "≠",
+    "type": "logic_swap"
+   },
+   {
+    "id": "96bd1c",
+    "i": 1,
+    "to": "b",
+    "type": "variable_swap"
+   },
+   {
+    "id": "5b8ee0",
+    "i": 2,
+    "to": "a",
+    "type": "variable_swap"
+   },
+   {
+    "id": "ea4fbf",
+    "i": 4,
+    "to": "b",
+    "type": "variable_swap"
+   },
+   {
+    "id": "28abc9",
+    "i": 6,
+    "to": "a",
+    "type": "variable_swap"
+   }
+  ],
+  "provenance": "llm",
+  "n_wrong": 1
+ },
+ "a\\,\\&\\,(b\\,|\\,c)=(a\\,\\&\\,b)\\,|\\,(a\\,\\&\\,c)": {
+  "latex": "a \\,\\&\\, (b \\,|\\, c) = (a \\,\\&\\, b) \\,|\\, (a \\,\\&\\, c)",
+  "pool": [
+   {
+    "id": "7f3162",
+    "i": 2,
+    "to": "|",
+    "type": "operator_swap"
+   },
+   {
+    "id": "706959",
+    "i": 5,
+    "to": "≠",
+    "type": "logic_swap"
+   },
+   {
+    "id": "1934c3",
+    "i": 6,
+    "to": "b",
+    "type": "variable_swap"
+   },
+   {
+    "id": "050cb8",
+    "i": 9,
+    "to": "b",
+    "type": "variable_swap"
+   },
+   {
+    "id": "96bd1c",
+    "i": 1,
+    "to": "b",
+    "type": "variable_swap"
+   },
+   {
+    "id": "a8dde8",
+    "i": 7,
+    "to": "|",
+    "type": "operator_swap"
+   },
+   {
+    "id": "2f921c",
+    "i": 10,
+    "to": "|",
+    "type": "operator_swap"
+   }
+  ],
+  "provenance": "llm",
+  "n_wrong": 1
+ },
+ "a+b=(a\\oplusb)+2(a\\,\\&\\,b)": {
+  "latex": "a + b = (a \\oplus b) + 2 (a \\,\\&\\, b)",
+  "pool": [
+   {
+    "id": "06a8b9",
+    "i": 6,
+    "to": "&",
+    "type": "operator_swap"
+   },
+   {
+    "id": "7b049a",
+    "i": 9,
+    "to": "3",
+    "type": "constant_perturb"
+   },
+   {
+    "id": "bdd6fe",
+    "i": 2,
+    "to": "−",
+    "type": "operator_swap"
+   },
+   {
+    "id": "008551",
+    "i": 8,
+    "to": "−",
+    "type": "operator_swap"
+   },
+   {
+    "id": "0ba350",
+    "i": 11,
+    "to": "|",
+    "type": "operator_swap"
+   },
+   {
+    "id": "0a992e",
+    "i": 4,
+    "to": "≠",
+    "type": "logic_swap"
+   },
+   {
+    "id": "620c9b",
+    "i": 3,
+    "to": "a",
+    "type": "variable_swap"
+   }
+  ],
+  "provenance": "llm",
+  "n_wrong": 1
+ },
+ "a\\,\\&\\,(\\sima\\,|\\,b)=a\\,\\&\\,b": {
+  "latex": "a \\,\\&\\, (\\sim a \\,|\\, b) = a \\,\\&\\, b",
+  "pool": [
+   {
+    "id": "7f3162",
+    "i": 2,
+    "to": "|",
+    "type": "operator_swap"
+   },
+   {
+    "id": "a8dde8",
+    "i": 7,
+    "to": "|",
+    "type": "operator_swap"
+   },
+   {
+    "id": "706959",
+    "i": 5,
+    "to": "≠",
+    "type": "logic_swap"
+   },
+   {
+    "id": "532c18",
+    "i": 4,
+    "to": "a",
+    "type": "variable_swap"
+   },
+   {
+    "id": "a87a0b",
+    "i": 8,
+    "to": "a",
+    "type": "variable_swap"
+   },
+   {
+    "id": "e11c88",
+    "i": 3,
+    "to": "b",
+    "type": "variable_swap"
+   },
+   {
+    "id": "1934c3",
+    "i": 6,
+    "to": "b",
+    "type": "variable_swap"
+   }
+  ],
+  "provenance": "llm",
+  "n_wrong": 1
+ },
+ "(A\\cdotB)\\cdotC=A\\cdot(B\\cdotC)": {
+  "latex": "(A \\cdot B) \\cdot C = A \\cdot (B \\cdot C)",
+  "pool": [
+   {
+    "id": "8da729",
+    "i": 2,
+    "to": "+",
+    "type": "operator_swap"
+   },
+   {
+    "id": "a0ae02",
+    "i": 3,
+    "to": "C",
+    "type": "variable_swap"
+   },
+   {
+    "id": "fd5e94",
+    "i": 6,
+    "to": "≠",
+    "type": "logic_swap"
+   },
+   {
+    "id": "f6fceb",
+    "i": 7,
+    "to": "C",
+    "type": "variable_swap"
+   },
+   {
+    "id": "865189",
+    "i": 9,
+    "to": "A",
+    "type": "variable_swap"
+   },
+   {
+    "id": "4a8dbf",
+    "i": 11,
+    "to": "B",
+    "type": "variable_swap"
+   }
+  ],
+  "provenance": "llm",
+  "n_wrong": 1
+ },
+ "(A+B)+C=A+(B+C)": {
+  "latex": "(A + B) + C = A + (B + C)",
+  "pool": [
+   {
+    "id": "488f88",
+    "i": 2,
+    "to": "·",
+    "type": "operator_swap"
+   },
+   {
+    "id": "a0ae02",
+    "i": 3,
+    "to": "C",
+    "type": "variable_swap"
+   },
+   {
+    "id": "fd5e94",
+    "i": 6,
+    "to": "≠",
+    "type": "logic_swap"
+   },
+   {
+    "id": "f6fceb",
+    "i": 7,
+    "to": "C",
+    "type": "variable_swap"
+   },
+   {
+    "id": "865189",
+    "i": 9,
+    "to": "A",
+    "type": "variable_swap"
+   },
+   {
+    "id": "4a8dbf",
+    "i": 11,
+    "to": "B",
+    "type": "variable_swap"
+   }
+  ],
+  "provenance": "llm",
+  "n_wrong": 1
+ },
+ "y=x\\,\\&\\,(-x)": {
+  "latex": "y = x \\,\\&\\, (-x)",
+  "pool": [
+   {
+    "id": "9bff77",
+    "i": 2,
+    "to": "≠",
+    "type": "logic_swap"
+   },
+   {
+    "id": "872451",
+    "i": 4,
+    "to": "|",
+    "type": "operator_swap"
+   },
+   {
+    "id": "86ac2a",
+    "i": 4,
+    "to": "⊕",
+    "type": "operator_swap"
+   },
+   {
+    "id": "4ccf54",
+    "i": 5,
+    "to": "+",
+    "type": "operator_swap"
+   },
+   {
+    "id": "dee0f5",
+    "i": 6,
+    "to": "1",
+    "type": "constant_perturb"
+   }
+  ],
+  "provenance": "llm",
+  "n_wrong": 1
+ },
+ "y=x\\,\\&\\,(x-1)": {
+  "latex": "y = x \\,\\&\\, (x - 1)",
+  "pool": [
+   {
+    "id": "9bff77",
+    "i": 2,
+    "to": "≠",
+    "type": "logic_swap"
+   },
+   {
+    "id": "872451",
+    "i": 4,
+    "to": "|",
+    "type": "operator_swap"
+   },
+   {
+    "id": "86ac2a",
+    "i": 4,
+    "to": "⊕",
+    "type": "operator_swap"
+   },
+   {
+    "id": "2c0887",
+    "i": 6,
+    "to": "+",
+    "type": "operator_swap"
+   },
+   {
+    "id": "5bba52",
+    "i": 7,
+    "to": "3",
+    "type": "constant_perturb"
+   }
+  ],
+  "provenance": "llm",
+  "n_wrong": 1
+ },
+ "d(a,b)=\\operatorname{popcount}(a\\oplusb)": {
+  "latex": "d(a,b) = \\operatorname{popcount}(a \\oplus b)",
+  "pool": [
+   {
+    "id": "681a1c",
+    "i": 8,
+    "to": "&",
+    "type": "operator_swap"
+   },
+   {
+    "id": "ce4cd9",
+    "i": 8,
+    "to": "|",
+    "type": "operator_swap"
+   },
+   {
+    "id": "f2149f",
+    "i": 6,
+    "to": "parity",
+    "type": "function_swap"
+   },
+   {
+    "id": "62fa44",
+    "i": 7,
+    "to": "b",
+    "type": "variable_swap"
+   },
+   {
+    "id": "611e5b",
+    "i": 9,
+    "to": "a",
+    "type": "variable_swap"
+   }
+  ],
+  "provenance": "llm",
+  "n_wrong": 1
+ },
+ "(a\\,\\&\\,b)+(a\\,|\\,b)=a+b": {
+  "latex": "(a \\,\\&\\, b) + (a \\,|\\, b) = a + b",
+  "pool": [
+   {
+    "id": "7f3162",
+    "i": 2,
+    "to": "|",
+    "type": "operator_swap"
+   },
+   {
+    "id": "f63bb9",
+    "i": 4,
+    "to": "−",
+    "type": "operator_swap"
+   },
+   {
+    "id": "a1ec14",
+    "i": 7,
+    "to": "≠",
+    "type": "logic_swap"
+   },
+   {
+    "id": "96bd1c",
+    "i": 1,
+    "to": "b",
+    "type": "variable_swap"
+   },
+   {
+    "id": "6f85c5",
+    "i": 8,
+    "to": "b",
+    "type": "variable_swap"
+   },
+   {
+    "id": "04b91d",
+    "i": 10,
+    "to": "a",
+    "type": "variable_swap"
+   }
+  ],
+  "provenance": "llm",
+  "n_wrong": 1
+ },
+ "d=\\min_{c\\neq0}\\operatorname{wt}(c)": {
+  "latex": "d = \\min_{c \\neq 0} \\operatorname{wt}(c)",
+  "pool": [
+   {
+    "id": "abb3d4",
+    "i": 5,
+    "to": "=",
+    "type": "logic_swap"
+   },
+   {
+    "id": "dee0f5",
+    "i": 6,
+    "to": "1",
+    "type": "constant_perturb"
+   },
+   {
+    "id": "e57509",
+    "i": 3,
+    "to": "max",
+    "type": "function_swap"
+   },
+   {
+    "id": "1acad3",
+    "i": 8,
+    "to": "0",
+    "type": "variable_swap"
+   }
+  ],
+  "provenance": "llm",
+  "n_wrong": 1
+ },
+ "I(X;Y)=H(X)-H(X\\midY)": {
+  "latex": "I(X;Y) = H(X) - H(X \\mid Y)",
+  "pool": [
+   {
+    "id": "69026a",
+    "i": 8,
+    "to": "+",
+    "type": "operator_swap"
+   },
+   {
+    "id": "fcade0",
+    "i": 10,
+    "to": "Y",
+    "type": "variable_swap"
+   },
+   {
+    "id": "a21c21",
+    "i": 12,
+    "to": "X",
+    "type": "variable_swap"
+   },
+   {
+    "id": "a26981",
+    "i": 7,
+    "to": "Y",
+    "type": "variable_swap"
+   },
+   {
+    "id": "ab5989",
+    "i": 2,
+    "to": "Y",
+    "type": "variable_swap"
+   }
+  ],
+  "provenance": "llm",
+  "n_wrong": 1
+ },
+ "C=\\max_{p(x)}I(X;Y)": {
+  "latex": "C = \\max_{p(x)} I(X;Y)",
+  "pool": [
+   {
+    "id": "3aedc9",
+    "i": 3,
+    "to": "min",
+    "type": "function_swap"
+   },
+   {
+    "id": "a26981",
+    "i": 7,
+    "to": "Y",
+    "type": "variable_swap"
+   },
+   {
+    "id": "19bfa6",
+    "i": 9,
+    "to": "X",
+    "type": "variable_swap"
+   }
+  ],
+  "provenance": "llm",
+  "n_wrong": 1
+ },
+ "\\binom{n}{k_1,k_2,k_3}=\\frac{n!}{k_1!k_2!k_3!}": {
+  "latex": "\\binom{n}{k_1,k_2,k_3} = \\frac{n!}{k_1! k_2! k_3!}",
+  "pool": [
+   {
+    "id": "af5159",
+    "i": 14,
+    "to": "2",
+    "type": "index_swap"
+   },
+   {
+    "id": "9693e1",
+    "i": 17,
+    "to": "1",
+    "type": "index_swap"
+   },
+   {
+    "id": "e30bd2",
+    "i": 20,
+    "to": "1",
+    "type": "index_swap"
+   },
+   {
+    "id": "9466a8",
+    "i": 3,
+    "to": "2",
+    "type": "index_swap"
+   },
+   {
+    "id": "dabf26",
+    "i": 6,
+    "to": "1",
+    "type": "index_swap"
+   },
+   {
+    "id": "2ac368",
+    "i": 9,
+    "to": "1",
+    "type": "index_swap"
+   }
+  ],
+  "provenance": "llm",
+  "n_wrong": 1
+ },
+ "|\\mathcal{P}(S)|=2^{|S|}": {
+  "latex": "|\\mathcal{P}(S)| = 2^{|S|}",
+  "pool": [
+   {
+    "id": "a90494",
+    "i": 4,
+    "to": "3",
+    "type": "constant_perturb"
+   },
+   {
+    "id": "4c37a8",
+    "i": 3,
+    "to": "≠",
+    "type": "logic_swap"
+   },
+   {
+    "id": "06222d",
+    "i": 2,
+    "to": "A",
+    "type": "variable_swap"
+   },
+   {
+    "id": "4fae96",
+    "i": 5,
+    "to": "A",
+    "type": "variable_swap"
+   }
+  ],
+  "provenance": "llm",
+  "n_wrong": 1
+ },
+ "|A\\cupB|=|A|+|B|-|A\\capB|": {
+  "latex": "|A \\cup B| = |A| + |B| - |A \\cap B|",
+  "pool": [
+   {
+    "id": "f72139",
+    "i": 2,
+    "to": "∩",
+    "type": "operator_swap"
+   },
+   {
+    "id": "adbfa2",
+    "i": 10,
+    "to": "∪",
+    "type": "operator_swap"
+   },
+   {
+    "id": "69026a",
+    "i": 8,
+    "to": "+",
+    "type": "operator_swap"
+   },
+   {
+    "id": "5324b6",
+    "i": 6,
+    "to": "−",
+    "type": "operator_swap"
+   },
+   {
+    "id": "a0ae02",
+    "i": 3,
+    "to": "C",
+    "type": "variable_swap"
+   }
+  ],
+  "provenance": "llm",
+  "n_wrong": 1
+ },
+ "|A\\cupB\\cupC|=|A|+|B|+|C|-|A\\capB|-|A\\capC|-|B\\capC|+|A\\capB\\capC|": {
+  "latex": "|A \\cup B \\cup C| = |A|+|B|+|C|-|A\\cap B|-|A\\cap C|-|B\\cap C|+|A\\cap B\\cap C|",
+  "pool": [
+   {
+    "id": "f72139",
+    "i": 2,
+    "to": "∩",
+    "type": "operator_swap"
+   },
+   {
+    "id": "b6da4c",
+    "i": 12,
+    "to": "+",
+    "type": "operator_swap"
+   },
+   {
+    "id": "984275",
+    "i": 24,
+    "to": "−",
+    "type": "operator_swap"
+   },
+   {
+    "id": "0490c2",
+    "i": 7,
+    "to": "B",
+    "type": "variable_swap"
+   },
+   {
+    "id": "7d174e",
+    "i": 14,
+    "to": "∪",
+    "type": "operator_swap"
+   },
+   {
+    "id": "e62152",
+    "i": 20,
+    "to": "+",
+    "type": "operator_swap"
+   }
+  ],
+  "provenance": "llm",
+  "n_wrong": 1
+ },
+ "|B^A|=|B|^{|A|}": {
+  "latex": "|B^A| = |B|^{|A|}",
+  "pool": [
+   {
+    "id": "15c7bc",
+    "i": 1,
+    "to": "A",
+    "type": "variable_swap"
+   },
+   {
+    "id": "354543",
+    "i": 2,
+    "to": "B",
+    "type": "variable_swap"
+   },
+   {
+    "id": "81f37d",
+    "i": 4,
+    "to": "A",
+    "type": "variable_swap"
+   },
+   {
+    "id": "e4d2ce",
+    "i": 5,
+    "to": "B",
+    "type": "variable_swap"
+   }
+  ],
+  "provenance": "llm",
+  "n_wrong": 1
+ },
+ "(x+y)^n=\\sum_{k=0}^{n}\\binom{n}{k}x^ky^{n-k}": {
+  "latex": "(x+y)^n = \\sum_{k=0}^{n} \\binom{n}{k} x^k y^{n-k}",
+  "pool": [
+   {
+    "id": "bdd6fe",
+    "i": 2,
+    "to": "−",
+    "type": "operator_swap"
+   },
+   {
+    "id": "ccd7ca",
+    "i": 9,
+    "to": "1",
+    "type": "constant_perturb"
+   },
+   {
+    "id": "613904",
+    "i": 17,
+    "to": "+",
+    "type": "operator_swap"
+   },
+   {
+    "id": "aa7850",
+    "i": 12,
+    "to": "n",
+    "type": "variable_swap"
+   },
+   {
+    "id": "e828b3",
+    "i": 14,
+    "to": "n",
+    "type": "variable_swap"
+   },
+   {
+    "id": "0f34ca",
+    "i": 4,
+    "to": "2",
+    "type": "constant_perturb"
+   }
+  ],
+  "provenance": "llm",
+  "n_wrong": 1
+ },
+ "|E(K_n)|=\\binom{n}{2}": {
+  "latex": "|E(K_n)| = \\binom{n}{2}",
+  "pool": [
+   {
+    "id": "1e322c",
+    "i": 1,
+    "to": "V",
+    "type": "variable_swap"
+   },
+   {
+    "id": "954593",
+    "i": 2,
+    "to": "C",
+    "type": "variable_swap"
+   },
+   {
+    "id": "a8b3dc",
+    "i": 5,
+    "to": "3",
+    "type": "index_swap"
+   },
+   {
+    "id": "dee0f5",
+    "i": 6,
+    "to": "1",
+    "type": "constant_perturb"
+   }
+  ],
+  "provenance": "llm",
+  "n_wrong": 1
+ },
+ "\\sum_{v}\\deg(v)=2|E|": {
+  "latex": "\\sum_{v} \\deg(v) = 2 |E|",
+  "pool": [
+   {
+    "id": "dee0f5",
+    "i": 6,
+    "to": "1",
+    "type": "constant_perturb"
+   },
+   {
+    "id": "a31bc9",
+    "i": 7,
+    "to": "V",
+    "type": "variable_swap"
+   },
+   {
+    "id": "29d5f6",
+    "i": 1,
+    "to": "∏",
+    "type": "operator_swap"
+   }
+  ],
+  "provenance": "llm",
+  "n_wrong": 1
+ },
+ "I(X;Y)=H(X)+H(Y)-H(X,Y)": {
+  "latex": "I(X;Y) = H(X) + H(Y) - H(X,Y)",
+  "pool": [
+   {
+    "id": "008551",
+    "i": 8,
+    "to": "−",
+    "type": "operator_swap"
+   },
+   {
+    "id": "631ceb",
+    "i": 11,
+    "to": "+",
+    "type": "operator_swap"
+   },
+   {
+    "id": "a26981",
+    "i": 7,
+    "to": "Y",
+    "type": "variable_swap"
+   },
+   {
+    "id": "50687d",
+    "i": 10,
+    "to": "X",
+    "type": "variable_swap"
+   },
+   {
+    "id": "22a8be",
+    "i": 13,
+    "to": "Y",
+    "type": "variable_swap"
+   },
+   {
+    "id": "ab5989",
+    "i": 2,
+    "to": "Y",
+    "type": "variable_swap"
+   }
+  ],
+  "provenance": "llm",
+  "n_wrong": 1
+ },
+ "I(X;Y\\midZ)=H(X\\midZ)-H(X\\midY,Z)": {
+  "latex": "I(X;Y \\mid Z) = H(X \\mid Z) - H(X \\mid Y,Z)",
+  "pool": [
+   {
+    "id": "b6da4c",
+    "i": 12,
+    "to": "+",
+    "type": "operator_swap"
+   },
+   {
+    "id": "7a297e",
+    "i": 9,
+    "to": "Z",
+    "type": "variable_swap"
+   },
+   {
+    "id": "49fa46",
+    "i": 14,
+    "to": "Y",
+    "type": "variable_swap"
+   },
+   {
+    "id": "4a1b9d",
+    "i": 16,
+    "to": "Z",
+    "type": "variable_swap"
+   },
+   {
+    "id": "3ae6e1",
+    "i": 11,
+    "to": "Y",
+    "type": "variable_swap"
+   },
+   {
+    "id": "8b803b",
+    "i": 6,
+    "to": "Y",
+    "type": "variable_swap"
+   }
+  ],
+  "provenance": "llm",
+  "n_wrong": 1
+ },
+ "I(X;Y,Z)=I(X;Y)+I(X;Z\\midY)": {
+  "latex": "I(X;Y,Z) = I(X;Y) + I(X;Z \\mid Y)",
+  "pool": [
+   {
+    "id": "ff7a62",
+    "i": 12,
+    "to": "−",
+    "type": "operator_swap"
+   },
+   {
+    "id": "aaf2b0",
+    "i": 11,
+    "to": "Z",
+    "type": "variable_swap"
+   },
+   {
+    "id": "1c9479",
+    "i": 16,
+    "to": "Y",
+    "type": "variable_swap"
+   },
+   {
+    "id": "c85753",
+    "i": 18,
+    "to": "Z",
+    "type": "variable_swap"
+   },
+   {
+    "id": "8b803b",
+    "i": 6,
+    "to": "Y",
+    "type": "variable_swap"
+   },
+   {
+    "id": "3752f0",
+    "i": 4,
+    "to": "Z",
+    "type": "variable_swap"
+   }
+  ],
+  "provenance": "llm",
+  "n_wrong": 1
+ },
+ "I(X;Y)=D_{KL}\\big(p(x,y)\\parallelp(x)p(y)\\big)": {
+  "latex": "I(X;Y) = D_{KL}\\big(p(x,y) \\parallel p(x)p(y)\\big)",
+  "pool": [
+   {
+    "id": "3daf2c",
+    "i": 10,
+    "to": "y",
+    "type": "variable_swap"
+   },
+   {
+    "id": "14b7f9",
+    "i": 12,
+    "to": "x",
+    "type": "variable_swap"
+   },
+   {
+    "id": "d3371d",
+    "i": 15,
+    "to": "y",
+    "type": "variable_swap"
+   },
+   {
+    "id": "d2ef58",
+    "i": 17,
+    "to": "x",
+    "type": "variable_swap"
+   },
+   {
+    "id": "ab5989",
+    "i": 2,
+    "to": "Y",
+    "type": "variable_swap"
+   }
+  ],
+  "provenance": "llm",
+  "n_wrong": 1
+ },
+ "|A_\\epsilon^{(n)}|=2^{nH(X)}": {
+  "latex": "|A_\\epsilon^{(n)}| = 2^{nH(X)}",
+  "pool": [
+   {
+    "id": "92a3bf",
+    "i": 7,
+    "to": "X",
+    "type": "function_swap"
+   },
+   {
+    "id": "169586",
+    "i": 3,
+    "to": "1",
+    "type": "index_swap"
+   }
+  ],
+  "provenance": "llm",
+  "n_wrong": 1
+ },
+ "D_\\alpha(p\\parallelq)=\\frac{1}{\\alpha-1}\\log_2\\left(\\sum_{i=1}^{n}p_i^\\alphaq_i^{1-\\alpha}\\right)": {
+  "latex": "D_\\alpha(p \\parallel q) = \\frac{1}{\\alpha-1}\\log_2 \\left(\\sum_{i=1}^{n} p_i^\\alpha q_i^{1-\\alpha}\\right)",
+  "pool": [
+   {
+    "id": "2edda6",
+    "i": 9,
+    "to": "+",
+    "type": "operator_swap"
+   },
+   {
+    "id": "3d4574",
+    "i": 24,
+    "to": "+",
+    "type": "operator_swap"
+   },
+   {
+    "id": "d0e56c",
+    "i": 20,
+    "to": "1",
+    "type": "constant_perturb"
+   },
+   {
+    "id": "9d4049",
+    "i": 3,
+    "to": "q",
+    "type": "variable_swap"
+   }
+  ],
+  "provenance": "llm",
+  "n_wrong": 1
+ },
+ "I(X;Y)=H(Y)-H(Y\\midX)": {
+  "latex": "I(X;Y) = H(Y) - H(Y \\mid X)",
+  "pool": [
+   {
+    "id": "69026a",
+    "i": 8,
+    "to": "+",
+    "type": "operator_swap"
+   },
+   {
+    "id": "84745d",
+    "i": 7,
+    "to": "X",
+    "type": "variable_swap"
+   },
+   {
+    "id": "50687d",
+    "i": 10,
+    "to": "X",
+    "type": "variable_swap"
+   },
+   {
+    "id": "8c890d",
+    "i": 12,
+    "to": "Y",
+    "type": "variable_swap"
+   },
+   {
+    "id": "b3c4a0",
+    "i": 4,
+    "to": "X",
+    "type": "variable_swap"
+   },
+   {
+    "id": "ab5989",
+    "i": 2,
+    "to": "Y",
+    "type": "variable_swap"
+   }
+  ],
+  "provenance": "llm",
+  "n_wrong": 1
+ },
+ "\\hat{\\beta}=(X^TX)^{-1}X^Ty": {
+  "latex": "\\hat{\\beta} = (X^T X)^{-1} X^T y",
+  "pool": [
+   {
+    "id": "c4db96",
+    "i": 7,
+    "to": "2",
+    "type": "constant_perturb"
+   },
+   {
+    "id": "2c0887",
+    "i": 6,
+    "to": "+",
+    "type": "operator_swap"
+   },
+   {
+    "id": "50687d",
+    "i": 10,
+    "to": "X",
+    "type": "variable_swap"
+   },
+   {
+    "id": "f6c094",
+    "i": 8,
+    "to": "y",
+    "type": "variable_swap"
+   },
+   {
+    "id": "0b8d67",
+    "i": 1,
+    "to": "y",
+    "type": "variable_swap"
+   },
+   {
+    "id": "896235",
+    "i": 3,
+    "to": "y",
+    "type": "variable_swap"
+   }
+  ],
+  "provenance": "llm",
+  "n_wrong": 1
+ },
+ "\\operatorname{Precision}=\\frac{TP}{TP+FP}": {
+  "latex": "\\operatorname{Precision} = \\frac{TP}{TP + FP}",
+  "pool": [
+   {
+    "id": "16551d",
+    "i": 1,
+    "to": "Recall",
+    "type": "logic_swap"
+   },
+   {
+    "id": "2895db",
+    "i": 7,
+    "to": "−",
+    "type": "operator_swap"
+   },
+   {
+    "id": "599d01",
+    "i": 8,
+    "to": "T",
+    "type": "variable_swap"
+   },
+   {
+    "id": "99f2a2",
+    "i": 6,
+    "to": "N",
+    "type": "variable_swap"
+   },
+   {
+    "id": "3b9192",
+    "i": 4,
+    "to": "N",
+    "type": "variable_swap"
+   },
+   {
+    "id": "25708a",
+    "i": 9,
+    "to": "N",
+    "type": "variable_swap"
+   }
+  ],
+  "provenance": "llm",
+  "n_wrong": 1
+ },
+ "J(A,B)=\\frac{|A\\capB|}{|A\\cupB|}": {
+  "latex": "J(A, B) = \\frac{|A \\cap B|}{|A \\cup B|}",
+  "pool": [
+   {
+    "id": "0ff5d0",
+    "i": 7,
+    "to": "∪",
+    "type": "operator_swap"
+   },
+   {
+    "id": "081d15",
+    "i": 10,
+    "to": "∩",
+    "type": "operator_swap"
+   },
+   {
+    "id": "de30f1",
+    "i": 6,
+    "to": "B",
+    "type": "variable_swap"
+   },
+   {
+    "id": "4a3997",
+    "i": 9,
+    "to": "B",
+    "type": "variable_swap"
+   },
+   {
+    "id": "a8965f",
+    "i": 8,
+    "to": "A",
+    "type": "variable_swap"
+   },
+   {
+    "id": "83c7e7",
+    "i": 11,
+    "to": "A",
+    "type": "variable_swap"
+   }
+  ],
+  "provenance": "llm",
+  "n_wrong": 1
+ },
+ "E_a=|x_{\\text{true}}-x_{\\text{approx}}|": {
+  "latex": "E_a = |x_{\\text{true}} - x_{\\text{approx}}|",
+  "pool": [
+   {
+    "id": "651807",
+    "i": 2,
+    "to": "r",
+    "type": "variable_swap"
+   },
+   {
+    "id": "4ccf54",
+    "i": 5,
+    "to": "+",
+    "type": "operator_swap"
+   }
+  ],
+  "provenance": "llm",
+  "n_wrong": 1
+ },
+ "E_r=\\frac{|x_{\\text{true}}-x_{\\text{approx}}|}{|x_{\\text{true}}|}": {
+  "latex": "E_r = \\frac{|x_{\\text{true}} - x_{\\text{approx}}|}{|x_{\\text{true}}|}",
+  "pool": [
+   {
+    "id": "5b8ee0",
+    "i": 2,
+    "to": "a",
+    "type": "variable_swap"
+   },
+   {
+    "id": "4ccf54",
+    "i": 5,
+    "to": "+",
+    "type": "operator_swap"
+   }
+  ],
+  "provenance": "llm",
+  "n_wrong": 1
+ },
+ "\\kappa(x)=\\left|\\frac{xf'(x)}{f(x)}\\right|": {
+  "latex": "\\kappa(x) = \\left|\\frac{x f'(x)}{f(x)}\\right|",
+  "pool": [
+   {
+    "id": "0f34ca",
+    "i": 4,
+    "to": "2",
+    "type": "constant_perturb"
+   },
+   {
+    "id": "6c6044",
+    "i": 6,
+    "to": "″",
+    "type": "operator_swap"
+   },
+   {
+    "id": "ccd7ca",
+    "i": 9,
+    "to": "1",
+    "type": "constant_perturb"
+   }
+  ],
+  "provenance": "llm",
+  "n_wrong": 1
+ },
+ "|x_{n+1}-r|=\\frac{|f''(\\xi)|}{2|f'(x_n)|}|x_n-r|^2": {
+  "latex": "|x_{n+1} - r| = \\frac{|f''(\\xi)|}{2|f'(x_n)|} |x_n - r|^2",
+  "pool": [
+   {
+    "id": "5396ff",
+    "i": 3,
+    "to": "−",
+    "type": "operator_swap"
+   },
+   {
+    "id": "4ccf54",
+    "i": 5,
+    "to": "+",
+    "type": "operator_swap"
+   },
+   {
+    "id": "bb5ef3",
+    "i": 9,
+    "to": "′",
+    "type": "operator_swap"
+   },
+   {
+    "id": "0d3f66",
+    "i": 11,
+    "to": "3",
+    "type": "constant_perturb"
+   },
+   {
+    "id": "ff23d8",
+    "i": 13,
+    "to": "″",
+    "type": "operator_swap"
+   },
+   {
+    "id": "bef626",
+    "i": 20,
+    "to": "3",
+    "type": "constant_perturb"
+   }
+  ],
+  "provenance": "llm",
+  "n_wrong": 1
+ },
+ "L_i(x)=\\prod_{j=0,j\\neqi}^{n}\\frac{x-x_j}{x_i-x_j}": {
+  "latex": "L_i(x) = \\prod_{j=0, j\\neq i}^{n} \\frac{x - x_j}{x_i - x_j}",
+  "pool": [
+   {
+    "id": "3b776d",
+    "i": 11,
+    "to": "=",
+    "type": "logic_swap"
+   },
+   {
+    "id": "841c9f",
+    "i": 15,
+    "to": "+",
+    "type": "operator_swap"
+   },
+   {
+    "id": "e62152",
+    "i": 20,
+    "to": "+",
+    "type": "operator_swap"
+   },
+   {
+    "id": "c89692",
+    "i": 19,
+    "to": "j",
+    "type": "variable_swap"
+   },
+   {
+    "id": "01bed6",
+    "i": 8,
+    "to": "1",
+    "type": "constant_perturb"
+   },
+   {
+    "id": "80c857",
+    "i": 13,
+    "to": "i",
+    "type": "variable_swap"
+   }
+  ],
+  "provenance": "llm",
+  "n_wrong": 1
+ },
+ "\\lambda=\\frac{|x_{n+1}-r|}{|x_n-r|^\\alpha}": {
+  "latex": "\\lambda = \\frac{|x_{n+1} - r|}{|x_n - r|^\\alpha}",
+  "pool": [
+   {
+    "id": "fcad1b",
+    "i": 5,
+    "to": "−",
+    "type": "operator_swap"
+   },
+   {
+    "id": "d279a7",
+    "i": 6,
+    "to": "2",
+    "type": "constant_perturb"
+   },
+   {
+    "id": "0ef436",
+    "i": 7,
+    "to": "+",
+    "type": "operator_swap"
+   },
+   {
+    "id": "4faa1d",
+    "i": 10,
+    "to": "1",
+    "type": "variable_swap"
+   },
+   {
+    "id": "631ceb",
+    "i": 11,
+    "to": "+",
+    "type": "operator_swap"
+   }
+  ],
+  "provenance": "llm",
+  "n_wrong": 1
+ },
+ "\\sum_{d\\midn}\\phi(d)=n": {
+  "latex": "\\sum_{d \\mid n} \\phi(d) = n",
+  "pool": [
+   {
+    "id": "29d5f6",
+    "i": 1,
+    "to": "∏",
+    "type": "operator_swap"
+   },
+   {
+    "id": "ba46b5",
+    "i": 3,
+    "to": "∤",
+    "type": "domain_swap"
+   },
+   {
+    "id": "4c4e1a",
+    "i": 5,
+    "to": "μ",
+    "type": "function_swap"
+   },
+   {
+    "id": "03b0c7",
+    "i": 6,
+    "to": "n",
+    "type": "variable_swap"
+   },
+   {
+    "id": "a39319",
+    "i": 7,
+    "to": "≠",
+    "type": "operator_swap"
+   },
+   {
+    "id": "01bed6",
+    "i": 8,
+    "to": "1",
+    "type": "constant_perturb"
+   }
+  ],
+  "provenance": "llm",
+  "n_wrong": 1
+ },
+ "|z|^2=z\\bar{z}": {
+  "latex": "|z|^2 = z\\bar{z}",
+  "pool": [
+   {
+    "id": "f49816",
+    "i": 1,
+    "to": "w",
+    "type": "variable_swap"
+   },
+   {
+    "id": "85df57",
+    "i": 2,
+    "to": "3",
+    "type": "constant_perturb"
+   },
+   {
+    "id": "084b4c",
+    "i": 3,
+    "to": "≠",
+    "type": "operator_swap"
+   },
+   {
+    "id": "ecb7d7",
+    "i": 4,
+    "to": "w",
+    "type": "variable_swap"
+   },
+   {
+    "id": "aa8c24",
+    "i": 5,
+    "to": "w",
+    "type": "variable_swap"
+   }
+  ],
+  "provenance": "llm",
+  "n_wrong": 1
+ },
+ "|a+bi|=\\sqrt{a^2+b^2}": {
+  "latex": "|a+bi| = \\sqrt{a^2+b^2}",
+  "pool": [
+   {
+    "id": "fd596d",
+    "i": 1,
+    "to": "c",
+    "type": "variable_swap"
+   },
+   {
+    "id": "516cd3",
+    "i": 5,
+    "to": "≠",
+    "type": "operator_swap"
+   },
+   {
+    "id": "1934c3",
+    "i": 6,
+    "to": "b",
+    "type": "variable_swap"
+   },
+   {
+    "id": "5bba52",
+    "i": 7,
+    "to": "3",
+    "type": "constant_perturb"
+   },
+   {
+    "id": "008551",
+    "i": 8,
+    "to": "−",
+    "type": "operator_swap"
+   },
+   {
+    "id": "0966f8",
+    "i": 10,
+    "to": "3",
+    "type": "constant_perturb"
+   }
+  ],
+  "provenance": "llm",
+  "n_wrong": 1
+ },
+ "z^{-1}=\\frac{\\bar{z}}{|z|^2}": {
+  "latex": "z^{-1} = \\frac{\\bar{z}}{|z|^2}",
+  "pool": [
+   {
+    "id": "f49816",
+    "i": 1,
+    "to": "w",
+    "type": "variable_swap"
+   },
+   {
+    "id": "8da729",
+    "i": 2,
+    "to": "+",
+    "type": "operator_swap"
+   },
+   {
+    "id": "2393ba",
+    "i": 3,
+    "to": "2",
+    "type": "constant_perturb"
+   },
+   {
+    "id": "d06cda",
+    "i": 4,
+    "to": "≠",
+    "type": "operator_swap"
+   },
+   {
+    "id": "ce31db",
+    "i": 6,
+    "to": "w",
+    "type": "variable_swap"
+   },
+   {
+    "id": "5bba52",
+    "i": 7,
+    "to": "3",
+    "type": "constant_perturb"
+   }
+  ],
+  "provenance": "llm",
+  "n_wrong": 1
+ },
+ "|z_1z_2|=|z_1||z_2|": {
+  "latex": "|z_1 z_2| = |z_1||z_2|",
+  "pool": [
+   {
+    "id": "db2a6f",
+    "i": 2,
+    "to": "2",
+    "type": "index_swap"
+   },
+   {
+    "id": "5ff404",
+    "i": 4,
+    "to": "1",
+    "type": "index_swap"
+   },
+   {
+    "id": "c03614",
+    "i": 7,
+    "to": "2",
+    "type": "index_swap"
+   },
+   {
+    "id": "2ac368",
+    "i": 9,
+    "to": "1",
+    "type": "index_swap"
+   },
+   {
+    "id": "f49816",
+    "i": 1,
+    "to": "w",
+    "type": "variable_swap"
+   },
+   {
+    "id": "516cd3",
+    "i": 5,
+    "to": "≠",
+    "type": "operator_swap"
+   }
+  ],
+  "provenance": "llm",
+  "n_wrong": 1
+ },
+ "\\left|\\frac{z_1}{z_2}\\right|=\\frac{|z_1|}{|z_2|}": {
+  "latex": "\\left|\\frac{z_1}{z_2}\\right| = \\frac{|z_1|}{|z_2|}",
+  "pool": [
+   {
+    "id": "db2a6f",
+    "i": 2,
+    "to": "2",
+    "type": "index_swap"
+   },
+   {
+    "id": "5ff404",
+    "i": 4,
+    "to": "1",
+    "type": "index_swap"
+   },
+   {
+    "id": "c03614",
+    "i": 7,
+    "to": "2",
+    "type": "index_swap"
+   },
+   {
+    "id": "2ac368",
+    "i": 9,
+    "to": "1",
+    "type": "index_swap"
+   },
+   {
+    "id": "359322",
+    "i": 3,
+    "to": "w",
+    "type": "variable_swap"
+   },
+   {
+    "id": "516cd3",
+    "i": 5,
+    "to": "≠",
+    "type": "operator_swap"
+   }
+  ],
+  "provenance": "llm",
+  "n_wrong": 1
+ },
+ "\\logz=\\ln|z|+i\\arg(z)": {
+  "latex": "\\log z = \\ln|z| + i\\arg(z)",
+  "pool": [
+   {
+    "id": "5cd04c",
+    "i": 4,
+    "to": "sin",
+    "type": "function_swap"
+   },
+   {
+    "id": "5324b6",
+    "i": 6,
+    "to": "−",
+    "type": "operator_swap"
+   },
+   {
+    "id": "9571d1",
+    "i": 7,
+    "to": "1",
+    "type": "constant_perturb"
+   },
+   {
+    "id": "acb83c",
+    "i": 8,
+    "to": "\\ln",
+    "type": "function_swap"
+   },
+   {
+    "id": "ddb11b",
+    "i": 9,
+    "to": "w",
+    "type": "variable_swap"
+   }
+  ],
+  "provenance": "llm",
+  "n_wrong": 1
+ },
+ "\\left(f^{-1}\\right)'(x)=\\frac{1}{f'(f^{-1}(x))}": {
+  "latex": "\\left(f^{-1}\\right)'(x) = \\frac{1}{f'(f^{-1}(x))}",
+  "pool": [
+   {
+    "id": "8da729",
+    "i": 2,
+    "to": "+",
+    "type": "operator_swap"
+   },
+   {
+    "id": "2393ba",
+    "i": 3,
+    "to": "2",
+    "type": "constant_perturb"
+   },
+   {
+    "id": "281524",
+    "i": 4,
+    "to": "″",
+    "type": "index_swap"
+   },
+   {
+    "id": "c4db96",
+    "i": 7,
+    "to": "2",
+    "type": "constant_perturb"
+   },
+   {
+    "id": "631ceb",
+    "i": 11,
+    "to": "+",
+    "type": "operator_swap"
+   },
+   {
+    "id": "7601ef",
+    "i": 12,
+    "to": "2",
+    "type": "constant_perturb"
+   }
+  ],
+  "provenance": "llm",
+  "n_wrong": 1
+ },
+ "|a\\timesb|=|a||b|\\sin\\theta": {
+  "latex": "|a\\times b| = |a||b|\\sin\\theta",
+  "pool": [
+   {
+    "id": "5d1d0d",
+    "i": 7,
+    "to": "cos",
+    "type": "function_swap"
+   },
+   {
+    "id": "488f88",
+    "i": 2,
+    "to": "·",
+    "type": "operator_swap"
+   },
+   {
+    "id": "96bd1c",
+    "i": 1,
+    "to": "b",
+    "type": "variable_swap"
+   },
+   {
+    "id": "620c9b",
+    "i": 3,
+    "to": "a",
+    "type": "variable_swap"
+   },
+   {
+    "id": "30330a",
+    "i": 5,
+    "to": "b",
+    "type": "variable_swap"
+   },
+   {
+    "id": "28abc9",
+    "i": 6,
+    "to": "a",
+    "type": "variable_swap"
+   }
+  ],
+  "provenance": "llm",
+  "n_wrong": 1
+ },
+ "a\\cdotb=|a||b|\\cos\\theta": {
+  "latex": "a\\cdot b = |a||b|\\cos\\theta",
+  "pool": [
+   {
+    "id": "c699cb",
+    "i": 7,
+    "to": "sin",
+    "type": "function_swap"
+   },
+   {
+    "id": "b06a4b",
+    "i": 2,
+    "to": "×",
+    "type": "operator_swap"
+   },
+   {
+    "id": "96bd1c",
+    "i": 1,
+    "to": "b",
+    "type": "variable_swap"
+   },
+   {
+    "id": "620c9b",
+    "i": 3,
+    "to": "a",
+    "type": "variable_swap"
+   },
+   {
+    "id": "30330a",
+    "i": 5,
+    "to": "b",
+    "type": "variable_swap"
+   },
+   {
+    "id": "28abc9",
+    "i": 6,
+    "to": "a",
+    "type": "variable_swap"
+   }
+  ],
+  "provenance": "llm",
+  "n_wrong": 1
+ },
+ "A=|a\\timesb|": {
+  "latex": "A = |a\\times b|",
+  "pool": [
+   {
+    "id": "5fb3e0",
+    "i": 4,
+    "to": "·",
+    "type": "operator_swap"
+   },
+   {
+    "id": "228647",
+    "i": 4,
+    "to": "+",
+    "type": "operator_swap"
+   },
+   {
+    "id": "f63bb9",
+    "i": 4,
+    "to": "−",
+    "type": "operator_swap"
+   },
+   {
+    "id": "e11c88",
+    "i": 3,
+    "to": "b",
+    "type": "variable_swap"
+   },
+   {
+    "id": "9f039b",
+    "i": 5,
+    "to": "a",
+    "type": "variable_swap"
+   }
+  ],
+  "provenance": "llm",
+  "n_wrong": 1
+ },
+ "V=|a\\cdot(b\\timesc)|": {
+  "latex": "V = |a\\cdot(b\\times c)|",
+  "pool": [
+   {
+    "id": "886d08",
+    "i": 4,
+    "to": "×",
+    "type": "operator_swap"
+   },
+   {
+    "id": "216cb1",
+    "i": 6,
+    "to": "·",
+    "type": "operator_swap"
+   },
+   {
+    "id": "e11c88",
+    "i": 3,
+    "to": "b",
+    "type": "variable_swap"
+   },
+   {
+    "id": "9f039b",
+    "i": 5,
+    "to": "a",
+    "type": "variable_swap"
+   },
+   {
+    "id": "186d2f",
+    "i": 7,
+    "to": "a",
+    "type": "variable_swap"
+   },
+   {
+    "id": "2c0887",
+    "i": 6,
+    "to": "+",
+    "type": "operator_swap"
+   }
+  ],
+  "provenance": "llm",
+  "n_wrong": 1
+ },
+ "\\det(AB)=\\det(A)\\det(B)": {
+  "latex": "\\det(AB) = \\det(A)\\det(B)",
+  "pool": [
+   {
+    "id": "354543",
+    "i": 2,
+    "to": "B",
+    "type": "variable_swap"
+   },
+   {
+    "id": "433259",
+    "i": 3,
+    "to": "A",
+    "type": "variable_swap"
+   },
+   {
+    "id": "de30f1",
+    "i": 6,
+    "to": "B",
+    "type": "variable_swap"
+   },
+   {
+    "id": "a8965f",
+    "i": 8,
+    "to": "A",
+    "type": "variable_swap"
+   },
+   {
+    "id": "53b29e",
+    "i": 5,
+    "to": "tr",
+    "type": "function_swap"
+   },
+   {
+    "id": "6c42bf",
+    "i": 7,
+    "to": "tr",
+    "type": "function_swap"
+   }
+  ],
+  "provenance": "llm",
+  "n_wrong": 1
+ },
+ "\\det(A^T)=\\det(A)": {
+  "latex": "\\det(A^T) = \\det(A)",
+  "pool": [
+   {
+    "id": "c5ded5",
+    "i": 3,
+    "to": "-1",
+    "type": "index_swap"
+   },
+   {
+    "id": "9466a8",
+    "i": 3,
+    "to": "2",
+    "type": "index_swap"
+   },
+   {
+    "id": "de30f1",
+    "i": 6,
+    "to": "B",
+    "type": "variable_swap"
+   },
+   {
+    "id": "354543",
+    "i": 2,
+    "to": "B",
+    "type": "variable_swap"
+   },
+   {
+    "id": "c3f2c0",
+    "i": 1,
+    "to": "tr",
+    "type": "function_swap"
+   }
+  ],
+  "provenance": "llm",
+  "n_wrong": 1
+ },
+ "|a\\timesb|^2=|a|^2|b|^2-(a\\cdotb)^2": {
+  "latex": "|a\\times b|^2 = |a|^2|b|^2 - (a\\cdot b)^2",
+  "pool": [
+   {
+    "id": "d01dca",
+    "i": 10,
+    "to": "+",
+    "type": "operator_swap"
+   },
+   {
+    "id": "488f88",
+    "i": 2,
+    "to": "·",
+    "type": "operator_swap"
+   },
+   {
+    "id": "5bba52",
+    "i": 7,
+    "to": "3",
+    "type": "constant_perturb"
+   },
+   {
+    "id": "7b049a",
+    "i": 9,
+    "to": "3",
+    "type": "constant_perturb"
+   },
+   {
+    "id": "e08081",
+    "i": 4,
+    "to": "1",
+    "type": "constant_perturb"
+   },
+   {
+    "id": "7e317f",
+    "i": 14,
+    "to": "1",
+    "type": "constant_perturb"
+   }
+  ],
+  "provenance": "llm",
+  "n_wrong": 1
+ },
+ "|a|^2=a\\cdota": {
+  "latex": "|a|^2 = a\\cdot a",
+  "pool": [
+   {
+    "id": "85df57",
+    "i": 2,
+    "to": "3",
+    "type": "constant_perturb"
+   },
+   {
+    "id": "633859",
+    "i": 5,
+    "to": "×",
+    "type": "operator_swap"
+   },
+   {
+    "id": "ea4fbf",
+    "i": 4,
+    "to": "b",
+    "type": "variable_swap"
+   },
+   {
+    "id": "1934c3",
+    "i": 6,
+    "to": "b",
+    "type": "variable_swap"
+   },
+   {
+    "id": "96bd1c",
+    "i": 1,
+    "to": "b",
+    "type": "variable_swap"
+   }
+  ],
+  "provenance": "llm",
+  "n_wrong": 1
+ },
+ "\\cos\\theta=\\frac{a\\cdotb}{|a||b|}": {
+  "latex": "\\cos\\theta = \\frac{a\\cdot b}{|a||b|}",
+  "pool": [
+   {
+    "id": "93382a",
+    "i": 1,
+    "to": "sin",
+    "type": "function_swap"
+   },
+   {
+    "id": "4ccf54",
+    "i": 5,
+    "to": "+",
+    "type": "operator_swap"
+   },
+   {
+    "id": "28abc9",
+    "i": 6,
+    "to": "a",
+    "type": "variable_swap"
+   },
+   {
+    "id": "62fa44",
+    "i": 7,
+    "to": "b",
+    "type": "variable_swap"
+   },
+   {
+    "id": "a87a0b",
+    "i": 8,
+    "to": "a",
+    "type": "variable_swap"
+   }
+  ],
+  "provenance": "llm",
+  "n_wrong": 1
+ },
+ "a\\cdot(b\\timesc)=b\\cdot(c\\timesa)": {
+  "latex": "a\\cdot(b\\times c) = b\\cdot(c\\times a)",
+  "pool": [
+   {
+    "id": "b06a4b",
+    "i": 2,
+    "to": "×",
+    "type": "operator_swap"
+   },
+   {
+    "id": "186d2f",
+    "i": 7,
+    "to": "a",
+    "type": "variable_swap"
+   },
+   {
+    "id": "050cb8",
+    "i": 9,
+    "to": "b",
+    "type": "variable_swap"
+   },
+   {
+    "id": "97ef26",
+    "i": 11,
+    "to": "b",
+    "type": "variable_swap"
+   },
+   {
+    "id": "fd596d",
+    "i": 1,
+    "to": "c",
+    "type": "variable_swap"
+   }
+  ],
+  "provenance": "llm",
+  "n_wrong": 1
+ },
+ "\\operatorname{proj}_ba=\\frac{a\\cdotb}{|b|^2}b": {
+  "latex": "\\operatorname{proj}_b a = \\frac{a\\cdot b}{|b|^2}b",
+  "pool": [
+   {
+    "id": "5b8ee0",
+    "i": 2,
+    "to": "a",
+    "type": "variable_swap"
+   },
+   {
+    "id": "ccd7ca",
+    "i": 9,
+    "to": "1",
+    "type": "constant_perturb"
+   },
+   {
+    "id": "2c0887",
+    "i": 6,
+    "to": "+",
+    "type": "operator_swap"
+   },
+   {
+    "id": "04b91d",
+    "i": 10,
+    "to": "a",
+    "type": "variable_swap"
+   },
+   {
+    "id": "30330a",
+    "i": 5,
+    "to": "b",
+    "type": "variable_swap"
+   },
+   {
+    "id": "a87a0b",
+    "i": 8,
+    "to": "a",
+    "type": "variable_swap"
+   }
+  ],
+  "provenance": "llm",
+  "n_wrong": 1
+ },
+ "(a\\timesb)\\cdotc=a\\cdot(b\\timesc)": {
+  "latex": "(a\\times b)\\cdot c = a\\cdot(b\\times c)",
+  "pool": [
+   {
+    "id": "c3ddd4",
+    "i": 9,
+    "to": "c",
+    "type": "variable_swap"
+   },
+   {
+    "id": "0197ba",
+    "i": 11,
+    "to": "a",
+    "type": "variable_swap"
+   },
+   {
+    "id": "62fa44",
+    "i": 7,
+    "to": "b",
+    "type": "variable_swap"
+   },
+   {
+    "id": "96bd1c",
+    "i": 1,
+    "to": "b",
+    "type": "variable_swap"
+   },
+   {
+    "id": "9f039b",
+    "i": 5,
+    "to": "a",
+    "type": "variable_swap"
+   }
+  ],
+  "provenance": "llm",
+  "n_wrong": 1
+ },
+ "\\log_b1=0": {
+  "latex": "\\log_b 1 = 0",
+  "pool": [
+   {
+    "id": "0f9f3c",
+    "i": 3,
+    "to": "b",
+    "type": "constant_perturb"
+   },
+   {
+    "id": "696461",
+    "i": 5,
+    "to": "1",
+    "type": "constant_perturb"
+   },
+   {
+    "id": "0a992e",
+    "i": 4,
+    "to": "≠",
+    "type": "logic_swap"
+   },
+   {
+    "id": "c907e0",
+    "i": 3,
+    "to": "0",
+    "type": "domain_violation"
+   }
+  ],
+  "provenance": "llm",
+  "n_wrong": 1
+ },
+ "b^0=1": {
+  "latex": "b^0 = 1",
+  "pool": [
+   {
+    "id": "33987b",
+    "i": 2,
+    "to": "1",
+    "type": "constant_perturb"
+   },
+   {
+    "id": "85df57",
+    "i": 2,
+    "to": "3",
+    "type": "constant_perturb"
+   },
+   {
+    "id": "4c37a8",
+    "i": 3,
+    "to": "≠",
+    "type": "logic_swap"
+   },
+   {
+    "id": "6d1be2",
+    "i": 4,
+    "to": "0",
+    "type": "constant_perturb"
+   }
+  ],
+  "provenance": "llm",
+  "n_wrong": 1
+ },
+ "pH=-\\log_{10}[H^+]": {
+  "latex": "pH = -\\log_{10}[H^+]",
+  "pool": [
+   {
+    "id": "228647",
+    "i": 4,
+    "to": "+",
+    "type": "operator_swap"
+   },
+   {
+    "id": "8ea59e",
+    "i": 5,
+    "to": "ln",
+    "type": "operator_swap"
+   },
+   {
+    "id": "d279a7",
+    "i": 6,
+    "to": "2",
+    "type": "constant_perturb"
+   },
+   {
+    "id": "57458f",
+    "i": 8,
+    "to": "−",
+    "type": "variable_swap"
+   }
+  ],
+  "provenance": "llm",
+  "n_wrong": 1
+ },
+ "\\sum_{k=0}^{n}\\cos(k\\theta)=\\frac{\\sin\\left(\\frac{(n+1)\\theta}{2}\\right)\\cos\\left(\\frac{n\\theta}{2}\\right)}{\\sin\\left(\\frac{\\theta}{2}\\right)}": {
+  "latex": "\\sum_{k=0}^{n} \\cos(k\\theta) = \\frac{\\sin\\left(\\frac{(n+1)\\theta}{2}\\right)\\cos\\left(\\frac{n\\theta}{2}\\right)}{\\sin\\left(\\frac{\\theta}{2}\\right)}",
+  "pool": [
+   {
+    "id": "b67b83",
+    "i": 6,
+    "to": "sin",
+    "type": "function_swap"
+   },
+   {
+    "id": "8bba70",
+    "i": 16,
+    "to": "sin",
+    "type": "function_swap"
+   },
+   {
+    "id": "208b10",
+    "i": 20,
+    "to": "cos",
+    "type": "function_swap"
+   },
+   {
+    "id": "5ff404",
+    "i": 4,
+    "to": "1",
+    "type": "index_swap"
+   },
+   {
+    "id": "e3dfdd",
+    "i": 15,
+    "to": "3",
+    "type": "constant_perturb"
+   },
+   {
+    "id": "ff7a62",
+    "i": 12,
+    "to": "−",
+    "type": "operator_swap"
+   }
+  ],
+  "provenance": "llm",
+  "n_wrong": 1
+ },
+ "\\sum_{k=0}^{n}\\sin(k\\theta)=\\frac{\\sin\\left(\\frac{(n+1)\\theta}{2}\\right)\\sin\\left(\\frac{n\\theta}{2}\\right)}{\\sin\\left(\\frac{\\theta}{2}\\right)}": {
+  "latex": "\\sum_{k=0}^{n} \\sin(k\\theta) = \\frac{\\sin\\left(\\frac{(n+1)\\theta}{2}\\right)\\sin\\left(\\frac{n\\theta}{2}\\right)}{\\sin\\left(\\frac{\\theta}{2}\\right)}",
+  "pool": [
+   {
+    "id": "9f1970",
+    "i": 6,
+    "to": "cos",
+    "type": "function_swap"
+   },
+   {
+    "id": "17c21f",
+    "i": 16,
+    "to": "cos",
+    "type": "function_swap"
+   },
+   {
+    "id": "208b10",
+    "i": 20,
+    "to": "cos",
+    "type": "function_swap"
+   },
+   {
+    "id": "e3dfdd",
+    "i": 15,
+    "to": "3",
+    "type": "constant_perturb"
+   },
+   {
+    "id": "ff7a62",
+    "i": 12,
+    "to": "−",
+    "type": "operator_swap"
+   }
+  ],
+  "provenance": "llm",
+  "n_wrong": 1
+ },
+ "\\sum_{k=1}^{n}\\logk=\\log(n!)": {
+  "latex": "\\sum_{k=1}^{n} \\log k = \\log(n!)",
+  "pool": [
+   {
+    "id": "8414f4",
+    "i": 4,
+    "to": "0",
+    "type": "index_swap"
+   },
+   {
+    "id": "b67b83",
+    "i": 6,
+    "to": "sin",
+    "type": "function_swap"
+   },
+   {
+    "id": "68860b",
+    "i": 8,
+    "to": "≠",
+    "type": "logic_swap"
+   }
+  ],
+  "provenance": "llm",
+  "n_wrong": 1
+ },
+ "\\tan\\theta=\\frac{\\sin\\theta}{\\cos\\theta}": {
+  "latex": "\\tan\\theta = \\frac{\\sin\\theta}{\\cos\\theta}",
+  "pool": [
+   {
+    "id": "1440bf",
+    "i": 1,
+    "to": "cot",
+    "type": "function_swap"
+   },
+   {
+    "id": "93382a",
+    "i": 1,
+    "to": "sin",
+    "type": "function_swap"
+   },
+   {
+    "id": "2f9cb1",
+    "i": 1,
+    "to": "cos",
+    "type": "function_swap"
+   },
+   {
+    "id": "d3f886",
+    "i": 4,
+    "to": "cos",
+    "type": "function_swap"
+   },
+   {
+    "id": "b67b83",
+    "i": 6,
+    "to": "sin",
+    "type": "function_swap"
+   }
+  ],
+  "provenance": "llm",
+  "n_wrong": 1
+ },
+ "\\cot\\theta=\\frac{\\cos\\theta}{\\sin\\theta}": {
+  "latex": "\\cot\\theta = \\frac{\\cos\\theta}{\\sin\\theta}",
+  "pool": [
+   {
+    "id": "ed2d9e",
+    "i": 1,
+    "to": "tan",
+    "type": "function_swap"
+   },
+   {
+    "id": "93382a",
+    "i": 1,
+    "to": "sin",
+    "type": "function_swap"
+   },
+   {
+    "id": "2f9cb1",
+    "i": 1,
+    "to": "cos",
+    "type": "function_swap"
+   },
+   {
+    "id": "5cd04c",
+    "i": 4,
+    "to": "sin",
+    "type": "function_swap"
+   },
+   {
+    "id": "9f1970",
+    "i": 6,
+    "to": "cos",
+    "type": "function_swap"
+   }
+  ],
+  "provenance": "llm",
+  "n_wrong": 1
+ },
+ "\\cos(-\\theta)=\\cos\\theta": {
+  "latex": "\\cos(-\\theta) = \\cos\\theta",
+  "pool": [
+   {
+    "id": "93382a",
+    "i": 1,
+    "to": "sin",
+    "type": "function_swap"
+   },
+   {
+    "id": "b931aa",
+    "i": 5,
+    "to": "sin",
+    "type": "function_swap"
+   },
+   {
+    "id": "0a992e",
+    "i": 4,
+    "to": "≠",
+    "type": "logic_swap"
+   },
+   {
+    "id": "793b52",
+    "i": 3,
+    "to": "π",
+    "type": "constant_perturb"
+   },
+   {
+    "id": "e08213",
+    "i": 6,
+    "to": "φ",
+    "type": "variable_swap"
+   }
+  ],
+  "provenance": "llm",
+  "n_wrong": 1
+ },
+ "\\sin\\left(\\frac{\\pi}{2}-\\theta\\right)=\\cos\\theta": {
+  "latex": "\\sin\\left(\\frac{\\pi}{2} - \\theta\\right) = \\cos\\theta",
+  "pool": [
+   {
+    "id": "2f9cb1",
+    "i": 1,
+    "to": "cos",
+    "type": "function_swap"
+   },
+   {
+    "id": "c699cb",
+    "i": 7,
+    "to": "sin",
+    "type": "function_swap"
+   },
+   {
+    "id": "fc96e1",
+    "i": 3,
+    "to": "3",
+    "type": "constant_perturb"
+   },
+   {
+    "id": "fd5e94",
+    "i": 6,
+    "to": "≠",
+    "type": "logic_swap"
+   },
+   {
+    "id": "5a118d",
+    "i": 5,
+    "to": "φ",
+    "type": "variable_swap"
+   },
+   {
+    "id": "b83e1f",
+    "i": 8,
+    "to": "φ",
+    "type": "variable_swap"
+   }
+  ],
+  "provenance": "llm",
+  "n_wrong": 1
+ },
+ "\\tan\\left(\\frac{\\pi}{2}-\\theta\\right)=\\cot\\theta": {
+  "latex": "\\tan\\left(\\frac{\\pi}{2} - \\theta\\right) = \\cot\\theta",
+  "pool": [
+   {
+    "id": "93382a",
+    "i": 1,
+    "to": "sin",
+    "type": "function_swap"
+   },
+   {
+    "id": "ebc537",
+    "i": 7,
+    "to": "tan",
+    "type": "function_swap"
+   },
+   {
+    "id": "fc96e1",
+    "i": 3,
+    "to": "3",
+    "type": "constant_perturb"
+   },
+   {
+    "id": "fd5e94",
+    "i": 6,
+    "to": "≠",
+    "type": "logic_swap"
+   },
+   {
+    "id": "5a118d",
+    "i": 5,
+    "to": "φ",
+    "type": "variable_swap"
+   },
+   {
+    "id": "b83e1f",
+    "i": 8,
+    "to": "φ",
+    "type": "variable_swap"
+   }
+  ],
+  "provenance": "llm",
+  "n_wrong": 1
+ },
+ "\\omega=\\frac{du_y}{dx}-\\frac{du_x}{dy}": {
+  "latex": "\\omega = \\frac{du_y}{dx} - \\frac{du_x}{dy}",
+  "pool": [
+   {
+    "id": "2c0887",
+    "i": 6,
+    "to": "+",
+    "type": "operator_swap"
+   },
+   {
+    "id": "9bff77",
+    "i": 2,
+    "to": "≠",
+    "type": "logic_swap"
+   },
+   {
+    "id": "145d40",
+    "i": 4,
+    "to": "x",
+    "type": "variable_swap"
+   },
+   {
+    "id": "f6c094",
+    "i": 8,
+    "to": "y",
+    "type": "variable_swap"
+   },
+   {
+    "id": "a46c26",
+    "i": 5,
+    "to": "y",
+    "type": "variable_swap"
+   },
+   {
+    "id": "a854d6",
+    "i": 9,
+    "to": "x",
+    "type": "variable_swap"
+   }
+  ],
+  "provenance": "llm",
+  "n_wrong": 1
+ },
+ "\\varepsilon=-\\frac{d\\Phi_B}{dt}": {
+  "latex": "\\varepsilon = - \\frac{d \\Phi_B}{dt}",
+  "pool": [
+   {
+    "id": "36de65",
+    "i": 3,
+    "to": "+",
+    "type": "operator_swap"
+   },
+   {
+    "id": "9bff77",
+    "i": 2,
+    "to": "≠",
+    "type": "logic_swap"
+   },
+   {
+    "id": "a3341e",
+    "i": 6,
+    "to": "x",
+    "type": "variable_swap"
+   },
+   {
+    "id": "501530",
+    "i": 5,
+    "to": "E",
+    "type": "variable_swap"
+   },
+   {
+    "id": "e8cc5f",
+    "i": 1,
+    "to": "I",
+    "type": "variable_swap"
+   },
+   {
+    "id": "bc8184",
+    "i": 4,
+    "to": "E",
+    "type": "variable_swap"
+   }
+  ],
+  "provenance": "llm",
+  "n_wrong": 1
+ },
+ "a_+\\psi_n=\\sqrt{n+1}\\,\\psi_{n+1}": {
+  "latex": "a_+ \\psi_n = \\sqrt{n+1} \\, \\psi_{n+1}",
+  "pool": [
+   {
+    "id": "bdd6fe",
+    "i": 2,
+    "to": "−",
+    "type": "operator_swap"
+   },
+   {
+    "id": "ba7c6a",
+    "i": 8,
+    "to": "2",
+    "type": "constant_perturb"
+   },
+   {
+    "id": "716a0e",
+    "i": 11,
+    "to": "−",
+    "type": "operator_swap"
+   },
+   {
+    "id": "7601ef",
+    "i": 12,
+    "to": "2",
+    "type": "constant_perturb"
+   },
+   {
+    "id": "2895db",
+    "i": 7,
+    "to": "−",
+    "type": "operator_swap"
+   },
+   {
+    "id": "3e5cca",
+    "i": 4,
+    "to": "m",
+    "type": "variable_swap"
+   }
+  ],
+  "provenance": "llm",
+  "n_wrong": 1
+ },
+ "a_-\\psi_n=\\sqrt{n}\\,\\psi_{n-1}": {
+  "latex": "a_- \\psi_n = \\sqrt{n} \\, \\psi_{n-1}",
+  "pool": [
+   {
+    "id": "8da729",
+    "i": 2,
+    "to": "+",
+    "type": "operator_swap"
+   },
+   {
+    "id": "2c5841",
+    "i": 6,
+    "to": "n-1",
+    "type": "constant_perturb"
+   },
+   {
+    "id": "2edda6",
+    "i": 9,
+    "to": "+",
+    "type": "operator_swap"
+   },
+   {
+    "id": "0a19d6",
+    "i": 10,
+    "to": "2",
+    "type": "constant_perturb"
+   }
+  ],
+  "provenance": "llm",
+  "n_wrong": 1
+ },
+ "[L_x,L_y]=i\\hbarL_z": {
+  "latex": "[L_x, L_y] = i \\hbar L_z",
+  "pool": [
+   {
+    "id": "8cb496",
+    "i": 10,
+    "to": "x",
+    "type": "index_swap"
+   },
+   {
+    "id": "fde62c",
+    "i": 2,
+    "to": "z",
+    "type": "index_swap"
+   },
+   {
+    "id": "1522a4",
+    "i": 7,
+    "to": "-i",
+    "type": "constant_perturb"
+   },
+   {
+    "id": "6c2081",
+    "i": 5,
+    "to": "z",
+    "type": "index_swap"
+   },
+   {
+    "id": "d4a383",
+    "i": 8,
+    "to": "ℏ^2",
+    "type": "constant_perturb"
+   }
+  ],
+  "provenance": "llm",
+  "n_wrong": 1
+ },
+ "[x,p]=i\\hbar": {
+  "latex": "[x, p] = i \\hbar",
+  "pool": [
+   {
+    "id": "0e7e43",
+    "i": 1,
+    "to": "p",
+    "type": "variable_swap"
+   },
+   {
+    "id": "8fb094",
+    "i": 3,
+    "to": "x",
+    "type": "variable_swap"
+   },
+   {
+    "id": "a30f35",
+    "i": 5,
+    "to": "-i",
+    "type": "constant_perturb"
+   },
+   {
+    "id": "3f4fb0",
+    "i": 6,
+    "to": "ℏ^2",
+    "type": "constant_perturb"
+   },
+   {
+    "id": "0a992e",
+    "i": 4,
+    "to": "≠",
+    "type": "logic_swap"
+   }
+  ],
+  "provenance": "llm",
+  "n_wrong": 1
+ },
+ "\\langlex\\rangle=\\int_a^bx|\\psi(x)|^2\\,dx": {
+  "latex": "\\langle x \\rangle = \\int_a^b x |\\psi(x)|^2 \\, dx",
+  "pool": [
+   {
+    "id": "0e7e43",
+    "i": 1,
+    "to": "p",
+    "type": "variable_swap"
+   },
+   {
+    "id": "a9f741",
+    "i": 6,
+    "to": "1",
+    "type": "variable_swap"
+   },
+   {
+    "id": "7b049a",
+    "i": 9,
+    "to": "3",
+    "type": "constant_perturb"
+   }
+  ],
+  "provenance": "llm",
+  "n_wrong": 1
+ },
+ "\\int_a^b|\\psi(x)|^2\\,dx=1": {
+  "latex": "\\int_a^b |\\psi(x)|^2 \\, dx = 1",
+  "pool": [
+   {
+    "id": "4b8af6",
+    "i": 9,
+    "to": "0",
+    "type": "constant_perturb"
+   },
+   {
+    "id": "dee0f5",
+    "i": 6,
+    "to": "1",
+    "type": "constant_perturb"
+   },
+   {
+    "id": "b80a2d",
+    "i": 8,
+    "to": "<",
+    "type": "operator_swap"
+   }
+  ],
+  "provenance": "llm",
+  "n_wrong": 1
+ },
+ "\\int_a^bp(x)\\,dx=\\left(n+\\frac{1}{2}\\right)\\pi\\hbar": {
+  "latex": "\\int_a^b p(x) \\, dx = \\left(n + \\frac{1}{2}\\right) \\pi \\hbar",
+  "pool": [
+   {
+    "id": "e8ee7c",
+    "i": 11,
+    "to": "4",
+    "type": "constant_perturb"
+   },
+   {
+    "id": "d34e7a",
+    "i": 12,
+    "to": "2π",
+    "type": "constant_perturb"
+   },
+   {
+    "id": "2855cc",
+    "i": 13,
+    "to": "h",
+    "type": "constant_perturb"
+   }
+  ],
+  "provenance": "llm",
+  "n_wrong": 1
+ },
+ "[\\sigma_x,\\sigma_y]=2i\\sigma_z": {
+  "latex": "[\\sigma_x, \\sigma_y] = 2 i \\sigma_z",
+  "pool": [
+   {
+    "id": "9ca190",
+    "i": 2,
+    "to": "y",
+    "type": "variable_swap"
+   },
+   {
+    "id": "cc4374",
+    "i": 5,
+    "to": "x",
+    "type": "variable_swap"
+   },
+   {
+    "id": "fd5e94",
+    "i": 6,
+    "to": "≠",
+    "type": "logic_swap"
+   },
+   {
+    "id": "9571d1",
+    "i": 7,
+    "to": "1",
+    "type": "constant_perturb"
+   },
+   {
+    "id": "01bed6",
+    "i": 8,
+    "to": "1",
+    "type": "constant_perturb"
+   },
+   {
+    "id": "5e10e7",
+    "i": 10,
+    "to": "x",
+    "type": "variable_swap"
+   }
+  ],
+  "provenance": "llm",
+  "n_wrong": 1
+ },
+ "E[X]=E[X\\midY=1]P(Y=1)+E[X\\midY=0]P(Y=0)": {
+  "latex": "E[X] = E[X \\mid Y=1] P(Y=1) + E[X \\mid Y=0] P(Y=0)",
+  "pool": [
+   {
+    "id": "4c37a8",
+    "i": 3,
+    "to": "≠",
+    "type": "logic_swap"
+   }
+  ],
+  "provenance": "llm",
+  "n_wrong": 1
+ },
+ "\\text{Sens}=\\frac{P(T^+\\capD^+)}{P(D^+)}": {
+  "latex": "\\text{Sens} = \\frac{P(T^+ \\cap D^+)}{P(D^+)}",
+  "pool": [
+   {
+    "id": "cf51cd",
+    "i": 1,
+    "to": "≠",
+    "type": "logic_swap"
+   }
+  ],
+  "provenance": "llm",
+  "n_wrong": 1
+ },
+ "\\operatorname{Var}(X)=\\left(e^{\\sigma^2}-1\\right)e^{2\\mu+\\sigma^2}": {
+  "latex": "\\operatorname{Var}(X) = \\left(e^{\\sigma^2} - 1\\right) e^{2\\mu + \\sigma^2}",
+  "pool": [
+   {
+    "id": "4c37a8",
+    "i": 3,
+    "to": "≠",
+    "type": "logic_swap"
+   },
+   {
+    "id": "0ef436",
+    "i": 7,
+    "to": "+",
+    "type": "operator_swap"
+   },
+   {
+    "id": "ba7c6a",
+    "i": 8,
+    "to": "2",
+    "type": "constant_perturb"
+   }
+  ],
+  "provenance": "llm",
+  "n_wrong": 1
+ },
+ "\\rho_{X,Y}=\\frac{\\operatorname{Cov}(X,Y)}{\\sigma_X\\sigma_Y}": {
+  "latex": "\\rho_{X,Y} = \\frac{\\operatorname{Cov}(X,Y)}{\\sigma_X \\sigma_Y}",
+  "pool": [
+   {
+    "id": "a26981",
+    "i": 7,
+    "to": "Y",
+    "type": "variable_swap"
+   },
+   {
+    "id": "19bfa6",
+    "i": 9,
+    "to": "X",
+    "type": "variable_swap"
+   },
+   {
+    "id": "b5b906",
+    "i": 10,
+    "to": "μ",
+    "type": "symbol_swap"
+   },
+   {
+    "id": "3ae6e1",
+    "i": 11,
+    "to": "Y",
+    "type": "variable_swap"
+   },
+   {
+    "id": "d7f274",
+    "i": 12,
+    "to": "μ",
+    "type": "symbol_swap"
+   }
+  ],
+  "provenance": "llm",
+  "n_wrong": 1
+ },
+ "\\operatorname{Cov}(X,X)=\\operatorname{Var}(X)": {
+  "latex": "\\operatorname{Cov}(X,X) = \\operatorname{Var}(X)",
+  "pool": [
+   {
+    "id": "ee27c0",
+    "i": 1,
+    "to": "Corr",
+    "type": "function_swap"
+   },
+   {
+    "id": "ab5989",
+    "i": 2,
+    "to": "Y",
+    "type": "variable_swap"
+   },
+   {
+    "id": "1cff9d",
+    "i": 4,
+    "to": "Y",
+    "type": "variable_swap"
+   },
+   {
+    "id": "173775",
+    "i": 6,
+    "to": "E",
+    "type": "function_swap"
+   },
+   {
+    "id": "a26981",
+    "i": 7,
+    "to": "Y",
+    "type": "variable_swap"
+   }
+  ],
+  "provenance": "llm",
+  "n_wrong": 1
+ },
+ "\\operatorname{Cov}(X+a,Y+b)=\\operatorname{Cov}(X,Y)": {
+  "latex": "\\operatorname{Cov}(X+a, Y+b) = \\operatorname{Cov}(X,Y)",
+  "pool": [
+   {
+    "id": "655c4c",
+    "i": 3,
+    "to": "·",
+    "type": "operator_swap"
+   },
+   {
+    "id": "f087cb",
+    "i": 7,
+    "to": "·",
+    "type": "operator_swap"
+   },
+   {
+    "id": "9e854a",
+    "i": 13,
+    "to": "X",
+    "type": "variable_swap"
+   },
+   {
+    "id": "3ae6e1",
+    "i": 11,
+    "to": "Y",
+    "type": "variable_swap"
+   },
+   {
+    "id": "507a0d",
+    "i": 6,
+    "to": "X",
+    "type": "variable_swap"
+   },
+   {
+    "id": "ab5989",
+    "i": 2,
+    "to": "Y",
+    "type": "variable_swap"
+   }
+  ],
+  "provenance": "llm",
+  "n_wrong": 1
+ },
+ "\\rho_{X,Y}=E\\left[\\frac{(X-\\mu_X)}{\\sigma_X}\\cdot\\frac{(Y-\\mu_Y)}{\\sigma_Y}\\right]": {
+  "latex": "\\rho_{X,Y} = E\\left[\\frac{(X-\\mu_X)}{\\sigma_X} \\cdot \\frac{(Y-\\mu_Y)}{\\sigma_Y}\\right]",
+  "pool": [
+   {
+    "id": "c48fa4",
+    "i": 13,
+    "to": "+",
+    "type": "operator_swap"
+   },
+   {
+    "id": "4c6c84",
+    "i": 11,
+    "to": "μ",
+    "type": "symbol_swap"
+   },
+   {
+    "id": "66c46a",
+    "i": 18,
+    "to": "μ",
+    "type": "symbol_swap"
+   }
+  ],
+  "provenance": "llm",
+  "n_wrong": 1
+ },
+ "R^2=\\rho_{X,Y}^2": {
+  "latex": "R^2 = \\rho_{X,Y}^2",
+  "pool": [
+   {
+    "id": "85df57",
+    "i": 2,
+    "to": "3",
+    "type": "constant_perturb"
+   },
+   {
+    "id": "455d9f",
+    "i": 8,
+    "to": "3",
+    "type": "constant_perturb"
+   },
+   {
+    "id": "498333",
+    "i": 5,
+    "to": "Y",
+    "type": "variable_swap"
+   },
+   {
+    "id": "84745d",
+    "i": 7,
+    "to": "X",
+    "type": "variable_swap"
+   }
+  ],
+  "provenance": "llm",
+  "n_wrong": 1
+ },
+ "\\rho_{X,Y}^2=1-\\frac{\\operatorname{Var}(Y-\\beta_1X)}{\\operatorname{Var}(Y)}": {
+  "latex": "\\rho_{X,Y}^2 = 1 - \\frac{\\operatorname{Var}(Y - \\beta_1 X)}{\\operatorname{Var}(Y)}",
+  "pool": [
+   {
+    "id": "f158f7",
+    "i": 5,
+    "to": "3",
+    "type": "constant_perturb"
+   },
+   {
+    "id": "c4db96",
+    "i": 7,
+    "to": "2",
+    "type": "constant_perturb"
+   },
+   {
+    "id": "69026a",
+    "i": 8,
+    "to": "+",
+    "type": "operator_swap"
+   },
+   {
+    "id": "c29c2f",
+    "i": 9,
+    "to": "E",
+    "type": "function_swap"
+   },
+   {
+    "id": "631ceb",
+    "i": 11,
+    "to": "+",
+    "type": "operator_swap"
+   },
+   {
+    "id": "64d30b",
+    "i": 16,
+    "to": "X",
+    "type": "variable_swap"
+   }
+  ],
+  "provenance": "llm",
+  "n_wrong": 1
+ },
+ "\\sigma_{aX+b}=|a|\\sigma_X": {
+  "latex": "\\sigma_{aX+b} = |a| \\sigma_X",
+  "pool": [
+   {
+    "id": "59dd4f",
+    "i": 2,
+    "to": "b",
+    "type": "variable_swap"
+   },
+   {
+    "id": "9571d1",
+    "i": 7,
+    "to": "1",
+    "type": "constant_perturb"
+   },
+   {
+    "id": "4a3bcd",
+    "i": 8,
+    "to": "Var",
+    "type": "function_swap"
+   }
+  ],
+  "provenance": "llm",
+  "n_wrong": 1
+ },
+ "\\frac{P(X=k)}{P(X=k-1)}=\\frac{\\lambda}{k}": {
+  "latex": "\\frac{P(X=k)}{P(X=k-1)} = \\frac{\\lambda}{k}",
+  "pool": [
+   {
+    "id": "2edda6",
+    "i": 9,
+    "to": "+",
+    "type": "operator_swap"
+   },
+   {
+    "id": "0a19d6",
+    "i": 10,
+    "to": "2",
+    "type": "constant_perturb"
+   },
+   {
+    "id": "0d637a",
+    "i": 12,
+    "to": "k",
+    "type": "variable_swap"
+   },
+   {
+    "id": "7f7385",
+    "i": 13,
+    "to": "λ",
+    "type": "variable_swap"
+   }
+  ],
+  "provenance": "llm",
+  "n_wrong": 1
+ },
+ "\\frac{P(X=k)}{P(X=k-1)}=\\frac{n-k+1}{k}\\frac{p}{1-p}": {
+  "latex": "\\frac{P(X=k)}{P(X=k-1)} = \\frac{n-k+1}{k}\\frac{p}{1-p}",
+  "pool": [
+   {
+    "id": "2edda6",
+    "i": 9,
+    "to": "+",
+    "type": "operator_swap"
+   },
+   {
+    "id": "c48fa4",
+    "i": 13,
+    "to": "+",
+    "type": "operator_swap"
+   },
+   {
+    "id": "4665a2",
+    "i": 15,
+    "to": "−",
+    "type": "operator_swap"
+   },
+   {
+    "id": "cb0b0f",
+    "i": 16,
+    "to": "2",
+    "type": "constant_perturb"
+   },
+   {
+    "id": "e62152",
+    "i": 20,
+    "to": "+",
+    "type": "operator_swap"
+   }
+  ],
+  "provenance": "llm",
+  "n_wrong": 1
+ },
+ "MSE(\\hat{\\theta})=\\operatorname{Var}(\\hat{\\theta})+(\\operatorname{Bias}(\\hat{\\theta}))^2": {
+  "latex": "MSE(\\hat{\\theta}) = \\operatorname{Var}(\\hat{\\theta}) + (\\operatorname{Bias}(\\hat{\\theta}))^2",
+  "pool": [
+   {
+    "id": "008551",
+    "i": 8,
+    "to": "−",
+    "type": "operator_swap"
+   },
+   {
+    "id": "173775",
+    "i": 6,
+    "to": "E",
+    "type": "function_swap"
+   },
+   {
+    "id": "0ee532",
+    "i": 9,
+    "to": "Var",
+    "type": "function_swap"
+   },
+   {
+    "id": "0d3f66",
+    "i": 11,
+    "to": "3",
+    "type": "constant_perturb"
+   }
+  ],
+  "provenance": "llm",
+  "n_wrong": 1
+ },
+ "\\operatorname{Bias}(\\hat{\\theta})=E[\\hat{\\theta}]-\\theta": {
+  "latex": "\\operatorname{Bias}(\\hat{\\theta}) = E[\\hat{\\theta}] - \\theta",
+  "pool": [
+   {
+    "id": "2c0887",
+    "i": 6,
+    "to": "+",
+    "type": "operator_swap"
+   },
+   {
+    "id": "30bc0d",
+    "i": 4,
+    "to": "Var",
+    "type": "function_swap"
+   },
+   {
+    "id": "e1b9ca",
+    "i": 1,
+    "to": "Var",
+    "type": "function_swap"
+   }
+  ],
+  "provenance": "llm",
+  "n_wrong": 1
+ },
+ "\\operatorname{Var}(\\hat{\\theta})=\\frac{1}{nI(\\theta)}": {
+  "latex": "\\operatorname{Var}(\\hat{\\theta}) = \\frac{1}{n I(\\theta)}",
+  "pool": [
+   {
+    "id": "351729",
+    "i": 1,
+    "to": "E",
+    "type": "function_swap"
+   },
+   {
+    "id": "0f34ca",
+    "i": 4,
+    "to": "2",
+    "type": "constant_perturb"
+   },
+   {
+    "id": "173775",
+    "i": 6,
+    "to": "E",
+    "type": "function_swap"
+   },
+   {
+    "id": "84745d",
+    "i": 7,
+    "to": "X",
+    "type": "variable_swap"
+   }
+  ],
+  "provenance": "llm",
+  "n_wrong": 1
+ },
+ "I(\\theta)=E\\left[\\left(\\frac{d}{d\\theta}\\logf(X;\\theta)\\right)^2\\right]": {
+  "latex": "I(\\theta) = E\\left[\\left(\\frac{d}{d\\theta} \\log f(X;\\theta)\\right)^2\\right]",
+  "pool": [
+   {
+    "id": "17b709",
+    "i": 6,
+    "to": "exp",
+    "type": "function_swap"
+   },
+   {
+    "id": "3bf937",
+    "i": 7,
+    "to": "F",
+    "type": "variable_swap"
+   },
+   {
+    "id": "59a90b",
+    "i": 8,
+    "to": "θ",
+    "type": "variable_swap"
+   },
+   {
+    "id": "50687d",
+    "i": 10,
+    "to": "X",
+    "type": "variable_swap"
+   },
+   {
+    "id": "0d3f66",
+    "i": 11,
+    "to": "3",
+    "type": "constant_perturb"
+   }
+  ],
+  "provenance": "llm",
+  "n_wrong": 1
+ },
+ "SE(g(\\hat{\\theta}))=|g'(\\theta)|SE(\\hat{\\theta})": {
+  "latex": "SE(g(\\hat{\\theta})) = |g'(\\theta)| SE(\\hat{\\theta})",
+  "pool": [
+   {
+    "id": "a8cfab",
+    "i": 3,
+    "to": "h",
+    "type": "variable_swap"
+   },
+   {
+    "id": "24b1d0",
+    "i": 6,
+    "to": "f",
+    "type": "function_swap"
+   },
+   {
+    "id": "d0ce99",
+    "i": 7,
+    "to": "″",
+    "type": "operator_swap"
+   },
+   {
+    "id": "6d98af",
+    "i": 8,
+    "to": "X",
+    "type": "variable_swap"
+   }
+  ],
+  "provenance": "llm",
+  "n_wrong": 1
+ },
+ "\\hat{\\beta}_1=\\frac{\\sum_{i=1}^{n}(X_i-\\bar{X})(Y_i-\\bar{Y})}{\\sum_{i=1}^{n}(X_i-\\bar{X})^2}": {
+  "latex": "\\hat{\\beta}_1 = \\frac{\\sum_{i=1}^{n} (X_i - \\bar{X})(Y_i - \\bar{Y})}{\\sum_{i=1}^{n} (X_i - \\bar{X})^2}",
+  "pool": [
+   {
+    "id": "3d4574",
+    "i": 24,
+    "to": "+",
+    "type": "operator_swap"
+   },
+   {
+    "id": "bf9520",
+    "i": 26,
+    "to": "3",
+    "type": "constant_perturb"
+   },
+   {
+    "id": "9e854a",
+    "i": 13,
+    "to": "X",
+    "type": "variable_swap"
+   }
+  ],
+  "provenance": "llm",
+  "n_wrong": 1
+ },
+ "\\hat{\\mu}=\\frac{1}{n}\\sum_{i=1}^{n}X_i": {
+  "latex": "\\hat{\\mu} = \\frac{1}{n} \\sum_{i=1}^{n} X_i",
+  "pool": [
+   {
+    "id": "2393ba",
+    "i": 3,
+    "to": "2",
+    "type": "constant_perturb"
+   },
+   {
+    "id": "11625b",
+    "i": 4,
+    "to": "n-1",
+    "type": "constant_perturb"
+   },
+   {
+    "id": "00f219",
+    "i": 8,
+    "to": "2",
+    "type": "index_swap"
+   },
+   {
+    "id": "1a66fa",
+    "i": 9,
+    "to": "n-1",
+    "type": "index_swap"
+   }
+  ],
+  "provenance": "llm",
+  "n_wrong": 1
+ },
+ "\\hat{\\sigma}^2=\\frac{1}{n}\\sum_{i=1}^{n}(X_i-\\bar{X})^2": {
+  "latex": "\\hat{\\sigma}^2 = \\frac{1}{n} \\sum_{i=1}^{n} (X_i - \\bar{X})^2",
+  "pool": [
+   {
+    "id": "85df57",
+    "i": 2,
+    "to": "3",
+    "type": "constant_perturb"
+   },
+   {
+    "id": "e3dfdd",
+    "i": 15,
+    "to": "3",
+    "type": "constant_perturb"
+   },
+   {
+    "id": "c48fa4",
+    "i": 13,
+    "to": "+",
+    "type": "operator_swap"
+   },
+   {
+    "id": "0f34ca",
+    "i": 4,
+    "to": "2",
+    "type": "constant_perturb"
+   },
+   {
+    "id": "3ae6e1",
+    "i": 11,
+    "to": "Y",
+    "type": "variable_swap"
+   }
+  ],
+  "provenance": "llm",
+  "n_wrong": 1
+ },
+ "SE(\\hat{\\lambda})=\\sqrt{\\frac{\\hat{\\lambda}}{n}}": {
+  "latex": "SE(\\hat{\\lambda}) = \\sqrt{\\frac{\\hat{\\lambda}}{n}}",
+  "pool": [
+   {
+    "id": "b75743",
+    "i": 5,
+    "to": "n",
+    "type": "variable_swap"
+   },
+   {
+    "id": "cd2eaf",
+    "i": 6,
+    "to": "λ",
+    "type": "variable_swap"
+   },
+   {
+    "id": "d279a7",
+    "i": 6,
+    "to": "2",
+    "type": "constant_perturb"
+   }
+  ],
+  "provenance": "llm",
+  "n_wrong": 1
+ },
+ "SE_{boot}=\\sqrt{\\frac{1}{B-1}\\sum_{b=1}^{B}(\\hat{\\theta}_b^*-\\bar{\\theta}^*)^2}": {
+  "latex": "SE_{boot} = \\sqrt{\\frac{1}{B-1} \\sum_{b=1}^{B} (\\hat{\\theta}_b^* - \\bar{\\theta}^*)^2}",
+  "pool": [
+   {
+    "id": "d01dca",
+    "i": 10,
+    "to": "+",
+    "type": "operator_swap"
+   },
+   {
+    "id": "19ce59",
+    "i": 23,
+    "to": "3",
+    "type": "constant_perturb"
+   },
+   {
+    "id": "e19a58",
+    "i": 11,
+    "to": "2",
+    "type": "constant_perturb"
+   },
+   {
+    "id": "e62152",
+    "i": 20,
+    "to": "+",
+    "type": "operator_swap"
+   }
+  ],
+  "provenance": "llm",
+  "n_wrong": 1
+ },
+ "\\operatorname{Var}_{jack}(\\hat{\\theta})=\\frac{n-1}{n}\\sum_{i=1}^{n}(\\hat{\\theta}_{(i)}-\\bar{\\theta}_{(\\cdot)})^2": {
+  "latex": "\\operatorname{Var}_{jack}(\\hat{\\theta}) = \\frac{n-1}{n} \\sum_{i=1}^{n} (\\hat{\\theta}_{(i)} - \\bar{\\theta}_{(\\cdot)})^2",
+  "pool": [
+   {
+    "id": "2edda6",
+    "i": 9,
+    "to": "+",
+    "type": "operator_swap"
+   },
+   {
+    "id": "97b354",
+    "i": 19,
+    "to": "+",
+    "type": "operator_swap"
+   },
+   {
+    "id": "a0a576",
+    "i": 22,
+    "to": "3",
+    "type": "constant_perturb"
+   },
+   {
+    "id": "0a19d6",
+    "i": 10,
+    "to": "2",
+    "type": "constant_perturb"
+   },
+   {
+    "id": "acbb41",
+    "i": 16,
+    "to": "1",
+    "type": "constant_perturb"
+   }
+  ],
+  "provenance": "llm",
+  "n_wrong": 1
+ },
+ "SE(\\log\\hat{\\theta})=\\frac{SE(\\hat{\\theta})}{\\hat{\\theta}}": {
+  "latex": "SE(\\log \\hat{\\theta}) = \\frac{SE(\\hat{\\theta})}{\\hat{\\theta}}",
+  "pool": [
+   {
+    "id": "d7b57d",
+    "i": 3,
+    "to": "exp",
+    "type": "function_swap"
+   },
+   {
+    "id": "706959",
+    "i": 5,
+    "to": "≠",
+    "type": "logic_swap"
+   },
+   {
+    "id": "feed05",
+    "i": 9,
+    "to": "θ^2",
+    "type": "constant_perturb"
+   },
+   {
+    "id": "1456bf",
+    "i": 4,
+    "to": "θ^2",
+    "type": "function_swap"
+   }
+  ],
+  "provenance": "llm",
+  "n_wrong": 1
+ },
+ "\\operatorname{Cov}(X,Y)=\\operatorname{Cov}(Y,X)": {
+  "latex": "\\operatorname{Cov}(X,Y) = \\operatorname{Cov}(Y,X)",
+  "pool": [
+   {
+    "id": "706959",
+    "i": 5,
+    "to": "≠",
+    "type": "logic_swap"
+   },
+   {
+    "id": "ab5989",
+    "i": 2,
+    "to": "Y",
+    "type": "variable_swap"
+   },
+   {
+    "id": "b3c4a0",
+    "i": 4,
+    "to": "X",
+    "type": "variable_swap"
+   },
+   {
+    "id": "84745d",
+    "i": 7,
+    "to": "X",
+    "type": "variable_swap"
+   },
+   {
+    "id": "70cf17",
+    "i": 9,
+    "to": "Y",
+    "type": "variable_swap"
+   }
+  ],
+  "provenance": "llm",
+  "n_wrong": 1
+ },
+ "|\\operatorname{Cov}(X,Y)|\\leq\\sigma_X\\sigma_Y": {
+  "latex": "|\\operatorname{Cov}(X,Y)| \\leq \\sigma_X \\sigma_Y",
+  "pool": [
+   {
+    "id": "c6abc3",
+    "i": 5,
+    "to": "≥",
+    "type": "operator_swap"
+   },
+   {
+    "id": "ab5989",
+    "i": 2,
+    "to": "Y",
+    "type": "variable_swap"
+   },
+   {
+    "id": "b3c4a0",
+    "i": 4,
+    "to": "X",
+    "type": "variable_swap"
+   },
+   {
+    "id": "a26981",
+    "i": 7,
+    "to": "Y",
+    "type": "variable_swap"
+   },
+   {
+    "id": "19bfa6",
+    "i": 9,
+    "to": "X",
+    "type": "variable_swap"
+   }
+  ],
+  "provenance": "llm",
+  "n_wrong": 1
+ },
+ "\\chi^2=\\sum\\frac{(O_i-E_i)^2}{E_i}": {
+  "latex": "\\chi^2 = \\sum \\frac{(O_i - E_i)^2}{E_i}",
+  "pool": [
+   {
+    "id": "0ef436",
+    "i": 7,
+    "to": "+",
+    "type": "operator_swap"
+   },
+   {
+    "id": "0966f8",
+    "i": 10,
+    "to": "3",
+    "type": "constant_perturb"
+   },
+   {
+    "id": "501530",
+    "i": 5,
+    "to": "E",
+    "type": "variable_swap"
+   },
+   {
+    "id": "28d36d",
+    "i": 11,
+    "to": "O",
+    "type": "variable_swap"
+   },
+   {
+    "id": "24341f",
+    "i": 8,
+    "to": "O",
+    "type": "variable_swap"
+   }
+  ],
+  "provenance": "llm",
+  "n_wrong": 1
+ },
+ "t=\\frac{\\hat{\\beta}_1-\\beta_0}{SE(\\hat{\\beta}_1)}": {
+  "latex": "t = \\frac{\\hat{\\beta}_1 - \\beta_0}{SE(\\hat{\\beta}_1)}",
+  "pool": [
+   {
+    "id": "4ccf54",
+    "i": 5,
+    "to": "+",
+    "type": "operator_swap"
+   },
+   {
+    "id": "f51a62",
+    "i": 4,
+    "to": "2",
+    "type": "index_swap"
+   },
+   {
+    "id": "f3833f",
+    "i": 11,
+    "to": "0",
+    "type": "index_swap"
+   }
+  ],
+  "provenance": "llm",
+  "n_wrong": 1
+ },
+ "n=\\left(\\frac{z^{*}\\sigma}{E}\\right)^2": {
+  "latex": "n = \\left(\\frac{z^{*} \\sigma}{E}\\right)^2",
+  "pool": [
+   {
+    "id": "5bba52",
+    "i": 7,
+    "to": "3",
+    "type": "constant_perturb"
+   },
+   {
+    "id": "18662c",
+    "i": 6,
+    "to": "σ",
+    "type": "variable_swap"
+   },
+   {
+    "id": "501530",
+    "i": 5,
+    "to": "E",
+    "type": "variable_swap"
+   },
+   {
+    "id": "0f34ca",
+    "i": 4,
+    "to": "2",
+    "type": "constant_perturb"
+   }
+  ],
+  "provenance": "llm",
+  "n_wrong": 1
+ },
+ "\\chi^2=\\sum\\frac{(|O_i-E_i|-0.5)^2}{E_i}": {
+  "latex": "\\chi^2 = \\sum \\frac{(|O_i - E_i| - 0.5)^2}{E_i}",
+  "pool": [
+   {
+    "id": "d01dca",
+    "i": 10,
+    "to": "+",
+    "type": "operator_swap"
+   },
+   {
+    "id": "c7f182",
+    "i": 11,
+    "to": "1",
+    "type": "constant_perturb"
+   },
+   {
+    "id": "24902b",
+    "i": 12,
+    "to": "3",
+    "type": "constant_perturb"
+   },
+   {
+    "id": "0ef436",
+    "i": 7,
+    "to": "+",
+    "type": "operator_swap"
+   },
+   {
+    "id": "501530",
+    "i": 5,
+    "to": "E",
+    "type": "variable_swap"
+   },
+   {
+    "id": "c39227",
+    "i": 13,
+    "to": "O",
+    "type": "variable_swap"
+   }
+  ],
+  "provenance": "llm",
+  "n_wrong": 1
+ },
+ "F=\\frac{\\chi_1^2/df_1}{\\chi_2^2/df_2}": {
+  "latex": "F = \\frac{\\chi_1^2 / df_1}{\\chi_2^2 / df_2}",
+  "pool": [
+   {
+    "id": "f51a62",
+    "i": 4,
+    "to": "2",
+    "type": "index_swap"
+   },
+   {
+    "id": "00f219",
+    "i": 8,
+    "to": "2",
+    "type": "index_swap"
+   },
+   {
+    "id": "9cca41",
+    "i": 6,
+    "to": "*",
+    "type": "operator_swap"
+   },
+   {
+    "id": "6db07f",
+    "i": 10,
+    "to": "1",
+    "type": "index_swap"
+   },
+   {
+    "id": "738547",
+    "i": 14,
+    "to": "1",
+    "type": "index_swap"
+   }
+  ],
+  "provenance": "llm",
+  "n_wrong": 1
+ },
+ "\\hat{y}_i=\\hat{\\beta}_0+\\hat{\\beta}_1x_i": {
+  "latex": "\\hat{y}_i = \\hat{\\beta}_0 + \\hat{\\beta}_1 x_i",
+  "pool": [
+   {
+    "id": "5324b6",
+    "i": 6,
+    "to": "−",
+    "type": "operator_swap"
+   },
+   {
+    "id": "44077e",
+    "i": 5,
+    "to": "1",
+    "type": "index_swap"
+   },
+   {
+    "id": "d5f2d1",
+    "i": 8,
+    "to": "0",
+    "type": "index_swap"
+   },
+   {
+    "id": "6769e1",
+    "i": 2,
+    "to": "j",
+    "type": "index_swap"
+   },
+   {
+    "id": "db16d5",
+    "i": 9,
+    "to": "y",
+    "type": "variable_swap"
+   }
+  ],
+  "provenance": "llm",
+  "n_wrong": 1
+ },
+ "\\hat{\\beta}_1=\\frac{\\sum_{i=1}^{n}(x_i-\\bar{x})(y_i-\\bar{y})}{\\sum_{i=1}^{n}(x_i-\\bar{x})^2}": {
+  "latex": "\\hat{\\beta}_1 = \\frac{\\sum_{i=1}^{n} (x_i - \\bar{x})(y_i - \\bar{y})}{\\sum_{i=1}^{n} (x_i - \\bar{x})^2}",
+  "pool": [
+   {
+    "id": "631ceb",
+    "i": 11,
+    "to": "+",
+    "type": "operator_swap"
+   },
+   {
+    "id": "841c9f",
+    "i": 15,
+    "to": "+",
+    "type": "operator_swap"
+   },
+   {
+    "id": "3d4574",
+    "i": 24,
+    "to": "+",
+    "type": "operator_swap"
+   },
+   {
+    "id": "c8a674",
+    "i": 26,
+    "to": "1",
+    "type": "constant_perturb"
+   },
+   {
+    "id": "51984c",
+    "i": 12,
+    "to": "y",
+    "type": "variable_swap"
+   },
+   {
+    "id": "29df7a",
+    "i": 16,
+    "to": "x",
+    "type": "variable_swap"
+   }
+  ],
+  "provenance": "llm",
+  "n_wrong": 1
+ },
+ "\\hat{\\beta}_0=\\bar{y}-\\hat{\\beta}_1\\bar{x}": {
+  "latex": "\\hat{\\beta}_0 = \\bar{y} - \\hat{\\beta}_1 \\bar{x}",
+  "pool": [
+   {
+    "id": "4ccf54",
+    "i": 5,
+    "to": "+",
+    "type": "operator_swap"
+   },
+   {
+    "id": "c51005",
+    "i": 2,
+    "to": "1",
+    "type": "index_swap"
+   },
+   {
+    "id": "9d4d61",
+    "i": 7,
+    "to": "0",
+    "type": "index_swap"
+   },
+   {
+    "id": "145d40",
+    "i": 4,
+    "to": "x",
+    "type": "variable_swap"
+   },
+   {
+    "id": "f6c094",
+    "i": 8,
+    "to": "y",
+    "type": "variable_swap"
+   }
+  ],
+  "provenance": "llm",
+  "n_wrong": 1
+ },
+ "\\hat{\\beta}_1=r_{xy}\\frac{s_y}{s_x}": {
+  "latex": "\\hat{\\beta}_1 = r_{xy} \\frac{s_y}{s_x}",
+  "pool": [
+   {
+    "id": "11617f",
+    "i": 8,
+    "to": "x",
+    "type": "variable_swap"
+   },
+   {
+    "id": "3daf2c",
+    "i": 10,
+    "to": "y",
+    "type": "variable_swap"
+   },
+   {
+    "id": "a46c26",
+    "i": 5,
+    "to": "y",
+    "type": "variable_swap"
+   },
+   {
+    "id": "a3341e",
+    "i": 6,
+    "to": "x",
+    "type": "variable_swap"
+   },
+   {
+    "id": "62bcc6",
+    "i": 2,
+    "to": "0",
+    "type": "index_swap"
+   },
+   {
+    "id": "0fbd66",
+    "i": 4,
+    "to": "s",
+    "type": "variable_swap"
+   }
+  ],
+  "provenance": "llm",
+  "n_wrong": 1
+ },
+ "\\hat{\\sigma}^2=\\frac{SSE}{n-2}": {
+  "latex": "\\hat{\\sigma}^2 = \\frac{SSE}{n-2}",
+  "pool": [
+   {
+    "id": "ccd7ca",
+    "i": 9,
+    "to": "1",
+    "type": "constant_perturb"
+   },
+   {
+    "id": "69026a",
+    "i": 8,
+    "to": "+",
+    "type": "operator_swap"
+   },
+   {
+    "id": "33987b",
+    "i": 2,
+    "to": "1",
+    "type": "constant_perturb"
+   },
+   {
+    "id": "a42a24",
+    "i": 6,
+    "to": "R",
+    "type": "variable_swap"
+   }
+  ],
+  "provenance": "llm",
+  "n_wrong": 1
+ },
+ "t=\\frac{\\hat{\\beta}_1-\\beta_1}{SE(\\hat{\\beta}_1)}": {
+  "latex": "t = \\frac{\\hat{\\beta}_1 - \\beta_1}{SE(\\hat{\\beta}_1)}",
+  "pool": [
+   {
+    "id": "4ccf54",
+    "i": 5,
+    "to": "+",
+    "type": "operator_swap"
+   },
+   {
+    "id": "8414f4",
+    "i": 4,
+    "to": "0",
+    "type": "index_swap"
+   },
+   {
+    "id": "9d4d61",
+    "i": 7,
+    "to": "0",
+    "type": "index_swap"
+   },
+   {
+    "id": "f3833f",
+    "i": 11,
+    "to": "0",
+    "type": "index_swap"
+   }
+  ],
+  "provenance": "llm",
+  "n_wrong": 1
+ },
+ "\\sum_{i=1}^{n}y_i=n\\hat{\\beta}_0+\\hat{\\beta}_1\\sum_{i=1}^{n}x_i": {
+  "latex": "\\sum_{i=1}^{n} y_i = n \\hat{\\beta}_0 + \\hat{\\beta}_1 \\sum_{i=1}^{n} x_i",
+  "pool": [
+   {
+    "id": "a3341e",
+    "i": 6,
+    "to": "x",
+    "type": "variable_swap"
+   },
+   {
+    "id": "cc7c9c",
+    "i": 9,
+    "to": "2",
+    "type": "constant_perturb"
+   },
+   {
+    "id": "74bc1e",
+    "i": 11,
+    "to": "1",
+    "type": "index_swap"
+   },
+   {
+    "id": "ff7a62",
+    "i": 12,
+    "to": "−",
+    "type": "operator_swap"
+   },
+   {
+    "id": "935196",
+    "i": 14,
+    "to": "0",
+    "type": "index_swap"
+   },
+   {
+    "id": "00a981",
+    "i": 20,
+    "to": "y",
+    "type": "variable_swap"
+   }
+  ],
+  "provenance": "llm",
+  "n_wrong": 1
+ },
+ "\\sum_{i=1}^{n}x_iy_i=\\hat{\\beta}_0\\sum_{i=1}^{n}x_i+\\hat{\\beta}_1\\sum_{i=1}^{n}x_i^2": {
+  "latex": "\\sum_{i=1}^{n} x_i y_i = \\hat{\\beta}_0 \\sum_{i=1}^{n} x_i + \\hat{\\beta}_1 \\sum_{i=1}^{n} x_i^2",
+  "pool": [
+   {
+    "id": "ddba03",
+    "i": 6,
+    "to": "y",
+    "type": "variable_swap"
+   },
+   {
+    "id": "11617f",
+    "i": 8,
+    "to": "x",
+    "type": "variable_swap"
+   },
+   {
+    "id": "641a2d",
+    "i": 12,
+    "to": "1",
+    "type": "index_swap"
+   },
+   {
+    "id": "b8ed50",
+    "i": 20,
+    "to": "−",
+    "type": "operator_swap"
+   },
+   {
+    "id": "2bd466",
+    "i": 22,
+    "to": "0",
+    "type": "index_swap"
+   },
+   {
+    "id": "28c411",
+    "i": 30,
+    "to": "1",
+    "type": "constant_perturb"
+   }
+  ],
+  "provenance": "llm",
+  "n_wrong": 1
+ },
+ "\\hat{\\beta}_1=\\frac{S_{xy}}{S_{xx}}": {
+  "latex": "\\hat{\\beta}_1 = \\frac{S_{xy}}{S_{xx}}",
+  "pool": [
+   {
+    "id": "62bcc6",
+    "i": 2,
+    "to": "0",
+    "type": "index_swap"
+   },
+   {
+    "id": "a46c26",
+    "i": 5,
+    "to": "y",
+    "type": "variable_swap"
+   },
+   {
+    "id": "a3341e",
+    "i": 6,
+    "to": "x",
+    "type": "variable_swap"
+   },
+   {
+    "id": "f6c094",
+    "i": 8,
+    "to": "y",
+    "type": "variable_swap"
+   },
+   {
+    "id": "db16d5",
+    "i": 9,
+    "to": "y",
+    "type": "variable_swap"
+   }
+  ],
+  "provenance": "llm",
+  "n_wrong": 1
+ },
+ "\\operatorname{Var}(\\hat{\\beta}_1)=\\frac{\\sigma^2}{S_{xx}}": {
+  "latex": "\\operatorname{Var}(\\hat{\\beta}_1) = \\frac{\\sigma^2}{S_{xx}}",
+  "pool": [
+   {
+    "id": "d96cb6",
+    "i": 3,
+    "to": "0",
+    "type": "index_swap"
+   },
+   {
+    "id": "7b36c5",
+    "i": 6,
+    "to": "3",
+    "type": "constant_perturb"
+   },
+   {
+    "id": "f6c094",
+    "i": 8,
+    "to": "y",
+    "type": "variable_swap"
+   },
+   {
+    "id": "db16d5",
+    "i": 9,
+    "to": "y",
+    "type": "variable_swap"
+   },
+   {
+    "id": "60e078",
+    "i": 5,
+    "to": "β",
+    "type": "variable_swap"
+   }
+  ],
+  "provenance": "llm",
+  "n_wrong": 1
+ },
+ "\\operatorname{Var}(\\hat{\\beta}_0)=\\sigma^2\\left(\\frac{1}{n}+\\frac{\\bar{x}^2}{S_{xx}}\\right)": {
+  "latex": "\\operatorname{Var}(\\hat{\\beta}_0) = \\sigma^2 \\left( \\frac{1}{n} + \\frac{\\bar{x}^2}{S_{xx}} \\right)",
+  "pool": [
+   {
+    "id": "169586",
+    "i": 3,
+    "to": "1",
+    "type": "index_swap"
+   },
+   {
+    "id": "bd9068",
+    "i": 9,
+    "to": "−",
+    "type": "operator_swap"
+   },
+   {
+    "id": "c4db96",
+    "i": 7,
+    "to": "2",
+    "type": "constant_perturb"
+   },
+   {
+    "id": "0d3f66",
+    "i": 11,
+    "to": "3",
+    "type": "constant_perturb"
+   },
+   {
+    "id": "79d1f4",
+    "i": 13,
+    "to": "y",
+    "type": "variable_swap"
+   },
+   {
+    "id": "9665fc",
+    "i": 14,
+    "to": "y",
+    "type": "variable_swap"
+   }
+  ],
+  "provenance": "llm",
+  "n_wrong": 1
+ },
+ "\\operatorname{Cov}(\\hat{\\beta}_0,\\hat{\\beta}_1)=-\\frac{\\sigma^2\\bar{x}}{S_{xx}}": {
+  "latex": "\\operatorname{Cov}(\\hat{\\beta}_0, \\hat{\\beta}_1) = - \\frac{\\sigma^2 \\bar{x}}{S_{xx}}",
+  "pool": [
+   {
+    "id": "69026a",
+    "i": 8,
+    "to": "+",
+    "type": "operator_swap"
+   },
+   {
+    "id": "169586",
+    "i": 3,
+    "to": "1",
+    "type": "index_swap"
+   },
+   {
+    "id": "ec3e82",
+    "i": 6,
+    "to": "0",
+    "type": "index_swap"
+   },
+   {
+    "id": "0966f8",
+    "i": 10,
+    "to": "3",
+    "type": "constant_perturb"
+   },
+   {
+    "id": "79d1f4",
+    "i": 13,
+    "to": "y",
+    "type": "variable_swap"
+   },
+   {
+    "id": "9665fc",
+    "i": 14,
+    "to": "y",
+    "type": "variable_swap"
+   }
+  ],
+  "provenance": "llm",
+  "n_wrong": 1
+ },
+ "r_i=\\frac{e_i}{\\hat{\\sigma}\\sqrt{1-h_{ii}}}": {
+  "latex": "r_i = \\frac{e_i}{\\hat{\\sigma} \\sqrt{1 - h_{ii}}}",
+  "pool": [
+   {
+    "id": "69026a",
+    "i": 8,
+    "to": "+",
+    "type": "operator_swap"
+   },
+   {
+    "id": "c4db96",
+    "i": 7,
+    "to": "2",
+    "type": "constant_perturb"
+   },
+   {
+    "id": "826f42",
+    "i": 5,
+    "to": "j",
+    "type": "index_swap"
+   },
+   {
+    "id": "e6e1d0",
+    "i": 10,
+    "to": "j",
+    "type": "index_swap"
+   },
+   {
+    "id": "d4088c",
+    "i": 11,
+    "to": "j",
+    "type": "index_swap"
+   },
+   {
+    "id": "6769e1",
+    "i": 2,
+    "to": "j",
+    "type": "index_swap"
+   }
+  ],
+  "provenance": "llm",
+  "n_wrong": 1
+ }
+}
